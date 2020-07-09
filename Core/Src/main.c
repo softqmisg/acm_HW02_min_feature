@@ -90,7 +90,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
