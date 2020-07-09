@@ -96,6 +96,7 @@ int main(void)
   int j=i+234;
   int rr=901930;
   int mehdi1=12;
+  float hassan=6712637.99f;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
