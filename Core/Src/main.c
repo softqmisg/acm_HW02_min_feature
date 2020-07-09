@@ -92,6 +92,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
+  int i=991;
+  int j=i;
+  int rr=901930;
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
