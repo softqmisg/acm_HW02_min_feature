@@ -95,7 +95,7 @@ int main(void)
   int i=991;
   int j=i+234;
   int rr=901930;
-
+  int mehdi1=12;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
