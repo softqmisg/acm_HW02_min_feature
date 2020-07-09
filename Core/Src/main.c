@@ -44,8 +44,7 @@
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-int x = 21200123;
-float y = 182739.1298379;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
