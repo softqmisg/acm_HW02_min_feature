@@ -93,7 +93,7 @@ int main(void)
 
   /* USER CODE END 2 */
   int i=991;
-  int j=i;
+  int j=i+234;
   int rr=901930;
 
   /* Infinite loop */
