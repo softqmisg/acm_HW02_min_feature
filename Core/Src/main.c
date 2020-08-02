@@ -20,6 +20,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
+#include "tim.h"
+#include "usb_otg.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,7 +45,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 
@@ -49,14 +52,16 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint16_t als,white;
+uint8_t buffer[2];
+HAL_StatusTypeDef status;
+double voltage,current;
 
 /* USER CODE END 0 */
 
@@ -89,18 +94,37 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_I2C3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port, TEC_ONOFF_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port, TEC_CURDIR_Pin, GPIO_PIN_SET);
 
-  /* USER CODE END 2 */
-  int i=991;
-  int j=i+234;
-  int rr=901930;
-  int mehdi1=12;
-  float hassan=6712637.99f;
+  	  status=ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_MANUFACTURE_ID, buffer);
+  	  status=ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_DIE_ID, buffer);
+
+  	  status=ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_MANUFACTURE_ID, buffer);
+  	  status=ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_DIE_ID, buffer);
+    /* USER CODE END 2 */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  ///////////CH1,7V
+  	  status=ina3221_readfloat((uint8_t)VOLTAGE_7V, &voltage);
+  	  status=ina3221_readfloat((uint8_t)CURRENT_7V, &current);
+	  ///////////CH2,12V
+  	  status=ina3221_readfloat((uint8_t)VOLTAGE_12V, &voltage);
+  	  status=ina3221_readfloat((uint8_t)CURRENT_12V, &current);
+  	  ///////////CH3,3.3V
+  	  status=ina3221_readfloat((uint8_t)VOLTAGE_3V3, &voltage);
+  	  status=ina3221_readfloat((uint8_t)CURRENT_3V3, &current);
+  	  ///////////TEC,12V
+  	  status=ina3221_readfloat((uint8_t)VOLTAGE_TEC, &voltage);
+  	  status=ina3221_readfloat((uint8_t)CURRENT_TEC, &current);
+  	  ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  	  HAL_Delay(5000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -148,56 +172,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 4;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-
 }
 
 /* USER CODE BEGIN 4 */

@@ -29,10 +29,12 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "vcnl4200.h"
+#include "INA3221.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -58,6 +60,40 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ALERT2_TMP275_Pin GPIO_PIN_3
+#define ALERT2_TMP275_GPIO_Port GPIOE
+#define ALERT1_TMP275_Pin GPIO_PIN_2
+#define ALERT1_TMP275_GPIO_Port GPIOE
+#define DISP_CMD_Pin GPIO_PIN_1
+#define DISP_CMD_GPIO_Port GPIOE
+#define DISP_RST_Pin GPIO_PIN_0
+#define DISP_RST_GPIO_Port GPIOE
+#define DISP_SID_Pin GPIO_PIN_8
+#define DISP_SID_GPIO_Port GPIOB
+#define DISP_SCK_Pin GPIO_PIN_5
+#define DISP_SCK_GPIO_Port GPIOB
+#define BTN2_Pin GPIO_PIN_4
+#define BTN2_GPIO_Port GPIOB
+#define BTN1_Pin GPIO_PIN_3
+#define BTN1_GPIO_Port GPIOB
+#define ALERT3_TMP275_Pin GPIO_PIN_4
+#define ALERT3_TMP275_GPIO_Port GPIOE
+#define ALERT0_TMP275_Pin GPIO_PIN_5
+#define ALERT0_TMP275_GPIO_Port GPIOE
+#define ALERT4_TMP275_Pin GPIO_PIN_6
+#define ALERT4_TMP275_GPIO_Port GPIOE
+#define DISP_LEDA_Pin GPIO_PIN_9
+#define DISP_LEDA_GPIO_Port GPIOB
+#define DISP_CS_Pin GPIO_PIN_7
+#define DISP_CS_GPIO_Port GPIOB
+#define TEC_ONOFF_Pin GPIO_PIN_13
+#define TEC_ONOFF_GPIO_Port GPIOF
+#define TEC_CURDIR_Pin GPIO_PIN_12
+#define TEC_CURDIR_GPIO_Port GPIOF
+#define INT_VCNL4200_Pin GPIO_PIN_14
+#define INT_VCNL4200_GPIO_Port GPIOE
+#define RESET_MB_Pin GPIO_PIN_15
+#define RESET_MB_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
