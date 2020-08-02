@@ -37,6 +37,7 @@ extern "C" {
 #include "INA3221.h"
 #include "veml6030.h"
 #include "astro.h"
+#include "tmp275.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

@@ -62,7 +62,7 @@ void SystemClock_Config(void);
 uint16_t als,white;
 uint8_t buffer[2];
 HAL_StatusTypeDef status;
-double voltage,current;
+double voltage,current,temperature[8];
 
 /* USER CODE END 0 */
 
@@ -99,6 +99,12 @@ int main(void)
   MX_TIM4_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
+  for(uint8_t ch=TMP_CH0;ch<=TMP_CH7;ch++)
+		  status=tmp275_init(ch);
+  status=ina3221_init();
+  status=vcnl4200_init();
+  status=veml6030_init();
+
   HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port, TEC_ONOFF_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port, TEC_CURDIR_Pin, GPIO_PIN_SET);
 
@@ -113,6 +119,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  ///////////temperatures//////////////////////////////////
+	  for(uint8_t ch=TMP_CH0;ch<=TMP_CH7;ch++)
+		  status=tmp275_readTemperature(ch, &temperature[ch]);
 	  ///////////CH1,7V
   	  status=ina3221_readfloat((uint8_t)VOLTAGE_7V, &voltage);
   	  status=ina3221_readfloat((uint8_t)CURRENT_7V, &current);

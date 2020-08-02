@@ -14,6 +14,7 @@ HAL_StatusTypeDef ina3221_init(void)
 {
 	HAL_I2C_MspInit(&hi2c3);
 	MX_I2C3_Init();
+	return HAL_OK;
 }
 /**
  * address :7bit address
