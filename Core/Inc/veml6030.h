@@ -34,7 +34,7 @@ enum {
 };
 #define CONF0_ALS_PERS		4
 enum {
-	ALS_PERS1 = 0, ALS_PERS2 = 1, ALS_PERS4 = 2, ALS_PERS4 = 3
+	ALS_PERS1 = 0, ALS_PERS2 = 1, ALS_PERS4 = 2, ALS_PERS8 = 3
 };
 #define CONF0_ALS_IT	6
 enum {

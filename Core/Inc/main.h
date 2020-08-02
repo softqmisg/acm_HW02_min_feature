@@ -35,6 +35,8 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "vcnl4200.h"
 #include "INA3221.h"
+#include "veml6030.h"
+#include "astro.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
