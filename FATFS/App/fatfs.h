@@ -1,8 +1,7 @@
 /**
   ******************************************************************************
-  * File Name          : USB_OTG.h
-  * Description        : This file provides code for the configuration
-  *                      of the USB_OTG instances.
+  * @file   fatfs.h
+  * @brief  Header for fatfs applications
   ******************************************************************************
   * @attention
   *
@@ -16,43 +15,35 @@
   *
   ******************************************************************************
   */
+
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __usb_otg_H
-#define __usb_otg_H
+#ifndef __fatfs_H
+#define __fatfs_H
 #ifdef __cplusplus
  extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "ff.h"
+#include "ff_gen_drv.h"
+#include "sd_diskio.h" /* defines SD_Driver as external */
 
 /* USER CODE BEGIN Includes */
-
+#include "rtc.h"
 /* USER CODE END Includes */
 
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+extern uint8_t retSD; /* Return value for SD */
+extern char SDPath[4]; /* SD logical drive path */
+extern FATFS SDFatFS; /* File system object for SD logical drive */
+extern FIL SDFile; /* File object for SD */
 
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
-void MX_USB_OTG_FS_PCD_Init(void);
+void MX_FATFS_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */
-
 #ifdef __cplusplus
 }
 #endif
-#endif /*__ usb_otg_H */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
+#endif /*__fatfs_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

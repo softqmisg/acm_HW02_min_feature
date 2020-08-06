@@ -89,6 +89,8 @@ void Error_Handler(void);
 #define DISP_LEDA_GPIO_Port GPIOB
 #define DISP_CS_Pin GPIO_PIN_7
 #define DISP_CS_GPIO_Port GPIOB
+#define uSD_Detect_Pin GPIO_PIN_1
+#define uSD_Detect_GPIO_Port GPIOD
 #define TEC_ONOFF_Pin GPIO_PIN_13
 #define TEC_ONOFF_GPIO_Port GPIOF
 #define TEC_CURDIR_Pin GPIO_PIN_12
