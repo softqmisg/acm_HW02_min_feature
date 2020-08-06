@@ -18,7 +18,7 @@
   */
 /* USER CODE END Header */
 
-/* Note: code generation based on sd_diskio_dma_template_bspv1.c v2.1.4 
+/* Note: code generation based on sd_diskio_dma_template_bspv1.c v2.1.4
    as "Use dma template" is enabled. */
 
 /* USER CODE BEGIN firstSection */
@@ -46,14 +46,14 @@
 /*
  * Depending on the use case, the SD card initialization could be done at the
  * application level: if it is the case define the flag below to disable
- * the BSP_SD_Init() call in the SD_Initialize() and add a call to 
+ * the BSP_SD_Init() call in the SD_Initialize() and add a call to
  * BSP_SD_Init() elsewhere in the application.
  */
 /* USER CODE BEGIN disableSDInit */
 /* #define DISABLE_SD_INIT */
 /* USER CODE END disableSDInit */
 
-/* 
+/*
  * when using cachable memory region, it may be needed to maintain the cache
  * validity. Enable the define below to activate a cache maintenance at each
  * read and write operation.
@@ -61,7 +61,7 @@
  */
 /* USER CODE BEGIN enableSDDmaCacheMaintenance */
 /* #define ENABLE_SD_DMA_CACHE_MAINTENANCE  1 */
-/* USER CODE BEGIN enableSDDmaCacheMaintenance */
+/* USER CODE END enableSDDmaCacheMaintenance */
 
 /*
 * Some DMA requires 4-Byte aligned address buffer to correctly read/wite data,
@@ -186,7 +186,7 @@ DSTATUS SD_status(BYTE lun)
   * @param  count: Number of sectors to read (1..128)
   * @retval DRESULT: Operation result
   */
-              
+
 DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
@@ -308,7 +308,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
   * @retval DRESULT: Operation result
   */
 #if _USE_WRITE == 1
-              
+
 DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
@@ -319,7 +319,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 #endif
 
    WriteStatus = 0;
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
   uint32_t alignedAddr;
 #endif
 
@@ -332,7 +332,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
   if (!((uint32_t)buff & 0x3))
   {
 #endif
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
 
     /*
     the SCB_CleanDCache_by_Addr() requires a 32-Byte aligned address
@@ -377,7 +377,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     else
     {
       /* Slow path, fetch each sector a part and memcpy to destination buffer */
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)   
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
       /*
       * invalidate the scratch buffer before the next write to get the actual data instead of the cached one
       */
@@ -475,7 +475,7 @@ DRESULT SD_ioctl(BYTE lun, BYTE cmd, void *buff)
 /* can be used to modify previous code / undefine following code / add new code */
 /* USER CODE END afterIoctlSection */
 
-/* USER CODE BEGIN callbackSection */ 
+/* USER CODE BEGIN callbackSection */
 /* can be used to modify / following code or add new code */
 /* USER CODE END callbackSection */
 /**
@@ -485,7 +485,7 @@ DRESULT SD_ioctl(BYTE lun, BYTE cmd, void *buff)
   */
 void BSP_SD_WriteCpltCallback(void)
 {
-             
+
   WriteStatus = 1;
 }
 
@@ -499,7 +499,7 @@ void BSP_SD_ReadCpltCallback(void)
   ReadStatus = 1;
 }
 
-/* USER CODE BEGIN ErrorAbortCallbacks */ 
+/* USER CODE BEGIN ErrorAbortCallbacks */
 /*
 ==============================================================================================
   depending on the SD_HAL_Driver version, either the HAL_SD_ErrorCallback() or HAL_SD_AbortCallback()
@@ -513,9 +513,9 @@ void BSP_SD_ErrorCallback(void)
 {
 }
 */
-/* USER CODE END ErrorAbortCallbacks */ 
+/* USER CODE END ErrorAbortCallbacks */
 
-/* USER CODE BEGIN lastSection */ 
+/* USER CODE BEGIN lastSection */
 /* can be used to modify / undefine previous code or add new code */
 /* USER CODE END lastSection */
 

@@ -30,9 +30,9 @@
 
 /* USER CODE END 1 */
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
@@ -60,9 +60,9 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, TEC_ONOFF_Pin|TEC_CURDIR_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PEPin PEPin PEPin PEPin 
+  /*Configure GPIO pins : PEPin PEPin PEPin PEPin
                            PEPin PEPin */
-  GPIO_InitStruct.Pin = ALERT2_TMP275_Pin|ALERT1_TMP275_Pin|ALERT3_TMP275_Pin|ALERT0_TMP275_Pin 
+  GPIO_InitStruct.Pin = ALERT2_TMP275_Pin|ALERT1_TMP275_Pin|ALERT3_TMP275_Pin|ALERT0_TMP275_Pin
                           |ALERT4_TMP275_Pin|INT_VCNL4200_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
