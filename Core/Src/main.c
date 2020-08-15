@@ -31,7 +31,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "vcnl4200.h"
+#include "INA3221.h"
+#include "veml6030.h"
+#include "astro.h"
+#include "tmp275.h"
+#include "fonts/font_tahoma.h"
+#include "images/acm_logo.h"
+#include "graphics.h"
+#include "st7565.h"
+#include "libbmp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -126,12 +135,68 @@ int main(void)
   MX_USB_OTG_HS_HCD_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+	uint32_t byteswritten;
+	FIL myfile;
+	FRESULT fr;
+
+   uint8_t backlight=100;
 	char tmp_str[100];
 	RTC_TimeTypeDef cur_time;
 	RTC_DateTypeDef cur_Date;
 	cur_time.Hours = 12;
 	cur_time.Minutes = 59;
 	cur_time.Seconds = 0;
+	/////////////////////////////////////////////////////////////////////////////
+	glcd_init();
+//	glcd_backlight(50);
+//	glcd_contrast(4, 16);
+//	glcd_flip_screen(0);
+
+	glcd_pixel(0, 0, 1);
+	glcd_pixel(127, 0, 1);
+	glcd_pixel(0, 63, 1);
+	glcd_pixel(127, 63, 1);
+//	sprintf(tmp_str,"%d,%d,%d,%d",sizeof(unsigned int),sizeof(unsigned short),sizeof(float),sizeof(double));
+//	draw_text(tmp_str, 0, 0, Tahoma8, 1,1);
+//	glcd_refresh();
+//	while(1);
+//	sprintf(tmp_str,"Select menu");
+//
+//	draw_text("Select menu", 0, 0, Tahoma8, 1,1);
+//	draw_text("Select menu", 0, 15, Tahoma8, 0,0);
+//	draw_text("Select menu", 10, 30, Tahoma8, 1,1);
+//	draw_text("Select menu", 16, 45, Tahoma8, 0,1);
+	//draw_text("Example string", 0, 30, Webdings14, 1);
+	//draw_text("Example string", 0, 30, Wingdings, 1);
+//	draw_bmp_h(0, 0, aCAM_logo_128_02_H[0], aCAM_logo_128_02_H[2], &aCAM_logo_128_02_H[4], 1);
+//	glcd_refresh();
+	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+		HAL_Delay(1000);
+	}
+	bmp_img img;
+	bmp_img_read(&img, "logo.bmp");
+	f_mount(0, "", 1);
+	draw_bmp_h(0, 0, img.img_header.biWidth,img.img_header.biHeight , img.img_pixels, 1);
+	glcd_refresh();
+	bmp_img_free(&img);
+
+//	disp_init();
+//	for(uint8_t y=0;y<8;y++)
+//		for(uint8_t pos=0;pos<128;pos+=6)
+//		{
+//			disp_gotoxy(pos, y);
+//			disp_char(Font8, 'a'+pos/6);
+//		}
+//	HAL_Delay(1000);
+//	disp_clear(0);
+//	HAL_Delay(1000);
+//	for(uint8_t y=0;y<8;y++)
+//		for(uint8_t pos=0;pos<128;pos+=6)
+//		{
+//			disp_gotoxy(pos, y);
+//			disp_char(Font8, 'a'+pos/6);
+//		}
+	/////////////////////////////////////////////////////////////////////////////
 	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 
 	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
@@ -243,7 +308,7 @@ int main(void)
 		status = ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage);
 		status = ina3221_readfloat((uint8_t) CURRENT_TEC, &current);
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		HAL_Delay(5000);
+		HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

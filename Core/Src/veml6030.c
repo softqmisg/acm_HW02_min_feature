@@ -71,7 +71,6 @@ HAL_StatusTypeDef veml6030_als(uint16_t *value)
 	if(HAL_I2C_Mem_Read(&hi2c3, VEML6030_BASEADDRESS<<1,VEML6030_ALS_DATA , I2C_MEMADD_SIZE_8BIT, read_value, 2, 1000)!=VEML6030_OK)
 		return VEML6030_ERROR;
 	*value = ((uint16_t) read_value[1] << 8) | ((uint16_t) read_value[0]);
-		return VCNL4200_OK;
 	return VEML6030_OK;
 }
 /**
@@ -84,6 +83,5 @@ HAL_StatusTypeDef veml6030_white(uint16_t *value)
 	if(HAL_I2C_Mem_Read(&hi2c3, VEML6030_BASEADDRESS<<1,VEML6030_WHITE_DATA, I2C_MEMADD_SIZE_8BIT, read_value, 2, 1000)!=VEML6030_OK)
 		return VEML6030_ERROR;
 	*value = ((uint16_t) read_value[1] << 8) | ((uint16_t) read_value[0]);
-		return VCNL4200_OK;
 	return VEML6030_OK;
 }
