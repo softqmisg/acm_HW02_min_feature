@@ -17,8 +17,7 @@ bounding_box_t draw_text(char *string, unsigned char x, unsigned char y, unsigne
 
 	ret.x1 = x;
 	ret.y1 = y;
-	if(inv)
-		draw_fill(x, y, x+text_width(string, font, 1), y+text_height(string, font), spacing);
+	draw_fill(x, y, x+text_width(string, font, spacing), y+text_height(string, font), inv);
 
 	spacing += 1;
 

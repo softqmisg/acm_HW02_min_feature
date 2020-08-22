@@ -7,11 +7,13 @@
 #include "st7565-config.h"
 #include "st7565.h"
 unsigned char glcd_flipped = 0;
+uint16_t glcd_width, glcd_height;
 
 /** Global buffer to hold the current screen contents. */
 // This has to be kept here because the width & height are set in
 // st7565-config.h
-unsigned char glcd_buffer[SCREEN_WIDTH * SCREEN_HEIGHT / 8];
+//unsigned char glcd_buffer[SCREEN_WIDTH * SCREEN_HEIGHT / 8];
+unsigned char *glcd_buffer;
 
 #ifdef ST7565_DIRTY_PAGES
 unsigned char glcd_dirty_pages;
@@ -76,24 +78,32 @@ void glcd_command(uint8_t command) {
  */
 void glcd_pixel(unsigned char x, unsigned char y, unsigned char colour) {
 
-	if (x > SCREEN_WIDTH || y > SCREEN_HEIGHT)
-		return;
+//	if (x > SCREEN_WIDTH || y > SCREEN_HEIGHT)
+//		return;
 
 //	// Real screen coordinates are 0-63, not 1-64.
 //	x -= 1;
 //	y -= 1;
-
-	unsigned short array_pos = x + ((y / 8) * 128);
+	if (glcd_flipped == 0 || glcd_flipped == 1) {
+		unsigned short array_pos = x + ((y / 8) * glcd_width);
 
 #ifdef ST7565_DIRTY_PAGES
-#warning ** ST7565_DIRTY_PAGES enabled, only changed pages will be written to the GLCD **
-    glcd_dirty_pages |= 1 << (array_pos / 128);
-#endif
+	#warning ** ST7565_DIRTY_PAGES enabled, only changed pages will be written to the GLCD **
+		glcd_dirty_pages |= 1 << (array_pos / 128);
+	#endif
 
-	if (colour) {
-		glcd_buffer[array_pos] |= 1 << (y % 8);
+		if (colour) {
+			glcd_buffer[array_pos] |= 1 << (y % 8);
+		} else {
+			glcd_buffer[array_pos] &= 0xFF ^ 1 << (y % 8);
+		}
 	} else {
-		glcd_buffer[array_pos] &= 0xFF ^ 1 << (y % 8);
+		unsigned short array_pos = (x/8 + (y * glcd_width)/8);
+		if (colour) {
+			glcd_buffer[array_pos] |= 1 << (x % 8);
+		} else {
+			glcd_buffer[array_pos] &= 0xFF ^ (1 << (x % 8));
+		}
 	}
 }
 
@@ -139,23 +149,32 @@ void glcd_refresh() {
 #ifdef ST7565_REVERSE
 		if (!glcd_flipped) {
 #else
-		if (glcd_flipped) {
+		if (glcd_flipped == 0 ||glcd_flipped==2) {
 #endif
 			glcd_command(GLCD_CMD_COLUMN_LOWER | 4);
 		} else {
 			glcd_command(GLCD_CMD_COLUMN_LOWER);
 		}
 		glcd_command(GLCD_CMD_COLUMN_UPPER);
-
+		if(glcd_flipped == 0 ||glcd_flipped==1)
+		{
 		for (int x = 0; x < 128; x++) {
-			glcd_data(glcd_buffer[y * 128 + x]);
+			glcd_data(glcd_buffer[y * glcd_width + x]);
 		}
-	}
+		}
+		else
+		{
+			for (int x = 0; x < 128; x++) {
+				glcd_data(glcd_buffer[y  + x*glcd_width/8]);
+			}
+		}
 
+	}
 #ifdef ST7565_DIRTY_PAGES
     // All pages have now been updated, reset the indicator.
     glcd_dirty_pages = 0;
 #endif
+
 }
 /*
  *
@@ -176,7 +195,14 @@ void glcd_backlight(uint8_t brightness) {
 /*
  *
  */
-void glcd_init() {
+void glcd_init(uint16_t width, uint16_t height) {
+//	unsigned char glcd_buffer[SCREEN_WIDTH * SCREEN_HEIGHT / 8];
+	free(glcd_buffer);
+	glcd_width = width;
+	glcd_height = height;
+	glcd_buffer = malloc(
+			(sizeof(unsigned char)) * (size_t) glcd_width
+					* (size_t) glcd_height);
 
 	// Select the chip
 	ST7567_CS_RESET;
@@ -198,9 +224,6 @@ void glcd_init() {
 
 	// Vertical output direction (common output mode selection)
 	glcd_command(GLCD_CMD_VERTICAL_REVERSE);
-
-	// The screen is the "normal" way up
-	glcd_flipped = 0;
 
 	// Set internal resistor.  A suitable middle value is used as
 	// the default.
@@ -231,7 +254,6 @@ void glcd_init() {
 	glcd_blank();
 	glcd_backlight(50);
 	glcd_contrast(4, 16);
-	glcd_flip_screen(0);
 }
 
 /*
@@ -240,14 +262,27 @@ void glcd_init() {
  *  flip=0, L->R and T->B
  */
 void glcd_flip_screen(unsigned char flip) {
-	if (flip) {
-		glcd_command(GLCD_CMD_HORIZONTAL_NORMAL);
-		glcd_command(GLCD_CMD_VERTICAL_REVERSE);
-		glcd_flipped = 0;
-	} else {
+	switch (flip) {
+	case 0:	//X=L->R,	y=T->B,	position(0,0)=(L,T)
 		glcd_command(GLCD_CMD_HORIZONTAL_REVERSE);
 		glcd_command(GLCD_CMD_VERTICAL_NORMAL);
+		glcd_flipped = 0;
+		break;
+	case 1:	//X=R->L,	Y=B->T,	position(0,0)=(R,B)
+		glcd_command(GLCD_CMD_HORIZONTAL_NORMAL);
+		glcd_command(GLCD_CMD_VERTICAL_REVERSE);
 		glcd_flipped = 1;
+		break;
+	case 2:	//X=B->T,	Y=L->R,	position(0,0)=(B,L)
+		glcd_command(GLCD_CMD_HORIZONTAL_REVERSE);
+		glcd_command(GLCD_CMD_VERTICAL_REVERSE);
+		glcd_flipped = 2;
+		break;
+	case 3:	//X=T->B,	Y=R->L,	position(0,0)=(T,R)
+		glcd_command(GLCD_CMD_HORIZONTAL_NORMAL);
+		glcd_command(GLCD_CMD_VERTICAL_NORMAL);
+		glcd_flipped = 3;
+		break;
 	}
 }
 /*

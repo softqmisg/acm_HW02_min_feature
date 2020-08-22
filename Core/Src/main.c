@@ -37,10 +37,11 @@
 #include "astro.h"
 #include "tmp275.h"
 #include "fonts/font_tahoma.h"
-#include "images/acm_logo.h"
+//#include "images/acm_logo.h"
 #include "graphics.h"
 #include "st7565.h"
 #include "libbmp.h"
+#include "joystick.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -135,6 +136,8 @@ int main(void)
   MX_USB_OTG_HS_HCD_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  //joystick_init(Key_ALL);
+
 	uint32_t byteswritten;
 	FIL myfile;
 	FRESULT fr;
@@ -147,7 +150,8 @@ int main(void)
 	cur_time.Minutes = 59;
 	cur_time.Seconds = 0;
 	/////////////////////////////////////////////////////////////////////////////
-	glcd_init();
+	glcd_init(128,64);
+	glcd_flip_screen(0);
 //	glcd_backlight(50);
 //	glcd_contrast(4, 16);
 //	glcd_flip_screen(0);
@@ -161,7 +165,6 @@ int main(void)
 //	glcd_refresh();
 //	while(1);
 //	sprintf(tmp_str,"Select menu");
-//
 //	draw_text("Select menu", 0, 0, Tahoma8, 1,1);
 //	draw_text("Select menu", 0, 15, Tahoma8, 0,0);
 //	draw_text("Select menu", 10, 30, Tahoma8, 1,1);
@@ -173,30 +176,125 @@ int main(void)
 	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
 		HAL_Delay(1000);
 	}
+	//////////////////////////load Logo/////////////////////////////////////////
 	bmp_img img;
 	bmp_img_read(&img, "logo.bmp");
 	f_mount(0, "", 1);
 	draw_bmp_h(0, 0, img.img_header.biWidth,img.img_header.biHeight , img.img_pixels, 1);
-	glcd_refresh();
 	bmp_img_free(&img);
+	glcd_refresh();
+	HAL_Delay(5000);
 
-//	disp_init();
-//	for(uint8_t y=0;y<8;y++)
-//		for(uint8_t pos=0;pos<128;pos+=6)
-//		{
-//			disp_gotoxy(pos, y);
-//			disp_char(Font8, 'a'+pos/6);
-//		}
-//	HAL_Delay(1000);
-//	disp_clear(0);
-//	HAL_Delay(1000);
-//	for(uint8_t y=0;y<8;y++)
-//		for(uint8_t pos=0;pos<128;pos+=6)
-//		{
-//			disp_gotoxy(pos, y);
-//			disp_char(Font8, 'a'+pos/6);
-//		}
-	/////////////////////////////////////////////////////////////////////////////
+	////////////////////////keypad check//////////////////////////////////////////
+	glcd_init(64,128);
+	glcd_flip_screen(3);
+//	glcd_pixel(0, 0, 1);
+//	glcd_refresh();
+//	glcd_pixel(0, 1, 1);
+//	glcd_refresh();
+//	glcd_pixel(0, 15, 1);
+//	glcd_refresh();
+//	glcd_pixel(0, 10, 1);
+//	glcd_refresh();
+//	glcd_pixel(30, 10, 1);glcd_refresh();
+//	glcd_pixel(30, 15, 1);glcd_refresh();
+//	draw_box(0, 10, 30, 15, 1);glcd_refresh();
+//
+//	while(1);
+	joystick_init(Key_ALL);
+	uint8_t select=0;
+	while(!select)
+	{
+		if(joystick_read(Key_DOWN,Short_press))
+		{
+			joystick_init(Key_DOWN);
+			draw_text("D",10,0 , Tahoma8, 0,0);
+
+		}
+		else
+		{
+			draw_text("D",10,0 , Tahoma8, 0,1);
+		}
+
+
+		if(joystick_read(Key_TOP,Short_press))
+		{
+			joystick_init(Key_TOP);
+			draw_text("T",20,0 , Tahoma8, 0,0);
+
+		}
+		else
+		{
+			draw_text("T",20,0 , Tahoma8, 0,1);
+
+		}
+
+		if(joystick_read(Key_LEFT,Short_press))
+		{
+			joystick_init(Key_LEFT);
+			draw_text("L",30,0 , Tahoma8, 0,0);
+
+		}
+		else
+		{
+			draw_text("L",30,0 , Tahoma8, 0,1);
+		}
+
+		if(joystick_read(Key_RIGHT,Short_press))
+		{
+			joystick_init(Key_RIGHT);
+			draw_text("R",40,0 , Tahoma8, 0,0);
+
+		}
+		else
+		{
+			draw_text("R",40,0 , Tahoma8, 0,1);
+
+		}
+
+		if(joystick_read(Key_ENTER,Short_press))
+		{
+			joystick_init(Key_ENTER);
+			draw_text("E",50,0 , Tahoma8, 0,0);
+			select=1;
+
+		}
+		else
+		{
+			draw_text("E",50,0 , Tahoma8, 0,1);
+
+		}
+		glcd_refresh();
+		HAL_Delay(500);
+
+	}
+	///////////////////////generate menu/////////////////////////////////////////////
+	glcd_blank();
+	char *menu[]={"Option 1","Option 2","Option 3","Option 4","Option 5","Option 6"};
+	for(uint8_t op=0;op<5;op++)
+	{
+		draw_text(menu[op], 0,op*11 , Tahoma8, 1,0);
+	}
+	uint8_t cur_op=0;
+	draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
+	glcd_refresh();
+	do
+	{
+		if(joystick_read(Key_DOWN, Short_press))
+		{
+			joystick_init(Key_DOWN);
+			if(cur_op>0)
+				draw_text(menu[cur_op-1], 0,(cur_op-1)*11 , Tahoma8, 1,0);
+			if(cur_op>4)
+				cur_op=0;
+			draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
+			cur_op++;
+			glcd_refresh();
+
+		}
+	}while(1);
+//	glcd_blank();
+	/////////////////////////RTC_Sensor test////////////////////////////////////////////////////
 	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 
 	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
@@ -388,7 +486,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  if (htim->Instance == TIM1 && joystick_state()==jostick_initialized) {
+    joystick_read(Key_ALL, no_press);
+  }
   /* USER CODE END Callback 1 */
 }
 

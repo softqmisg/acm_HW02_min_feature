@@ -148,7 +148,7 @@
 /**
  * Initialise the screen.  This should be called first.
  */
-void glcd_init();
+void glcd_init(uint16_t width,uint16_t height);
 /**
  * Send a command byte to the screen.  See GLCD_CMD_ constants for
  * a list of commands.

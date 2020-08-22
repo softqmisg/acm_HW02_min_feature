@@ -3,7 +3,7 @@
  *
  *  Created on: Aug 13, 2020
  *      Author: mehdi
- *      https://github.com/marc-q/libbmp
+ *      customized from:https://github.com/marc-q/libbmp
  */
 #include "libbmp.h"
 // BMP_HEADER
