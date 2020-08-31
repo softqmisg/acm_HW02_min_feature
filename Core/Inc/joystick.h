@@ -34,29 +34,36 @@
  * 		downright=DOWN
  * 		4	0
  *		\	/
- *		  O	1
+ *		  +	1
  *		/	\
  *		3	2
  */
 
 enum {
-	Key_RIGHT = 0,
-	Key_ENTER = 1,
-	Key_DOWN = 2,
-	Key_LEFT = 3,
-	Key_TOP = 4,
-	Key_ALL = 5,
-	Key_NO = 6,
+	Key_No=0x00,
+	Key_RIGHT = 0x01,
+	Key_ENTER = 0x02,
+	Key_DOWN = 0x04,
+	Key_LEFT = 0x08,
+	Key_TOP = 0x10,
+	Key_ALL = Key_RIGHT|Key_ENTER|Key_DOWN|Key_LEFT|Key_TOP
 };
+enum{
+	KNum_RIGHT=0,
+	KNum_ENTER=1,
+	KNum_DOWN=2,
+	KNum_LEFT=3,
+	KNum_TOP=4
 
+};
 enum press_t {
-	no_press, Short_press = 1, Long_press = 2
+	no_press=0x00, Short_press = 0x01, Long_press = 0x02,Both_press=0x03
 };
 
 enum {
 	jostick_initializing = 0, jostick_initialized = 1
 };
-void joystick_init(uint8_t key);
+void joystick_init(uint8_t key,uint8_t presstime);
 uint8_t joystick_state();
 uint8_t joystick_read(uint8_t key, uint8_t presstime);
 

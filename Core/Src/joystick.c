@@ -19,32 +19,38 @@ uint8_t Key_shortpressed[KEYS_NUM];
 uint8_t Key_longpressed[KEYS_NUM];
 uint8_t Key_longlongpressed[KEYS_NUM];
 uint32_t Key_cntshort[KEYS_NUM];
-
-uint8_t joystick_s=jostick_initializing;
+uint32_t Key_cntlong[KEYS_NUM];
+uint8_t joystick_s = jostick_initializing;
 /*
  * init private variable
  */
-void joystick_init(uint8_t key) {
+void joystick_init(uint8_t key,uint8_t presstime) {
 
-	 joystick_s=jostick_initializing;
-	 ////////////////////////////////////////////
-	uint8_t nummin = 0, nummax = KEYS_NUM;
-	if (key == Key_ALL) {
-		nummin = 0;
-		nummax = KEYS_NUM;
-	} else {
-		nummin = key;
-		nummax = key + 1;
+	joystick_s = jostick_initializing;
+	////////////////////////////////////////////
+	uint8_t mask = 1, index = 0;
+	while (index <= 4) {
+		if (mask & key) {
+			if(presstime & Short_press)
+			{
+				Key_shortpressed[index] = 0;
+				Key_cntshort[index] = 0;
+				current_state_sw[index] = previous_state_sw[index] = 1;
+			}
+			if(presstime&Long_press)
+			{
+				Key_longpressed[index] = 0;
+				Key_cntlong[index] = 0;
+			}
+			Key_longlongpressed[index] = 0;
+
+		}
+		index++;
+		mask <<= 1;
 	}
-	for (uint8_t k = nummin; k < nummax; k++) {
-		current_state_sw[k] = previous_state_sw[k] = 1;
-		Key_shortpressed[k] = 0;
-		Key_longpressed[k] = 0;
-		Key_longlongpressed[k] = 0;
-		Key_cntshort[k] = 0;
-	}
+
 	////////////////////////////////////////////////////
-	joystick_s=jostick_initialized;
+	joystick_s = jostick_initialized;
 }
 /*
  * check and return:
@@ -55,6 +61,7 @@ uint8_t joystick_read(uint8_t key, enum press_t presstime) {
 	/*
 	 * check keys state
 	 */
+	uint8_t out;
 	if (key == Key_ALL) {
 		for (uint8_t k = 0; k < KEYS_NUM; k++) {
 			current_state_sw[k] = (uint8_t) HAL_GPIO_ReadPin(key_ports[k],
@@ -70,27 +77,34 @@ uint8_t joystick_read(uint8_t key, enum press_t presstime) {
 			} else if (!current_state_sw[k] && previous_state_sw[k]) {
 				Key_cntshort[k] = 0;
 			} else if (!current_state_sw[k] && !previous_state_sw[k]) {
-				Key_cntshort[k]=(uint32_t)Key_cntshort[k]+1;
-				if ((LIMIT_T1_L < Key_cntshort[k])
-						&& (Key_cntshort[k] < LIMIT_T1_H)) {
+				Key_cntshort[k] = (uint32_t) Key_cntshort[k] + 1;
+				Key_cntlong[k] = (uint32_t) Key_cntlong[k] + 1;
+				if ((LIMIT_T1_L < Key_cntlong[k])
+						&& (Key_cntlong[k] < LIMIT_T1_H)) {
 					Key_longpressed[k] = 1;
-					Key_cntshort[k] = 0;
+					Key_cntlong[k] = 0;
 				}
 			}
 			previous_state_sw[k] = current_state_sw[k];
 		}
+		out = 0;
+	} else {
+		uint8_t index = 0;
+		while (key) {
+			key >>= 1;
+			index++;
+		}
+		if (index) {
+			if (presstime == Short_press)
+				out = Key_shortpressed[index - 1];
+			else if (presstime == Long_press)
+				out = Key_longpressed[index - 1];
+		}
 	}
-	else {
-
-		if (presstime == Short_press)
-			return Key_shortpressed[key];
-		else if (presstime == Long_press)
-			return Key_longpressed[key];
-	}
+	return out;
 
 }
 
-uint8_t joystick_state()
-{
+uint8_t joystick_state() {
 	return joystick_s;
 }

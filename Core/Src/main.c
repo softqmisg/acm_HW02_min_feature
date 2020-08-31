@@ -201,13 +201,14 @@ int main(void)
 //	draw_box(0, 10, 30, 15, 1);glcd_refresh();
 //
 //	while(1);
-	joystick_init(Key_ALL);
+	joystick_init(Key_ALL,Short_press|Long_press);
 	uint8_t select=0;
 	while(!select)
 	{
+		joystick_init(Key_ALL, Long_press);
 		if(joystick_read(Key_DOWN,Short_press))
 		{
-			joystick_init(Key_DOWN);
+			joystick_init(Key_DOWN,Short_press);
 			draw_text("D",10,0 , Tahoma8, 0,0);
 
 		}
@@ -219,7 +220,7 @@ int main(void)
 
 		if(joystick_read(Key_TOP,Short_press))
 		{
-			joystick_init(Key_TOP);
+			joystick_init(Key_TOP,Short_press);
 			draw_text("T",20,0 , Tahoma8, 0,0);
 
 		}
@@ -231,7 +232,7 @@ int main(void)
 
 		if(joystick_read(Key_LEFT,Short_press))
 		{
-			joystick_init(Key_LEFT);
+			joystick_init(Key_LEFT,Short_press);
 			draw_text("L",30,0 , Tahoma8, 0,0);
 
 		}
@@ -242,7 +243,7 @@ int main(void)
 
 		if(joystick_read(Key_RIGHT,Short_press))
 		{
-			joystick_init(Key_RIGHT);
+			joystick_init(Key_RIGHT,Short_press);
 			draw_text("R",40,0 , Tahoma8, 0,0);
 
 		}
@@ -254,7 +255,7 @@ int main(void)
 
 		if(joystick_read(Key_ENTER,Short_press))
 		{
-			joystick_init(Key_ENTER);
+			joystick_init(Key_ENTER,Short_press);
 			draw_text("E",50,0 , Tahoma8, 0,0);
 			select=1;
 
@@ -277,12 +278,15 @@ int main(void)
 	}
 	uint8_t cur_op=0;
 	draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
+	cur_op++;
 	glcd_refresh();
+	joystick_init(Key_ALL,Both_press);
 	do
 	{
+		joystick_init(Key_ALL, Long_press);
 		if(joystick_read(Key_DOWN, Short_press))
 		{
-			joystick_init(Key_DOWN);
+			joystick_init(Key_DOWN,Short_press);
 			if(cur_op>0)
 				draw_text(menu[cur_op-1], 0,(cur_op-1)*11 , Tahoma8, 1,0);
 			if(cur_op>4)
