@@ -1,8 +1,9 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * File Name          : USB_OTG_HS.h
-  * Description        : This file provides code for the configuration
-  *                      of the USB_OTG_HS instances.
+  * @file           : usbh_platform.c
+
+  * @brief          : This file implements the USB platform
   ******************************************************************************
   * @attention
   *
@@ -16,43 +17,38 @@
   *
   ******************************************************************************
   */
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __usb_otg_hs_H
-#define __usb_otg_hs_H
-#ifdef __cplusplus
- extern "C" {
-#endif
+/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "usbh_platform.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN INCLUDE */
 
-/* USER CODE END Includes */
+/* USER CODE END INCLUDE */
 
-extern HCD_HandleTypeDef hhcd_USB_OTG_HS;
-
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
-void MX_USB_OTG_HS_HCD_Init(void);
-
-/* USER CODE BEGIN Prototypes */
-
-/* USER CODE END Prototypes */
-
-#ifdef __cplusplus
+/**
+  * @brief  Drive VBUS.
+  * @param  state : VBUS state
+  *          This parameter can be one of the these values:
+  *          - 1 : VBUS Active
+  *          - 0 : VBUS Inactive
+  */
+void MX_DriverVbusHS(uint8_t state)
+{
+  uint8_t data = state;
+  /* USER CODE BEGIN PREPARE_GPIO_DATA_VBUS_HS */
+  if(state == 0)
+  {
+    /* Drive high Charge pump */
+    data = GPIO_PIN_SET;
+  }
+  else
+  {
+    /* Drive low Charge pump */
+    data = GPIO_PIN_RESET;
+  }
+  /* USER CODE END PREPARE_GPIO_DATA_VBUS_HS */
+  HAL_GPIO_WritePin(GPIOE,GPIO_PIN_11,(GPIO_PinState)data);
 }
-#endif
-#endif /*__ usb_otg_hs_H */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

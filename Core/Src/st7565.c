@@ -263,22 +263,22 @@ void glcd_init(uint16_t width, uint16_t height) {
  */
 void glcd_flip_screen(unsigned char flip) {
 	switch (flip) {
-	case 0:	//X=L->R,	y=T->B,	position(0,0)=(L,T)
+	case XLR_YTB:	//X=L->R,	y=T->B,	position(0,0)=(L,T)
 		glcd_command(GLCD_CMD_HORIZONTAL_REVERSE);
 		glcd_command(GLCD_CMD_VERTICAL_NORMAL);
 		glcd_flipped = 0;
 		break;
-	case 1:	//X=R->L,	Y=B->T,	position(0,0)=(R,B)
+	case XRL_YBT:	//X=R->L,	Y=B->T,	position(0,0)=(R,B)
 		glcd_command(GLCD_CMD_HORIZONTAL_NORMAL);
 		glcd_command(GLCD_CMD_VERTICAL_REVERSE);
 		glcd_flipped = 1;
 		break;
-	case 2:	//X=B->T,	Y=L->R,	position(0,0)=(B,L)
+	case XBT_YLR:	//X=B->T,	Y=L->R,	position(0,0)=(B,L)
 		glcd_command(GLCD_CMD_HORIZONTAL_REVERSE);
 		glcd_command(GLCD_CMD_VERTICAL_REVERSE);
 		glcd_flipped = 2;
 		break;
-	case 3:	//X=T->B,	Y=R->L,	position(0,0)=(T,R)
+	case XTB_YRL:	//X=T->B,	Y=R->L,	position(0,0)=(T,R)
 		glcd_command(GLCD_CMD_HORIZONTAL_NORMAL);
 		glcd_command(GLCD_CMD_VERTICAL_NORMAL);
 		glcd_flipped = 3;

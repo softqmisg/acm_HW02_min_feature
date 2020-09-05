@@ -70,6 +70,10 @@
 #ifndef INC_ST7565_H_
 #define INC_ST7565_H_
 #include "st7565-config.h"
+#define	 XLR_YTB	0
+#define	 XRL_YBT	1
+#define	 XBT_YLR	2
+#define	 XTB_YRL	3
 /////////////////////////////////////////////////////////////////////////////////
 #define ST7567_RST_SET	 	HAL_GPIO_WritePin(ST7567_RST_PORT,ST7567_RST_PIN,GPIO_PIN_SET)
 #define ST7567_RST_RESET	HAL_GPIO_WritePin(ST7567_RST_PORT,ST7567_RST_PIN,GPIO_PIN_RESET)

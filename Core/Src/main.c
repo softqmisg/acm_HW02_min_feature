@@ -25,23 +25,28 @@
 #include "rtc.h"
 #include "sdio.h"
 #include "tim.h"
+#include "usart.h"
 #include "usb_device.h"
-#include "usb_otg_hs.h"
+#include "usb_host.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+//#include "usb"
+#include "retarget.h"
 #include "vcnl4200.h"
 #include "INA3221.h"
 #include "veml6030.h"
 #include "astro.h"
 #include "tmp275.h"
 #include "fonts/font_tahoma.h"
+#include "fonts/font_lucidaconsole.h"
 //#include "images/acm_logo.h"
 #include "graphics.h"
 #include "st7565.h"
 #include "libbmp.h"
 #include "joystick.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,13 +66,47 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern USBH_HandleTypeDef hUsbHostHS;
+extern ApplicationTypeDef Appli_state;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_USB_HOST_Process(void);
+
 /* USER CODE BEGIN PFP */
-FRESULT file_write(char *path, char *wstr) {
+
+uint8_t usart2_datardy = 0, usart3_datardy = 0;
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	if(huart->Instance==USART2)
+//		usart2_datardy=1;
+//	else if(huart->Instance==USART3)
+//		usart3_datardy=1;
+//}
+////////////////////////
+FRESULT file_write_USB(char *path, char *wstr) {
+	uint32_t byteswritten;
+	FIL myfile;
+	FRESULT fr;
+	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+		HAL_Delay(1000);
+	}
+	if ((fr = f_open(&myfile, (const TCHAR*) path, FA_OPEN_APPEND | FA_WRITE))
+			!= FR_OK) {
+		HAL_Delay(1000);
+
+	}
+	if ((fr = f_write(&myfile, wstr, strlen(wstr), (void*) &byteswritten))
+			!= FR_OK) {
+		HAL_Delay(1000);
+	}
+	f_close(&myfile);
+	f_mount(0, "", 1);
+	return fr;
+}
+
+FRESULT file_write_SD(char *path, char *wstr) {
 
 	uint32_t byteswritten;
 	FIL myfile;
@@ -133,212 +172,265 @@ int main(void)
   MX_RTC_Init();
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
-  MX_USB_OTG_HS_HCD_Init();
   MX_USB_DEVICE_Init();
+  //MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
+  MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
-  //joystick_init(Key_ALL);
-
-	uint32_t byteswritten;
-	FIL myfile;
-	FRESULT fr;
-
-   uint8_t backlight=100;
+	/////////////////////////
+  while(1);
+	uint8_t backlight = 100;
 	char tmp_str[100];
 	RTC_TimeTypeDef cur_time;
 	RTC_DateTypeDef cur_Date;
 	cur_time.Hours = 12;
 	cur_time.Minutes = 59;
 	cur_time.Seconds = 0;
-	/////////////////////////////////////////////////////////////////////////////
-	glcd_init(128,64);
-	glcd_flip_screen(0);
-//	glcd_backlight(50);
-//	glcd_contrast(4, 16);
-//	glcd_flip_screen(0);
+	uint32_t byteswritten;
+	FIL myfile;
+	FRESULT fr;
+		uint8_t y = 0, x = 0;
+		bounding_box_t ch_box;
+//////////////////////////////////////
+		RetargetInit(&huart3);
 
-	glcd_pixel(0, 0, 1);
-	glcd_pixel(127, 0, 1);
-	glcd_pixel(0, 63, 1);
-	glcd_pixel(127, 63, 1);
-//	sprintf(tmp_str,"%d,%d,%d,%d",sizeof(unsigned int),sizeof(unsigned short),sizeof(float),sizeof(double));
-//	draw_text(tmp_str, 0, 0, Tahoma8, 1,1);
-//	glcd_refresh();
-//	while(1);
-//	sprintf(tmp_str,"Select menu");
-//	draw_text("Select menu", 0, 0, Tahoma8, 1,1);
-//	draw_text("Select menu", 0, 15, Tahoma8, 0,0);
-//	draw_text("Select menu", 10, 30, Tahoma8, 1,1);
-//	draw_text("Select menu", 16, 45, Tahoma8, 0,1);
-	//draw_text("Example string", 0, 30, Webdings14, 1);
-	//draw_text("Example string", 0, 30, Wingdings, 1);
-//	draw_bmp_h(0, 0, aCAM_logo_128_02_H[0], aCAM_logo_128_02_H[2], &aCAM_logo_128_02_H[4], 1);
-//	glcd_refresh();
-	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	//////////////////////////load Logo/////////////////////////////////////////
-	bmp_img img;
-	bmp_img_read(&img, "logo.bmp");
-	f_mount(0, "", 1);
-	draw_bmp_h(0, 0, img.img_header.biWidth,img.img_header.biHeight , img.img_pixels, 1);
-	bmp_img_free(&img);
-	glcd_refresh();
-	HAL_Delay(5000);
+		//////////////////////init LCD
+	glcd_init(128, 64);
+	glcd_flip_screen(XLR_YTB);
 
-	////////////////////////keypad check//////////////////////////////////////////
-	glcd_init(64,128);
-	glcd_flip_screen(3);
-//	glcd_pixel(0, 0, 1);
-//	glcd_refresh();
-//	glcd_pixel(0, 1, 1);
-//	glcd_refresh();
-//	glcd_pixel(0, 15, 1);
-//	glcd_refresh();
-//	glcd_pixel(0, 10, 1);
-//	glcd_refresh();
-//	glcd_pixel(30, 10, 1);glcd_refresh();
-//	glcd_pixel(30, 15, 1);glcd_refresh();
-//	draw_box(0, 10, 30, 15, 1);glcd_refresh();
-//
-//	while(1);
-	joystick_init(Key_ALL,Short_press|Long_press);
-	uint8_t select=0;
-	while(!select)
+	//////////////////////////init USB&SD/////////////////////////
+	//wait for valid to USBH
+	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_RESET);
+	while(!USBH_MSC_IsReady(&hUsbHostHS)) MX_USB_HOST_Process();
+	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+		printf("error mount USB\n\r");
+
+	} else
 	{
-		joystick_init(Key_ALL, Long_press);
-		if(joystick_read(Key_DOWN,Short_press))
-		{
-			joystick_init(Key_DOWN,Short_press);
-			draw_text("D",10,0 , Tahoma8, 0,0);
+		printf("mount USB\n\r");
+	}
+	sprintf(tmp_str, "Write in USB\n\r");
+	if (file_write_USB("1:/usb.txt", tmp_str) != FR_OK) {
+		printf("error write usb\n\r");
+	} else
+	{
+		printf("write usb ok\n\r");
+	}
 
-		}
-		else
-		{
-			draw_text("D",10,0 , Tahoma8, 0,1);
-		}
+	////////////////////////////////////////////////////////////////////////
+	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+		printf("error mount SD\n\r");
 
+	} else
+	{
+		printf("mount SD\n\r");
+	}
+	sprintf(tmp_str, "Write in SD\n\r");
+	if (file_write_SD("0:/SDCARD.txt", tmp_str) != FR_OK) {
+		printf("error write SD\n\r");
+	} else
+	{
+		printf("write sd ok\n\r");
+	}
 
-		if(joystick_read(Key_TOP,Short_press))
-		{
-			joystick_init(Key_TOP,Short_press);
-			draw_text("T",20,0 , Tahoma8, 0,0);
+	/////////////////////////tranciver PC<->ESP32/////////////////////////////
+	char pc_data[] = "hello\n\r";
+	//HAL_UART_Transmit(&huart3, (uint8_t*)"\033[0;0H", strlen("\033[0;0H"));
+	//HAL_UART_Transmit(&huart3, (uint8_t*)"\033[2J", strlen("\033[2J"));
 
-		}
-		else
-		{
-			draw_text("T",20,0 , Tahoma8, 0,1);
-
-		}
-
-		if(joystick_read(Key_LEFT,Short_press))
-		{
-			joystick_init(Key_LEFT,Short_press);
-			draw_text("L",30,0 , Tahoma8, 0,0);
-
-		}
-		else
-		{
-			draw_text("L",30,0 , Tahoma8, 0,1);
-		}
-
-		if(joystick_read(Key_RIGHT,Short_press))
-		{
-			joystick_init(Key_RIGHT,Short_press);
-			draw_text("R",40,0 , Tahoma8, 0,0);
-
-		}
-		else
-		{
-			draw_text("R",40,0 , Tahoma8, 0,1);
-
-		}
-
-		if(joystick_read(Key_ENTER,Short_press))
-		{
-			joystick_init(Key_ENTER,Short_press);
-			draw_text("E",50,0 , Tahoma8, 0,0);
-			select=1;
-
-		}
-		else
-		{
-			draw_text("E",50,0 , Tahoma8, 0,1);
-
+	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
+	while (1) {
+		HAL_UART_Receive(&huart2, pc_data, 1, HAL_MAX_DELAY);
+		//pc_data[0]='a'+x;
+		//HAL_Delay(50);
+		ch_box = draw_char(pc_data[0], x, y, Tahoma8, 0);
+		x = ch_box.x2 + 1;
+		if (x > 63) {
+			x = 0;
+			y = ch_box.y2 + 1;
+			if (y > 127)
+				y = 0;
 		}
 		glcd_refresh();
-		HAL_Delay(500);
+//		if(usart3_datardy)
+//		{
+//			usart3_datardy=0;
+//			HAL_UART_Receive_IT(&huart3, pc_data, 1);
+//			draw_char(pc_data[0], x, y, Tahoma8, 0);
+//			x++;
+//			if(x>63)
+//			{
+//				x=0;y+=11;if(y>127) y=0;
+//			}
+//		}
+		//HAL_UART_Transmit(&huart3, (uint8_t *)pc_data, strlen(pc_data), HAL_MAX_DELAY);
+//		draw_text(pc_data,y,0,Tahoma8,1,0);
+//		y+=text_height(pc_data, Tahoma8);
+//		if(y>128) y=0;
+//		HAL_Delay(2000);
+	}
+	//////////////////////////load Logo/////////////////////////////////////////
+		bmp_img img;
+		bmp_img_read(&img, "logo.bmp");
+		f_mount(0, "", 1);
+		draw_bmp_h(0, 0, img.img_header.biWidth,img.img_header.biHeight , img.img_pixels, 1);
+		bmp_img_free(&img);
+		glcd_refresh();
+		HAL_Delay(5000);
 
-	}
-	///////////////////////generate menu/////////////////////////////////////////////
-	glcd_blank();
-	char *menu[]={"Option 1","Option 2","Option 3","Option 4","Option 5","Option 6"};
-	for(uint8_t op=0;op<5;op++)
-	{
-		draw_text(menu[op], 0,op*11 , Tahoma8, 1,0);
-	}
-	uint8_t cur_op=0;
-	draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
-	cur_op++;
-	glcd_refresh();
-	joystick_init(Key_ALL,Both_press);
-	do
-	{
-		joystick_init(Key_ALL, Long_press);
-		if(joystick_read(Key_DOWN, Short_press))
+		////////////////////////keypad check//////////////////////////////////////////
+		glcd_init(64,128);
+		glcd_flip_screen(3);
+	//	glcd_pixel(0, 0, 1);
+	//	glcd_refresh();
+	//	glcd_pixel(0, 1, 1);
+	//	glcd_refresh();
+	//	glcd_pixel(0, 15, 1);
+	//	glcd_refresh();
+	//	glcd_pixel(0, 10, 1);
+	//	glcd_refresh();
+	//	glcd_pixel(30, 10, 1);glcd_refresh();
+	//	glcd_pixel(30, 15, 1);glcd_refresh();
+	//	draw_box(0, 10, 30, 15, 1);glcd_refresh();
+	//
+	//	while(1);
+		joystick_init(Key_ALL,Short_press|Long_press);
+		uint8_t select=0;
+		while(!select)
 		{
-			joystick_init(Key_DOWN,Short_press);
-			if(cur_op>0)
-				draw_text(menu[cur_op-1], 0,(cur_op-1)*11 , Tahoma8, 1,0);
-			if(cur_op>4)
-				cur_op=0;
-			draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
-			cur_op++;
+			joystick_init(Key_ALL, Long_press);
+			if(joystick_read(Key_DOWN,Short_press))
+			{
+				joystick_init(Key_DOWN,Short_press);
+				draw_text("D",10,0 , Tahoma8, 0,0);
+
+			}
+			else
+			{
+				draw_text("D",10,0 , Tahoma8, 0,1);
+			}
+
+
+			if(joystick_read(Key_TOP,Short_press))
+			{
+				joystick_init(Key_TOP,Short_press);
+				draw_text("T",20,0 , Tahoma8, 0,0);
+
+			}
+			else
+			{
+				draw_text("T",20,0 , Tahoma8, 0,1);
+
+			}
+
+			if(joystick_read(Key_LEFT,Short_press))
+			{
+				joystick_init(Key_LEFT,Short_press);
+				draw_text("L",30,0 , Tahoma8, 0,0);
+
+			}
+			else
+			{
+				draw_text("L",30,0 , Tahoma8, 0,1);
+			}
+
+			if(joystick_read(Key_RIGHT,Short_press))
+			{
+				joystick_init(Key_RIGHT,Short_press);
+				draw_text("R",40,0 , Tahoma8, 0,0);
+
+			}
+			else
+			{
+				draw_text("R",40,0 , Tahoma8, 0,1);
+
+			}
+
+			if(joystick_read(Key_ENTER,Short_press))
+			{
+				joystick_init(Key_ENTER,Short_press);
+				draw_text("E",50,0 , Tahoma8, 0,0);
+				select=1;
+
+			}
+			else
+			{
+				draw_text("E",50,0 , Tahoma8, 0,1);
+
+			}
 			glcd_refresh();
+			HAL_Delay(500);
 
 		}
-	}while(1);
-//	glcd_blank();
-	/////////////////////////RTC_Sensor test////////////////////////////////////////////////////
-	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+		///////////////////////generate menu/////////////////////////////////////////////
+		glcd_blank();
+		char *menu[]={"Option 1","Option 2","Option 3","Option 4","Option 5","Option 6"};
+		for(uint8_t op=0;op<5;op++)
+		{
+			draw_text(menu[op], 0,op*11 , Tahoma8, 1,0);
+		}
+		uint8_t cur_op=0;
+		draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
+		cur_op++;
+		glcd_refresh();
+		joystick_init(Key_ALL,Both_press);
+		do
+		{
+			joystick_init(Key_ALL, Long_press);
+			if(joystick_read(Key_DOWN, Short_press))
+			{
+				joystick_init(Key_DOWN,Short_press);
+				if(cur_op>0)
+					draw_text(menu[cur_op-1], 0,(cur_op-1)*11 , Tahoma8, 1,0);
+				if(cur_op>4)
+					cur_op=0;
+				draw_text(menu[cur_op], 0,cur_op*11 , Tahoma8, 1,1);
+				cur_op++;
+				glcd_refresh();
 
-	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
-		status = tmp275_init(ch);
-		HAL_Delay(100);
-	}
-	status = ina3221_init();
-	status = vcnl4200_init();
-	status = veml6030_init();
+			}
+		}while(1);
+	//	glcd_blank();
+		/////////////////////////RTC_Sensor test////////////////////////////////////////////////////
+		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 
-	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port, TEC_ONOFF_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port, TEC_CURDIR_Pin, GPIO_PIN_SET);
+		for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+			status = tmp275_init(ch);
+			HAL_Delay(100);
+		}
+		status = ina3221_init();
+		status = vcnl4200_init();
+		status = veml6030_init();
 
-	status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_MANUFACTURE_ID,
-			buffer);
-	sprintf(tmp_str,"MANUFACTURE INA321(1):%c%c\n\r",buffer[0],buffer[1]);
-	if(file_write("test.txt",tmp_str)!=FR_OK)
-	{
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_DIE_ID, buffer);
-	sprintf(tmp_str,"DIE INA321(1):%c%c\n\r",buffer[0],buffer[1]);
-	if(file_write("test.txt",tmp_str)!=FR_OK)
-	{
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_MANUFACTURE_ID,
-			buffer);
-	sprintf(tmp_str,"MANUFACTURE INA321(2):%c%c\n\r",buffer[0],buffer[1]);
-	if(file_write("test.txt",tmp_str)!=FR_OK)
-	{
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_DIE_ID, buffer);
-	sprintf(tmp_str,"DIE INA321(2):%c%c\n\r",buffer[0],buffer[1]);
-	if(file_write("test.txt",tmp_str)!=FR_OK)
-	{
-		HAL_Delay(1000);
-	}
+		HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port, TEC_ONOFF_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port, TEC_CURDIR_Pin, GPIO_PIN_SET);
 
+		status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_MANUFACTURE_ID,
+				buffer);
+		sprintf(tmp_str,"MANUFACTURE INA321(1):%c%c\n\r",buffer[0],buffer[1]);
+		if(file_write("test.txt",tmp_str)!=FR_OK)
+		{
+			HAL_Delay(1000);
+		}
+		status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_DIE_ID, buffer);
+		sprintf(tmp_str,"DIE INA321(1):%c%c\n\r",buffer[0],buffer[1]);
+		if(file_write("test.txt",tmp_str)!=FR_OK)
+		{
+			HAL_Delay(1000);
+		}
+		status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_MANUFACTURE_ID,
+				buffer);
+		sprintf(tmp_str,"MANUFACTURE INA321(2):%c%c\n\r",buffer[0],buffer[1]);
+		if(file_write("test.txt",tmp_str)!=FR_OK)
+		{
+			HAL_Delay(1000);
+		}
+		status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_DIE_ID, buffer);
+		sprintf(tmp_str,"DIE INA321(2):%c%c\n\r",buffer[0],buffer[1]);
+		if(file_write("test.txt",tmp_str)!=FR_OK)
+		{
+			HAL_Delay(1000);
+		}
 
   /* USER CODE END 2 */
 
@@ -346,72 +438,73 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-		///////////temperatures//////////////////////////////////
-		for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
-			status = tmp275_readTemperature(ch, &temperature[ch]);
-			if(status==HAL_OK)
+			///////////temperatures//////////////////////////////////
+			for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+				status = tmp275_readTemperature(ch, &temperature[ch]);
+				if(status==HAL_OK)
+				{
+					sprintf(tmp_str,"tmp(0x%x):%f\n\r",ch+TMP275_BASEADDRESS,temperature[ch]);
+
+				}
+				else
+				{
+					sprintf(tmp_str,"tmp(0x%x):ERROR\n\r",ch+TMP275_BASEADDRESS);
+
+				}
+				if(file_write("test.txt",tmp_str)!=FR_OK)
+				{
+					HAL_Delay(1000);
+				}
+				HAL_Delay(100);
+			}
+			//////////////////////////////////////////////////////////
+			status = vcnl4200_read((uint8_t) VCNL4200_ALS_Data, &als);
+			if(status==VCNL4200_OK)
 			{
-				sprintf(tmp_str,"tmp(0x%x):%f\n\r",ch+TMP275_BASEADDRESS,temperature[ch]);
+				sprintf(tmp_str,"als:%d\n\r",als);
 
 			}
 			else
 			{
-				sprintf(tmp_str,"tmp(0x%x):ERROR\n\r",ch+TMP275_BASEADDRESS);
+				sprintf(tmp_str,"als:ERROR\n\r");
 
 			}
 			if(file_write("test.txt",tmp_str)!=FR_OK)
 			{
 				HAL_Delay(1000);
 			}
-			HAL_Delay(100);
-		}
-		//////////////////////////////////////////////////////////
-		status = vcnl4200_read((uint8_t) VCNL4200_ALS_Data, &als);
-		if(status==VCNL4200_OK)
-		{
-			sprintf(tmp_str,"als:%d\n\r",als);
+			status = vcnl4200_read((uint8_t) VCNL4200_WHITE_Data, &white);
+			if(status==VCNL4200_OK)
+			{
+				sprintf(tmp_str,"white:%d\n\r",white);
 
-		}
-		else
-		{
-			sprintf(tmp_str,"als:ERROR\n\r");
+			}
+			else
+			{
+				sprintf(tmp_str,"white:ERROR\n\r");
 
-		}
-		if(file_write("test.txt",tmp_str)!=FR_OK)
-		{
+			}
+			if(file_write("test.txt",tmp_str)!=FR_OK)
+			{
+				HAL_Delay(1000);
+			}
+			///////////CH1,7V
+			status = ina3221_readfloat((uint8_t) VOLTAGE_7V, &voltage);
+			status = ina3221_readfloat((uint8_t) CURRENT_7V, &current);
+
+			///////////CH2,12V
+			status = ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage);
+			status = ina3221_readfloat((uint8_t) CURRENT_12V, &current);
+			///////////CH3,3.3V
+			status = ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage);
+			status = ina3221_readfloat((uint8_t) CURRENT_3V3, &current);
+			///////////TEC,12V
+			status = ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage);
+			status = ina3221_readfloat((uint8_t) CURRENT_TEC, &current);
+			////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			HAL_Delay(1000);
-		}
-		status = vcnl4200_read((uint8_t) VCNL4200_WHITE_Data, &white);
-		if(status==VCNL4200_OK)
-		{
-			sprintf(tmp_str,"white:%d\n\r",white);
-
-		}
-		else
-		{
-			sprintf(tmp_str,"white:ERROR\n\r");
-
-		}
-		if(file_write("test.txt",tmp_str)!=FR_OK)
-		{
-			HAL_Delay(1000);
-		}
-		///////////CH1,7V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_7V, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_7V, &current);
-
-		///////////CH2,12V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_12V, &current);
-		///////////CH3,3.3V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_3V3, &current);
-		///////////TEC,12V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_TEC, &current);
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		HAL_Delay(1000);
     /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
 	}
@@ -490,9 +583,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM1 && joystick_state()==jostick_initialized) {
-    joystick_read(Key_ALL, no_press);
-  }
+	if (htim->Instance == TIM1 && joystick_state() == jostick_initialized) {
+		joystick_read(Key_ALL, no_press);
+	}
   /* USER CODE END Callback 1 */
 }
 

@@ -93,10 +93,14 @@ void Error_Handler(void);
 #define BTN3_GPIO_Port GPIOG
 #define uSD_Detect_Pin GPIO_PIN_1
 #define uSD_Detect_GPIO_Port GPIOD
+#define ESP32_EN_Pin GPIO_PIN_4
+#define ESP32_EN_GPIO_Port GPIOD
 #define TEC_ONOFF_Pin GPIO_PIN_13
 #define TEC_ONOFF_GPIO_Port GPIOF
 #define TEC_CURDIR_Pin GPIO_PIN_12
 #define TEC_CURDIR_GPIO_Port GPIOF
+#define USB_PWR_EN_Pin GPIO_PIN_11
+#define USB_PWR_EN_GPIO_Port GPIOE
 #define INT_VCNL4200_Pin GPIO_PIN_14
 #define INT_VCNL4200_GPIO_Port GPIOE
 #define RESET_MB_Pin GPIO_PIN_15
