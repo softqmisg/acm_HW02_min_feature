@@ -77,13 +77,21 @@ void MX_USB_HOST_Process(void);
 /* USER CODE BEGIN PFP */
 
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-//{
-//	if(huart->Instance==USART2)
-//		usart2_datardy=1;
-//	else if(huart->Instance==USART3)
-//		usart3_datardy=1;
-//}
+char ESP_data;
+char PC_data;
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance==USART2)
+	{
+		USART3->DR=USART2->DR;
+		HAL_UART_Receive_IT(&huart2, &ESP_data, 1);
+	}
+	else if(huart->Instance==USART3)
+	{
+		USART2->DR=USART3->DR;
+		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
+	}
+}
 ////////////////////////
 FRESULT file_write_USB(char *path, char *wstr) {
 	uint32_t byteswritten;
@@ -102,7 +110,7 @@ FRESULT file_write_USB(char *path, char *wstr) {
 		HAL_Delay(1000);
 	}
 	f_close(&myfile);
-	f_mount(0, "", 1);
+	f_mount(&USBHFatFS, "", 1);
 	return fr;
 }
 
@@ -173,12 +181,12 @@ int main(void)
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
   MX_USB_DEVICE_Init();
-  //MX_USART2_UART_Init();
+  MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
 	/////////////////////////
-  while(1);
+
 	uint8_t backlight = 100;
 	char tmp_str[100];
 	RTC_TimeTypeDef cur_time;
@@ -193,91 +201,67 @@ int main(void)
 		bounding_box_t ch_box;
 //////////////////////////////////////
 		RetargetInit(&huart3);
-
 		//////////////////////init LCD
 	glcd_init(128, 64);
 	glcd_flip_screen(XLR_YTB);
 
-	//////////////////////////init USB&SD/////////////////////////
-	//wait for valid to USBH
-	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_RESET);
-	while(!USBH_MSC_IsReady(&hUsbHostHS)) MX_USB_HOST_Process();
-	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
-		printf("error mount USB\n\r");
+//	//////////////////////////init USB&SD/////////////////////////
+//	//wait for valid to USBH
+//	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_RESET);
+//	while(!USBH_MSC_IsReady(&hUsbHostHS)) MX_USB_HOST_Process();
+//	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+//		printf("error mount USB\n\r");
+//
+//	} else
+//	{
+//		printf("mount USB\n\r");
+//	}
+//	sprintf(tmp_str, "Write in USB\n\r");
+//	if (file_write_USB("1:/usb.txt", tmp_str) != FR_OK) {
+//		printf("error write usb\n\r");
+//	} else
+//	{
+//		printf("write usb ok\n\r");
+//	}
+//	while(1);
+//	////////////////////////////////Init & write SD CARD////////////////////////////////////////
+//	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+//		printf("error mount SD\n\r");
+//
+//	} else
+//	{
+//		printf("mount SD\n\r");
+//	}
+//	sprintf(tmp_str, "Write in SD\n\r");
+//	if (file_write_SD("0:/SDCARD.txt", tmp_str) != FR_OK) {
+//		printf("error write SD\n\r");
+//	} else
+//	{
+//		printf("write sd ok\n\r");
+//	}
+//	f_mount(&SDFatFS, "", 1);
 
-	} else
-	{
-		printf("mount USB\n\r");
-	}
-	sprintf(tmp_str, "Write in USB\n\r");
-	if (file_write_USB("1:/usb.txt", tmp_str) != FR_OK) {
-		printf("error write usb\n\r");
-	} else
-	{
-		printf("write usb ok\n\r");
-	}
-
-	////////////////////////////////////////////////////////////////////////
-	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-		printf("error mount SD\n\r");
-
-	} else
-	{
-		printf("mount SD\n\r");
-	}
-	sprintf(tmp_str, "Write in SD\n\r");
-	if (file_write_SD("0:/SDCARD.txt", tmp_str) != FR_OK) {
-		printf("error write SD\n\r");
-	} else
-	{
-		printf("write sd ok\n\r");
-	}
-
-	/////////////////////////tranciver PC<->ESP32/////////////////////////////
-	char pc_data[] = "hello\n\r";
-	//HAL_UART_Transmit(&huart3, (uint8_t*)"\033[0;0H", strlen("\033[0;0H"));
-	//HAL_UART_Transmit(&huart3, (uint8_t*)"\033[2J", strlen("\033[2J"));
-
-	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
-	while (1) {
-		HAL_UART_Receive(&huart2, pc_data, 1, HAL_MAX_DELAY);
-		//pc_data[0]='a'+x;
-		//HAL_Delay(50);
-		ch_box = draw_char(pc_data[0], x, y, Tahoma8, 0);
-		x = ch_box.x2 + 1;
-		if (x > 63) {
-			x = 0;
-			y = ch_box.y2 + 1;
-			if (y > 127)
-				y = 0;
+//	//////////////////////////load Logo/////////////////////////////////////////
+		if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+			printf("error mount SD\n\r");
 		}
-		glcd_refresh();
-//		if(usart3_datardy)
-//		{
-//			usart3_datardy=0;
-//			HAL_UART_Receive_IT(&huart3, pc_data, 1);
-//			draw_char(pc_data[0], x, y, Tahoma8, 0);
-//			x++;
-//			if(x>63)
-//			{
-//				x=0;y+=11;if(y>127) y=0;
-//			}
-//		}
-		//HAL_UART_Transmit(&huart3, (uint8_t *)pc_data, strlen(pc_data), HAL_MAX_DELAY);
-//		draw_text(pc_data,y,0,Tahoma8,1,0);
-//		y+=text_height(pc_data, Tahoma8);
-//		if(y>128) y=0;
-//		HAL_Delay(2000);
-	}
-	//////////////////////////load Logo/////////////////////////////////////////
 		bmp_img img;
 		bmp_img_read(&img, "logo.bmp");
-		f_mount(0, "", 1);
+		f_mount(&SDFatFS, "", 1);
 		draw_bmp_h(0, 0, img.img_header.biWidth,img.img_header.biHeight , img.img_pixels, 1);
 		bmp_img_free(&img);
 		glcd_refresh();
-		HAL_Delay(5000);
-
+		HAL_Delay(1000);
+/////////////////////////tranciver PC<->ESP32/////////////////////////////
+		HAL_UART_Transmit(&huart3, (uint8_t*)"\033[0;0H", strlen("\033[0;0H"),HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t*)"\033[2J", strlen("\033[2J"),HAL_MAX_DELAY);
+		HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
+		HAL_Delay(100);
+		HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
+		HAL_UART_Receive_IT(&huart3,(uint8_t*) &PC_data, 1);
+		HAL_UART_Receive_IT(&huart2, (uint8_t*)&ESP_data, 1);
+//		while (1) {
+//		}
 		////////////////////////keypad check//////////////////////////////////////////
 		glcd_init(64,128);
 		glcd_flip_screen(3);
