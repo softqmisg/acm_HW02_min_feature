@@ -106,7 +106,7 @@ void Error_Handler(void);
 #define RESET_MB_Pin GPIO_PIN_15
 #define RESET_MB_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
-
+#define __DEBUG__
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
