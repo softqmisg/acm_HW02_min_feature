@@ -172,13 +172,33 @@ void create_cell(uint8_t x,uint8_t y, uint8_t width, uint8_t height, uint8_t row
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+enum
+{
+	LEFT_ALIGN=0,
+	RIGHT_ALIGN,
+	CENTER_ALIGN
+};
+void text_cell(bounding_box_t *pos,uint8_t index,char *str,unsigned char *font,uint8_t align)
+{
+	uint8_t x,y=pos[index].y1+1;
+	uint8_t length_str=text_width(str, font, 1);
+	switch(align)
+	{
+	case LEFT_ALIGN:
+		x=pos[index].x1+1;
+		break;
+	case RIGHT_ALIGN:
+		x=pos[index].x2-length_str-1;
+		break;
+	case CENTER_ALIGN:
+		x=pos[index].x1+(pos[index].x2-pos[index].x1-length_str)/2;
 
-//void text_cell(uint8_t *pos_y,uint8_t *pos_x,uint8_t row,uint8_t col)
-//{
-//	uint8_t x=pos_x[col]
-//	draw_text("11:25:32",pos_x[0]+1,pos_y[0]+1, Tahoma8, 1, 0);
-//}
+		break;
+	}
 
+	draw_text(str,x,y, font, 1, 0);
+	glcd_refresh();
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
@@ -203,9 +223,13 @@ void create_form1()
 	create_cell(1,1,128,64,5,2,1,pos_);
 	draw_line(pos_[0].x2,pos_[0].y1,pos_[0].x2,pos_[0].y2,0);
 	draw_line(pos_[1].x1,pos_[1].y1,pos_[1].x1,pos_[1].y2,0);
+	text_cell(pos_,0,"11:35:32",Tahoma8,CENTER_ALIGN);
+	text_cell(pos_,1,"2021-11:31",Tahoma8,CENTER_ALIGN);
+	text_cell(pos_,2,"T(1)=28.5'c",Tahoma8,CENTER_ALIGN);
+	text_cell(pos_,3,"T(2)=28.5'c",Tahoma8,LEFT_ALIGN);
+	text_cell(pos_,4,"T(3)=28.5'c",Tahoma8,RIGHT_ALIGN);
 
-	glcd_refresh();
-//	text_cell(pos_y,pos_x,0,0);
+	//	text_cell(pos_y,pos_x,0,0);
 //	draw_text("11:25:32",pos_x[0]+1,pos_y[0]+1, Tahoma8, 1, 0);
 //	draw_text("T(1)=28.5'c",pos_x[0]+1,pos_y[1]+1, Tahoma8, 1, 0);
 //	draw_text("T(1)=32.5'c",pos_x[1]+1,pos_y[1]+1, Tahoma8, 1, 0);
