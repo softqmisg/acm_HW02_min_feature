@@ -142,23 +142,76 @@ uint8_t buffer[2];
 HAL_StatusTypeDef status;
 double voltage, current, temperature[8];
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_cell(uint8_t x,uint8_t y, uint8_t width, uint8_t height, uint8_t row,uint8_t col,char colour,bounding_box_t *box)
+{
+	uint8_t step_r=ceil((double)height/row);
+	uint8_t step_c=ceil((double)width/col);
+	for(uint8_t i=y,index_y=0;i<(y+height);i+=step_r,index_y++)
+	{
+		if((i+2*step_r)>(y+height))
+		{
+			step_r=height/row;
+			if((i+2*step_r)>(y+height))
+				step_r=(y+height)-i;
+		}
+		 step_c=ceil((double)width/col);
+		for(uint8_t j=x,index_x=0;j<(x+width);j+=step_c,index_x++)
+		{
+			if((j+2*step_c)>(x+width))
+			{
+				step_c=ceil(width/col);
+				if((j+2*step_c)>(x+width))
+					step_c=(x+width)-j;
+			}
+			box[index_x+index_y*col].x1=j-1;
+			box[index_x+index_y*col].x2=j-1+step_c-1;
+			box[index_x+index_y*col].y1=i-1;
+			box[index_x+index_y*col].y2=i-1+step_r-1;
+			draw_box(j-1, i-1, j-1+step_c-1,i-1+step_r-1 , colour);
+		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//void text_cell(uint8_t *pos_y,uint8_t *pos_x,uint8_t row,uint8_t col)
+//{
+//	uint8_t x=pos_x[col]
+//	draw_text("11:25:32",pos_x[0]+1,pos_y[0]+1, Tahoma8, 1, 0);
+//}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
 		"SET PASS","Exit" };
 void create_menu(uint8_t selected){
 	glcd_blank();
-	draw_box(0, 0, 66, 63, 1);
-	draw_box(66, 0, 127, 63, 1);
+	bounding_box_t *pos_=(bounding_box_t *)malloc(sizeof(bounding_box_t)*1*2);
+	create_cell(1,1,128,64,1,2,1,pos_);
 	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
 		draw_text(menu[op],(op/5)*66+2,(op%5)* 12+1, Tahoma8, 1, 0);
 	}
 	if(selected <MENU_ITEMS)
 		draw_text(menu[selected],(selected/5)*66+2,(selected%5)* 12+1, Tahoma8, 1, 1);
+	free(pos_);
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form1()
 {
+	bounding_box_t *pos_=(bounding_box_t *)malloc(sizeof(bounding_box_t)*2*5);
+	glcd_blank();
+	create_cell(1,1,128,64,5,2,1,pos_);
+	draw_line(pos_[0].x2,pos_[0].y1,pos_[0].x2,pos_[0].y2,0);
+	draw_line(pos_[1].x1,pos_[1].y1,pos_[1].x1,pos_[1].y2,0);
+
+	glcd_refresh();
+//	text_cell(pos_y,pos_x,0,0);
+//	draw_text("11:25:32",pos_x[0]+1,pos_y[0]+1, Tahoma8, 1, 0);
+//	draw_text("T(1)=28.5'c",pos_x[0]+1,pos_y[1]+1, Tahoma8, 1, 0);
+//	draw_text("T(1)=32.5'c",pos_x[1]+1,pos_y[1]+1, Tahoma8, 1, 0);
+//	draw_text("T(1)=32.5'c",pos_x[1]+1,pos_y[1]+1, Tahoma8, 1, 0);
+	free(pos_);
+	glcd_refresh();
 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -203,8 +256,12 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
+#ifdef __LWIP__
   MX_LWIP_Init();
+#endif
+#ifndef __DEBUG__
   MX_IWDG_Init();
+#endif
   /* USER CODE BEGIN 2 */
 	/////////////////////////
 	uint8_t backlight = 100;
@@ -225,6 +282,8 @@ int main(void)
 	glcd_flip_screen(XLR_YTB);
 	///////////////////////////////////////////////////////////////
 	create_menu(5);
+	HAL_Delay(2000);
+	create_form1();
 	while(1)
 	{
 #ifndef __DEBUG__
