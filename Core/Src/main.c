@@ -218,22 +218,35 @@ void create_menu(uint8_t selected){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form1()
 {
+	char tmp_str[15];
 	bounding_box_t *pos_=(bounding_box_t *)malloc(sizeof(bounding_box_t)*2*5);
+	/////////////////////////////////////////////////////////////////////////
 	glcd_blank();
 	create_cell(1,1,128,64,5,2,1,pos_);
 	draw_line(pos_[0].x2,pos_[0].y1,pos_[0].x2,pos_[0].y2,0);
 	draw_line(pos_[1].x1,pos_[1].y1,pos_[1].x1,pos_[1].y2,0);
-	text_cell(pos_,0,"11:35:32",Tahoma8,CENTER_ALIGN);
-	text_cell(pos_,1,"2021-11:31",Tahoma8,CENTER_ALIGN);
-	text_cell(pos_,2,"T(1)=28.5'c",Tahoma8,CENTER_ALIGN);
-	text_cell(pos_,3,"T(2)=28.5'c",Tahoma8,LEFT_ALIGN);
-	text_cell(pos_,4,"T(3)=28.5'c",Tahoma8,RIGHT_ALIGN);
+	//////////////////////////////////////////////////////////
+	RTC_TimeTypeDef sTime;
+	RTC_DateTypeDef sDate;
+	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	sprintf(tmp_str,"%02d:%02d:%02d",sTime.Hours,sTime.Minutes,sTime.Seconds);
+	text_cell(pos_,0,tmp_str,Tahoma8,CENTER_ALIGN);
+	sprintf(tmp_str,"%4d-%02d-%02d",sDate.Year+2000,sDate.Month,sDate.Date);
+	text_cell(pos_,1,tmp_str,Tahoma8,CENTER_ALIGN);
+	//////////////////////////////////////////////////////////
 
-	//	text_cell(pos_y,pos_x,0,0);
-//	draw_text("11:25:32",pos_x[0]+1,pos_y[0]+1, Tahoma8, 1, 0);
-//	draw_text("T(1)=28.5'c",pos_x[0]+1,pos_y[1]+1, Tahoma8, 1, 0);
-//	draw_text("T(1)=32.5'c",pos_x[1]+1,pos_y[1]+1, Tahoma8, 1, 0);
-//	draw_text("T(1)=32.5'c",pos_x[1]+1,pos_y[1]+1, Tahoma8, 1, 0);
+	for(uint8_t i=0;i<8;i++)
+	{
+		if(tmp275_readTemperature(i, &temperature[i])==HAL_OK)
+		{
+			sprintf(tmp_str,"T(%d)=%4.1f",i,temperature[i]);
+		}
+		else
+			sprintf(tmp_str,"T(%d)=NC",i);
+		text_cell(pos_,i+2,tmp_str,Tahoma8,CENTER_ALIGN);
+	}
+
 	free(pos_);
 	glcd_refresh();
 
@@ -295,6 +308,9 @@ int main(void)
 	cur_time.Hours = 12;
 	cur_time.Minutes = 59;
 	cur_time.Seconds = 0;
+	cur_Date.Year=21;
+	cur_Date.Month=2;
+	cur_Date.Date=15;
 	uint32_t byteswritten;
 	FIL myfile;
 	FRESULT fr;
@@ -304,16 +320,7 @@ int main(void)
 	//////////////////////init LCD//////////
 	glcd_init(128, 64);
 	glcd_flip_screen(XLR_YTB);
-	///////////////////////////////////////////////////////////////
-	create_menu(5);
-	HAL_Delay(2000);
-	create_form1();
-	while(1)
-	{
-#ifndef __DEBUG__
-	HAL_IWDG_Refresh(&hiwdg);
-#endif
-	}
+
 //	//////////////////////////load Logo/////////////////////////////////////////
 #ifndef __DEBUG__
 	HAL_IWDG_Refresh(&hiwdg);
@@ -347,6 +354,7 @@ int main(void)
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
 	///////////////////////setting RTC///////////////////////////////////////
 	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+	HAL_RTC_SetDate(&hrtc,&cur_Date,RTC_FORMAT_BIN);
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	draw_text("Initialize sensors", 0, 0, Verdana8, 1,0);
 	glcd_refresh();
@@ -392,14 +400,18 @@ int main(void)
 		glcd_refresh();
 		HAL_Delay(5000);
 	}
-//	while(1)
-//	{
-//#ifndef __DEBUG__
-//	HAL_IWDG_Refresh(&hiwdg);
-//#endif
-//	}
 	//////////////////////////////////////////////////////////////////////////////
-
+	create_menu(5);
+	HAL_Delay(2000);
+	create_form1();
+	HAL_Delay(5000);
+	create_form2();
+	while(1)
+	{
+#ifndef __DEBUG__
+	HAL_IWDG_Refresh(&hiwdg);
+#endif
+	}
 	////////////////////////keypad check//////////////////////////////////////////
 	glcd_init(64, 128);
 	glcd_flip_screen(XTB_YRL);
