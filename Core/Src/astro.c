@@ -6,7 +6,37 @@
  */
 #include "astro.h"
 #include "rtc.h"
+double POS2double(POS_t pos)
+{
+	double r=(double)pos.deg+(double)pos.min/60.0+pos.second;
+	if(pos.direction=='S' || pos.direction=='W')
+		r=-r;
+	return r;
+}
+POS_t latdouble2POS(double lat)
+{
+	POS_t pos;
+	if(lat<0) pos.direction='S';
+	else pos.direction='N';
+	pos.deg=(uint8_t)lat;
+	pos.second=(double)(lat-(double)pos.deg)*3600.0;
+	pos.min=(uint8_t)((double)pos.second/60);
+	pos.second=pos.second-(double)pos.min*60;
+	return pos;
+}
+POS_t longdouble2POS(double lon)
+{
+	POS_t pos;
+	if(lon<0) pos.direction='W';
+	else pos.direction='E';
+	pos.deg=(uint8_t)lon;
+	pos.second=(double)(lon-(double)pos.deg)*3600.0;
+	pos.min=(uint8_t)((double)pos.second/60);
+	pos.second=pos.second-(double)pos.min*60;
+	return pos;
+}
 
+////////////////////////////////////////////////////////////////////////////////////////
 uint8_t Astro_daylighsaving(Date_t date)
 {
 	uint8_t r=0;

@@ -27,6 +27,16 @@ typedef struct
 	int min;
 	int sec;
 } Time_t;
+typedef struct
+{
+	uint8_t deg;
+	uint8_t min;
+	double  second;
+	char direction;
+} POS_t;
+double POS2double(POS_t pos);
+POS_t longdouble2POS(double lon);
+POS_t latdouble2POS(double lat);
 void  Astro_sunRiseSet( double lat, double lng, double UTCoff, Date_t date,Time_t *sunrise_t,Time_t *noon_t,Time_t *sunset_t,uint8_t daylightsave);
 void ShowTime_t(Time_t cur_time,char *str);
 uint8_t leap(int year);
