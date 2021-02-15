@@ -77,7 +77,23 @@ void SystemClock_Config(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
-
+///////////////////////////////////////////////////////////////////////////////////
+uint8_t flag_rtc_1s=0;
+//uint8_t flag_rtc_showtemp=1;
+//uint8_t flag_rtc_blink=0;
+//uint8_t counter_rtc_showtemp=0;
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
+{
+	flag_rtc_1s=1;
+//	flag_rtc_blink=1-flag_rtc_blink;
+//	counter_rtc_showtemp++;
+//	if(counter_rtc_showtemp>=5)
+//	{
+//		flag_rtc_showtemp=1;
+//		counter_rtc_showtemp=0;
+//	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
 char ESP_data;
 char PC_data;
@@ -90,7 +106,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
 	}
 }
-////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT file_write_USB(char *path, char *wstr) {
 	uint32_t byteswritten;
 	FIL myfile;
@@ -111,7 +127,7 @@ FRESULT file_write_USB(char *path, char *wstr) {
 	f_mount(&USBHFatFS, "", 1);
 	return fr;
 }
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT file_write_SD(char *path, char *wstr) {
 
 	uint32_t byteswritten;
@@ -133,6 +149,8 @@ FRESULT file_write_SD(char *path, char *wstr) {
 	f_mount(0, "", 1);
 	return fr;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -192,19 +210,18 @@ void text_cell(bounding_box_t *pos,uint8_t index,char *str,unsigned char *font,u
 		break;
 	case CENTER_ALIGN:
 		x=pos[index].x1+(pos[index].x2-pos[index].x1-length_str)/2;
-
 		break;
 	}
-
+	draw_fill(x-1,y,x+length_str+1,y+text_height(str, font),0);
 	draw_text(str,x,y, font, 1, 0);
-	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
 		"SET PASS","Exit" };
-void create_menu(uint8_t selected){
-	glcd_blank();
+void create_menu(uint8_t selected,uint8_t clear){
+	if(clear)
+		glcd_blank();
 	bounding_box_t *pos_=(bounding_box_t *)malloc(sizeof(bounding_box_t)*1*2);
 	create_cell(1,1,128,64,1,2,1,pos_);
 	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
@@ -216,12 +233,13 @@ void create_menu(uint8_t selected){
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form1()
+void create_form1(uint8_t clear)
 {
 	char tmp_str[15];
 	bounding_box_t *pos_=(bounding_box_t *)malloc(sizeof(bounding_box_t)*2*5);
 	/////////////////////////////////////////////////////////////////////////
-	glcd_blank();
+	if(clear)
+		glcd_blank();
 	create_cell(1,1,128,64,5,2,1,pos_);
 	draw_line(pos_[0].x2,pos_[0].y1,pos_[0].x2,pos_[0].y2,0);
 	draw_line(pos_[1].x1,pos_[1].y1,pos_[1].x1,pos_[1].y2,0);
@@ -240,10 +258,10 @@ void create_form1()
 	{
 		if(tmp275_readTemperature(i, &temperature[i])==HAL_OK)
 		{
-			sprintf(tmp_str,"T(%d)=%4.1f",i,temperature[i]);
+			sprintf(tmp_str,"T(%d)=%4.1f",i+1,temperature[i]);
 		}
 		else
-			sprintf(tmp_str,"T(%d)=NC",i);
+			sprintf(tmp_str,"T(%d)=---",i+1);
 		text_cell(pos_,i+2,tmp_str,Tahoma8,CENTER_ALIGN);
 	}
 
@@ -301,6 +319,7 @@ int main(void)
 #endif
   /* USER CODE BEGIN 2 */
 	/////////////////////////
+  	  bounding_box_t pos_[10];
 	uint8_t backlight = 100;
 	char tmp_str[100],tmp_str1[100];
 	RTC_TimeTypeDef cur_time;
@@ -353,9 +372,14 @@ int main(void)
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
 	///////////////////////setting RTC///////////////////////////////////////
-	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-	HAL_RTC_SetDate(&hrtc,&cur_Date,RTC_FORMAT_BIN);
+	if (HAL_RTCEx_BKUPRead (&hrtc,RTC_BKP_DR0) !=0x5050)
+	{
+		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+		HAL_RTC_SetDate(&hrtc,&cur_Date,RTC_FORMAT_BIN);
+	}
 	///////////////////////initialize & checking sensors///////////////////////////////////////
+	//draw_box(0, 0, 63, 128, 1);
+	create_cell(0, 0, 64, 128, 1, 1, 1, pos_);
 	draw_text("Initialize sensors", 0, 0, Verdana8, 1,0);
 	glcd_refresh();
 	uint8_t sensor_error=0;
@@ -401,13 +425,23 @@ int main(void)
 		HAL_Delay(5000);
 	}
 	//////////////////////////////////////////////////////////////////////////////
-	create_menu(5);
+	  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	create_menu(5,1);
 	HAL_Delay(2000);
-	create_form1();
-	HAL_Delay(5000);
-	create_form2();
+//	create_form1();
+//	HAL_Delay(5000);
+//	create_form2();
+	create_form1(1);
 	while(1)
 	{
+		if(flag_rtc_1s)
+		{
+			flag_rtc_1s=0;
+			create_form1(0);
+		}
 #ifndef __DEBUG__
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
