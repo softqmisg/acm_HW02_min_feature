@@ -16,7 +16,7 @@ double POS2double(POS_t pos)
 POS_t latdouble2POS(double lat)
 {
 	POS_t pos;
-	if(lat<0) pos.direction='S';
+	if(lat<0) { pos.direction='S'; lat=-lat;}
 	else pos.direction='N';
 	pos.deg=(uint8_t)lat;
 	pos.second=(double)(lat-(double)pos.deg)*3600.0;
@@ -27,7 +27,7 @@ POS_t latdouble2POS(double lat)
 POS_t longdouble2POS(double lon)
 {
 	POS_t pos;
-	if(lon<0) pos.direction='W';
+	if(lon<0) { pos.direction='W'; lon=-lon;}
 	else pos.direction='E';
 	pos.deg=(uint8_t)lon;
 	pos.second=(double)(lon-(double)pos.deg)*3600.0;

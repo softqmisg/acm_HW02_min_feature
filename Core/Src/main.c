@@ -157,7 +157,37 @@ FRESULT file_write_SD(char *path, char *wstr) {
 uint16_t als, white;
 uint8_t buffer[2];
 HAL_StatusTypeDef status;
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 double voltage, current, temperature[8];
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//float TL_Value;
+//float TH_Value;
+//float DELTAT_Value;
+//float HL_Value;
+//float HH_Value;
+//uint16_t BrightW_Value;
+//float BlinkW_Value;
+//uint16_t BrightIR_Value;
+//uint16_t Password_Value;
+//float NTCTL_Value;
+//float NTCTH_Value;
+double LAT_Value;
+double LONG_Value;
+uint16_t DAY_BRIGHTNESS_Value;
+uint16_t DAY_BLINK_Value;
+uint16_t NIGHT_BRIGHTNESS_Value;
+uint16_t NIGHT_BLINK_Value;
+
+/////////////////////////////////////read value of parameter from eeprom///////////////////////////////
+void update_values(void)
+{
+	LAT_Value=-19.264706;
+	LONG_Value=-83.328684;
+	DAY_BRIGHTNESS_Value=0;
+	DAY_BLINK_Value=2;
+	NIGHT_BRIGHTNESS_Value=80;
+	NIGHT_BLINK_Value=0;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 		uint8_t row, uint8_t col, char colour, bounding_box_t *box) {
@@ -356,13 +386,22 @@ void create_form3(uint8_t clear)
 	/////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
-	//////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////
 	clock_cell(pos_);
-	/////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128,(pos_[0].y2 - pos_[0].y1)+1, 1, 1, 1,
+	/////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128,2*((pos_[0].y2 - pos_[0].y1)+1), 2, 1, 1,
 			pos_);
-	sprintf(tmp_str,"LAT=%d %d\"%.2f%c",latdouble2POS(-19.264706));
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN);
+	POS_t lat_pos=latdouble2POS(LAT_Value);
+	sprintf(tmp_str,"Latitude: %d %d\' %.2f\"%c",lat_pos.deg,lat_pos.min,lat_pos.second,lat_pos.direction);
+	pos_[0].x1=1;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN);
+	POS_t long_pos=longdouble2POS(LONG_Value);
+	sprintf(tmp_str,"Longitude: %d %d\' %.2f\"%c",long_pos.deg,long_pos.min,long_pos.second,long_pos.direction);
+	pos_[1].x1=1;
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN);
+	/////////////////////////////////////////////////////
+
+
 //	create_cell(0, pos_[0].y2, 128, 64 - (pos_[0].y2 - pos_[0].y1), 4, 1, 1,
 //			pos_);
 
@@ -475,61 +514,67 @@ int main(void) {
 		HAL_RTC_SetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 	}
 	///////////////////////initialize & checking sensors///////////////////////////////////////
-	//draw_box(0, 0, 63, 128, 1);
-	create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-	draw_text("Initialize sensors", 1, 1, Verdana8, 1, 0);
-	glcd_refresh();
-	uint8_t sensor_error = 0;
-	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+	create_cell(0, 0, 128, 64, 5, 2, 1, pos_);
+	uint8_t ch;
+	for ( ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
 			printf("tmp275 sensor (#%d) error\n\r", ch);
 			sprintf(tmp_str1, "tmp(%d)ERR", ch);
-			draw_text(tmp_str1, (ch % 2) * 64+1, (ch / 2) * 11 + 10, Verdana8, 1,
-					0);
-			sensor_error++;
+
 		} else {
 			printf("tmp275 sensor (#%d) OK\n\r", ch);
 			sprintf(tmp_str1, "tmp(%d)OK", ch);
-			draw_text(tmp_str1, (ch % 2) * 64+1, (ch / 2) * 11 + 10, Verdana8, 1,
-					0);
 		}
-		HAL_Delay(100);
+		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
+		HAL_Delay(50);
 	}
 
 	status = ina3221_init();
 
 	if ((status = vcnl4200_init()) != VCNL4200_OK) {
 		printf("vcnl4200 sensor error\n\r");
-		draw_text("vcnl ERR", 1, 55, Verdana8, 1, 0);
-		sensor_error++;
+		sprintf(tmp_str1,"vcnl ERR");
 	} else {
 		printf("vcnl4200 sensor OK\n\r");
-		draw_text("vcnl OK", 1, 55, Verdana8, 1, 0);
+		sprintf(tmp_str1,"vcnl OK");
 	}
-
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
+	ch++;
 	if ((status = veml6030_init()) != VEML6030_OK) {
 		printf("veml6030 sensor error\n\r");
-		draw_text("veml ERR", 64, 55, Verdana8, 1, 0);
-		sensor_error++;
+		sprintf(tmp_str1,"veml ERR");
 
 	} else {
 		printf("veml6030 sensor OK\n\r");
-		draw_text("veml OK", 64, 55, Verdana8, 1, 0);
-
+		sprintf(tmp_str1,"vcnl OK");
 	}
-
-	if (sensor_error == 0) {
-		draw_text("Sensors OK", 1, 11, Verdana8, 1, 0);
-		glcd_refresh();
-	} else {
-		glcd_refresh();
-		HAL_Delay(5000);
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
+	while (1) {
+	glcd_refresh();
+	HAL_Delay(5000);
+	if (flag_rtc_1s) {
+		flag_rtc_1s = 0;
+		create_form3(0);
 	}
+#ifndef __DEBUG__
+HAL_IWDG_Refresh(&hiwdg);
+#endif
+}
 	//////////////////////////////////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
 		Error_Handler();
 	}
+	///////////////////////////////////////////////////////////////////////////////////
+	if((HAL_RTCEx_BKUPRead (&hrtc,RTC_BKP_DR1) !=0x5050))
+	{
+#ifndef __DEBUG__
+		HAL_IWDG_Refresh(&hiwdg);
+#endif
+		 HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+	}
+	update_values();
+	//////////////////////////////////////////////////////////////////////////////////
 	create_menu(5, 1);
 	HAL_Delay(2000);
 	create_form1(1);
