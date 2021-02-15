@@ -174,9 +174,9 @@ double voltage, current, temperature[8];
 double LAT_Value;
 double LONG_Value;
 uint16_t DAY_BRIGHTNESS_Value;
-uint16_t DAY_BLINK_Value;
+double  DAY_BLINK_Value;
 uint16_t NIGHT_BRIGHTNESS_Value;
-uint16_t NIGHT_BLINK_Value;
+double NIGHT_BLINK_Value;
 
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void)
@@ -184,7 +184,7 @@ void update_values(void)
 	LAT_Value=-19.264706;
 	LONG_Value=-83.328684;
 	DAY_BRIGHTNESS_Value=0;
-	DAY_BLINK_Value=2;
+	DAY_BLINK_Value=0.5;
 	NIGHT_BRIGHTNESS_Value=80;
 	NIGHT_BLINK_Value=0;
 }
@@ -223,7 +223,7 @@ enum {
 	LEFT_ALIGN = 0, RIGHT_ALIGN, CENTER_ALIGN
 };
 void text_cell(bounding_box_t *pos, uint8_t index, char *str,
-		unsigned char *font, uint8_t align) {
+		unsigned char *font, uint8_t align,unsigned char inv) {
 	uint8_t x, y = pos[index].y1 + 1;
 	uint8_t length_str = text_width(str, font, 1);
 	switch (align) {
@@ -242,7 +242,9 @@ void text_cell(bounding_box_t *pos, uint8_t index, char *str,
 		draw_fill(x - 1, y, x + length_str + 1, y + text_height(str, font), 0);
 		break;
 	}
-	draw_text(str, x, y, font, 1, 0);
+	if(inv)
+		draw_fill(pos[index].x1,pos[index].y1,pos[index].x2,pos[index].y2,1);
+	draw_text(str, x, y, font, 1, inv);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
@@ -301,7 +303,7 @@ void create_form1(uint8_t clear) {
 			sprintf(tmp_str, "T(%d)=%4.1f", i + 1, temperature[i]);
 		} else
 			sprintf(tmp_str, "T(%d)=---", i + 1);
-		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN);
+		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN,0);
 	}
 	//////////////////////////////////////////////////////////
 
@@ -333,7 +335,7 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,0);
 	///////////CH2,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -344,7 +346,7 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN,0);
 	///////////CH3,3.3V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -355,7 +357,7 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN,0);
 	///////////TEC,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -366,13 +368,13 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN,0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y1, 25, (pos_[3].y2 - pos_[0].y1)+1, 4, 1, 1, pos_);
-	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN);
-	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN);
-	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN);
-	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN,1);
+	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN,1);
+	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN,1);
+	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN,1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
@@ -394,16 +396,24 @@ void create_form3(uint8_t clear)
 	POS_t lat_pos=latdouble2POS(LAT_Value);
 	sprintf(tmp_str,"Latitude: %d %d\' %.2f\"%c",lat_pos.deg,lat_pos.min,lat_pos.second,lat_pos.direction);
 	pos_[0].x1=1;
-	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN);
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN,0);
 	POS_t long_pos=longdouble2POS(LONG_Value);
 	sprintf(tmp_str,"Longitude: %d %d\' %.2f\"%c",long_pos.deg,long_pos.min,long_pos.second,long_pos.direction);
 	pos_[1].x1=1;
-	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN);
-	/////////////////////////////////////////////////////
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN,0);
+	////////////////////////////////////////////////////////////////////////////////////
+	create_cell(30, pos_[1].y2, 128-30, 64 - pos_[1].y2 , 2, 1, 1,
+			pos_);
+	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", DAY_BRIGHTNESS_Value,DAY_BLINK_Value);
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", NIGHT_BRIGHTNESS_Value,NIGHT_BLINK_Value);
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN,0);
 
-
-//	create_cell(0, pos_[0].y2, 128, 64 - (pos_[0].y2 - pos_[0].y1), 4, 1, 1,
-//			pos_);
+	//////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y1, 30,  (pos_[1].y2 - pos_[0].y1)+1 , 2, 1, 1,
+			pos_);
+	text_cell(pos_, 0, "Day", Tahoma8, CENTER_ALIGN,1);
+	text_cell(pos_, 1, "Night", Tahoma8, CENTER_ALIGN,1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
@@ -508,24 +518,27 @@ int main(void) {
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
-	///////////////////////setting RTC///////////////////////////////////////
+	///////////////////////setting RTC/////////////////////////////////////////////////////////
 	if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x5050) {
 		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 		HAL_RTC_SetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 	}
 	///////////////////////initialize & checking sensors///////////////////////////////////////
-	create_cell(0, 0, 128, 64, 5, 2, 1, pos_);
-	uint8_t ch;
+	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
+			&pos_[2]);
+	glcd_refresh();
+	uint8_t ch,inv;
 	for ( ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
 			printf("tmp275 sensor (#%d) error\n\r", ch);
-			sprintf(tmp_str1, "tmp(%d)ERR", ch);
+			sprintf(tmp_str1, "tmp(%d)ERR", ch);inv=1;
 
 		} else {
 			printf("tmp275 sensor (#%d) OK\n\r", ch);
-			sprintf(tmp_str1, "tmp(%d)OK", ch);
+			sprintf(tmp_str1, "tmp(%d)OK", ch);inv=0;
 		}
-		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
+		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
 		HAL_Delay(50);
 	}
 
@@ -533,33 +546,25 @@ int main(void) {
 
 	if ((status = vcnl4200_init()) != VCNL4200_OK) {
 		printf("vcnl4200 sensor error\n\r");
-		sprintf(tmp_str1,"vcnl ERR");
+		sprintf(tmp_str1,"vcnl ERR");inv=1;
 	} else {
 		printf("vcnl4200 sensor OK\n\r");
-		sprintf(tmp_str1,"vcnl OK");
+		sprintf(tmp_str1,"vcnl OK");inv=0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
 	ch++;
 	if ((status = veml6030_init()) != VEML6030_OK) {
 		printf("veml6030 sensor error\n\r");
-		sprintf(tmp_str1,"veml ERR");
+		sprintf(tmp_str1,"veml ERR");inv=1;
 
 	} else {
 		printf("veml6030 sensor OK\n\r");
-		sprintf(tmp_str1,"vcnl OK");
+		sprintf(tmp_str1,"vcnl OK");inv=0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN);
-	while (1) {
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
 	glcd_refresh();
 	HAL_Delay(5000);
-	if (flag_rtc_1s) {
-		flag_rtc_1s = 0;
-		create_form3(0);
-	}
-#ifndef __DEBUG__
-HAL_IWDG_Refresh(&hiwdg);
-#endif
-}
+
 	//////////////////////////////////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
