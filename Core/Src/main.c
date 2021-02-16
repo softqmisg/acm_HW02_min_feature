@@ -77,7 +77,7 @@ void SystemClock_Config(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
-///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t flag_rtc_1s = 0;
 //uint8_t flag_rtc_showtemp=1;
 //uint8_t flag_rtc_blink=0;
@@ -92,7 +92,7 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 //		counter_rtc_showtemp=0;
 //	}
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
 char ESP_data;
 char PC_data;
@@ -105,7 +105,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
 	}
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT file_write_USB(char *path, char *wstr) {
 	uint32_t byteswritten;
 	FIL myfile;
@@ -126,7 +126,7 @@ FRESULT file_write_USB(char *path, char *wstr) {
 	f_mount(&USBHFatFS, "", 1);
 	return fr;
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT file_write_SD(char *path, char *wstr) {
 
 	uint32_t byteswritten;
@@ -148,7 +148,7 @@ FRESULT file_write_SD(char *path, char *wstr) {
 	f_mount(0, "", 1);
 	return fr;
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END PFP */
 
@@ -157,9 +157,9 @@ FRESULT file_write_SD(char *path, char *wstr) {
 uint16_t als, white;
 uint8_t buffer[2];
 HAL_StatusTypeDef status;
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 double voltage, current, temperature[8];
-////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //float TL_Value;
 //float TH_Value;
 //float DELTAT_Value;
@@ -174,21 +174,25 @@ double voltage, current, temperature[8];
 double LAT_Value;
 double LONG_Value;
 uint16_t DAY_BRIGHTNESS_Value;
-double  DAY_BLINK_Value;
+double DAY_BLINK_Value;
 uint16_t NIGHT_BRIGHTNESS_Value;
 double NIGHT_BLINK_Value;
-
+double AFTER_SUNRISE_Value;
+double BEFORE_SUNSET_Value;
+uint8_t TEC_STATE_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
-void update_values(void)
-{
-	LAT_Value=-19.264706;
-	LONG_Value=-83.328684;
-	DAY_BRIGHTNESS_Value=0;
-	DAY_BLINK_Value=0.5;
-	NIGHT_BRIGHTNESS_Value=80;
-	NIGHT_BLINK_Value=0;
+void update_values(void) {
+	LAT_Value = 35.719086;
+	LONG_Value = 51.398101;
+	DAY_BRIGHTNESS_Value = 0;
+	DAY_BLINK_Value = 0.5;
+	NIGHT_BRIGHTNESS_Value = 80;
+	NIGHT_BLINK_Value = 0;
+	AFTER_SUNRISE_Value=1.5;
+	BEFORE_SUNSET_Value=-1.0;
+	TEC_STATE_Value=1;
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 		uint8_t row, uint8_t col, char colour, bounding_box_t *box) {
 	uint8_t step_r = floor((double) height / row);
@@ -218,35 +222,38 @@ void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 	}
 
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 enum {
 	LEFT_ALIGN = 0, RIGHT_ALIGN, CENTER_ALIGN
 };
 void text_cell(bounding_box_t *pos, uint8_t index, char *str,
-		unsigned char *font, uint8_t align,unsigned char inv) {
+		unsigned char *font, uint8_t align, unsigned char inv) {
 	uint8_t x, y = pos[index].y1 + 1;
 	uint8_t length_str = text_width(str, font, 1);
 	switch (align) {
 	case LEFT_ALIGN:
 		x = pos[index].x1 + 1;
-		draw_fill(x , y, x + length_str + 1, y + text_height(str, font), 0);
+		draw_fill(x, y, x + length_str + 2, y + text_height(str, font), 0);
 		break;
 	case RIGHT_ALIGN:
-		x = pos[index].x2 - length_str - 1;
-		if(x==0) x=1;
-		draw_fill(x - 1, y, x + length_str , y + text_height(str, font), 0);
+		x = pos[index].x2 - length_str - 2;
+		if (x == 0)
+			x = 1;
+		draw_fill(x - 1, y, x + length_str, y + text_height(str, font), 0);
 		break;
 	case CENTER_ALIGN:
 		x = pos[index].x1 + (pos[index].x2 - pos[index].x1 - length_str) / 2;
-		if(x==0) x=1;
+		if (x == 0)
+			x = 1;
 		draw_fill(x - 1, y, x + length_str + 1, y + text_height(str, font), 0);
 		break;
 	}
-	if(inv)
-		draw_fill(pos[index].x1,pos[index].y1,pos[index].x2,pos[index].y2,1);
+	if (inv)
+		draw_fill(pos[index].x1, pos[index].y1, pos[index].x2, pos[index].y2,
+				1);
 	draw_text(str, x, y, font, 1, inv);
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
 		"SET PASS", "Exit" };
@@ -266,7 +273,7 @@ void create_menu(uint8_t selected, uint8_t clear) {
 	free(pos_);
 	glcd_refresh();
 }
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void clock_cell(bounding_box_t *pos_) {
 	char tmp_str[40];
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
@@ -276,25 +283,25 @@ void clock_cell(bounding_box_t *pos_) {
 	RTC_DateTypeDef sDate;
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	sprintf(tmp_str, "  %02d:%02d:%02d", sTime.Hours,
-			sTime.Minutes, sTime.Seconds);
+	sprintf(tmp_str, "  %02d:%02d:%02d", sTime.Hours, sTime.Minutes,
+			sTime.Seconds);
 	draw_text(tmp_str, 1, 1, Tahoma8, 1, 0);
-	sprintf(tmp_str, "%4d-%02d-%02d",  sDate.Year + 2000, sDate.Month,
+	sprintf(tmp_str, "%4d-%02d-%02d", sDate.Year + 2000, sDate.Month,
 			sDate.Date);
 	draw_text(tmp_str, 64, 1, Tahoma8, 1, 0);
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form1(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
 			sizeof(bounding_box_t) * 2 * 5);
-	/////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
-	//////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
-	/////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
 			pos_);
 
@@ -303,28 +310,29 @@ void create_form1(uint8_t clear) {
 			sprintf(tmp_str, "T(%d)=%4.1f", i + 1, temperature[i]);
 		} else
 			sprintf(tmp_str, "T(%d)=---", i + 1);
-		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN,0);
+		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN, 0);
 	}
-	//////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	free(pos_);
 	glcd_refresh();
 
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form2(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
 			sizeof(bounding_box_t) * 1 * 5);
-	/////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
-	//////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
-	/////////////////////////////////////////////////////
-	create_cell(25, pos_[0].y2, 128-25, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(25, pos_[0].y2, 128 - 25, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
 			pos_);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH1,7V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_7V, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -335,7 +343,8 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH2,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -346,7 +355,8 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH3,3.3V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -357,7 +367,8 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////TEC,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
@@ -368,58 +379,135 @@ void create_form2(uint8_t clear) {
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
-	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y1, 25, (pos_[3].y2 - pos_[0].y1)+1, 4, 1, 1, pos_);
-	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN,1);
-	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN,1);
-	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN,1);
-	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN,1);
+	create_cell(0, pos_[0].y1, 25, (pos_[3].y2 - pos_[0].y1) + 1, 4, 1, 1,
+			pos_);
+	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form3(uint8_t clear)
-{
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_form3(uint8_t clear) {
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
 			sizeof(bounding_box_t) * 1 * 5);
-	/////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
-	/////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
-	/////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128,2*((pos_[0].y2 - pos_[0].y1)+1), 2, 1, 1,
-			pos_);
-	POS_t lat_pos=latdouble2POS(LAT_Value);
-	sprintf(tmp_str,"Latitude: %d %d\' %.2f\"%c",lat_pos.deg,lat_pos.min,lat_pos.second,lat_pos.direction);
-	pos_[0].x1=1;
-	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN,0);
-	POS_t long_pos=longdouble2POS(LONG_Value);
-	sprintf(tmp_str,"Longitude: %d %d\' %.2f\"%c",long_pos.deg,long_pos.min,long_pos.second,long_pos.direction);
-	pos_[1].x1=1;
-	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN,0);
-	////////////////////////////////////////////////////////////////////////////////////
-	create_cell(30, pos_[1].y2, 128-30, 64 - pos_[1].y2 , 2, 1, 1,
-			pos_);
-	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", DAY_BRIGHTNESS_Value,DAY_BLINK_Value);
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,0);
-	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", NIGHT_BRIGHTNESS_Value,NIGHT_BLINK_Value);
-	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN,0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128, 2 * ((pos_[0].y2 - pos_[0].y1) + 1), 2, 1,
+			1, pos_);
+	POS_t lat_pos = latdouble2POS(LAT_Value);
+	sprintf(tmp_str, "Latitude: %d %d\' %.2f\"%c", lat_pos.deg, lat_pos.min,
+			lat_pos.second, lat_pos.direction);
+	pos_[0].x1 = 1;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	POS_t long_pos = longdouble2POS(LONG_Value);
+	sprintf(tmp_str, "Longitude: %d %d\' %.2f\"%c", long_pos.deg, long_pos.min,
+			long_pos.second, long_pos.direction);
+	pos_[1].x1 = 1;
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(30, pos_[1].y2, 128 - 30, 64 - pos_[1].y2, 2, 1, 1, pos_);
+	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", DAY_BRIGHTNESS_Value,
+			DAY_BLINK_Value);
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", NIGHT_BRIGHTNESS_Value,
+			NIGHT_BLINK_Value);
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0);
 
-	//////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y1, 30,  (pos_[1].y2 - pos_[0].y1)+1 , 2, 1, 1,
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y1, 30, (pos_[1].y2 - pos_[0].y1) + 1, 2, 1, 1,
 			pos_);
-	text_cell(pos_, 0, "Day", Tahoma8, CENTER_ALIGN,1);
-	text_cell(pos_, 1, "Night", Tahoma8, CENTER_ALIGN,1);
+	text_cell(pos_, 0, "Day", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 1, "Night", Tahoma8, CENTER_ALIGN, 1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_form4(uint8_t clear) {
+	char tmp_str[40];
+	bounding_box_t *pos_ = (bounding_box_t*) malloc(
+			sizeof(bounding_box_t) * 1 * 5);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	clock_cell(pos_);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128 - 0, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
+			pos_);
+	RTC_DateTypeDef cur_Date;
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	Date_t date={.day=cur_Date.Date,.month=cur_Date.Month,.year=cur_Date.Year};
+	Time_t sunrise,sunset,noon;
+	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset, 1);
+
+	sprintf(tmp_str,"%02d:%02d(%+3.1f)",sunrise.hr,sunrise.min,AFTER_SUNRISE_Value);
+	pos_[0].x1=50;text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1=1;pos_[0].x2=30;text_cell(pos_, 0, "sunrise:", Tahoma8, LEFT_ALIGN, 1);
+
+
+	sprintf(tmp_str,"%02d:%02d(%+3.1f)",sunset.hr,sunset.min,BEFORE_SUNSET_Value);
+	pos_[1].x1=50;text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[1].x1=1;pos_[1].x2=30;text_cell(pos_, 1, "sunset:", Tahoma8, LEFT_ALIGN, 1);
+
+	uint16_t vcnl_als;
+	if(vcnl4200_als(&vcnl_als)==HAL_OK)
+		sprintf(tmp_str,"%04d",vcnl_als);
+	else
+		sprintf(tmp_str,"----");
+	pos_[2].x1=90;text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[2].x1=1;pos_[2].x2=70;text_cell(pos_, 2, "Inside Light:", Tahoma8, LEFT_ALIGN, 1);
+
+	uint16_t veml_als;
+	if(veml6030_als( &veml_als)==HAL_OK)
+		sprintf(tmp_str,"%04d",veml_als);
+	else
+		sprintf(tmp_str,"-----");
+	pos_[3].x1=90;text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[3].x1=1;pos_[3].x2=70;text_cell(pos_, 3, "Outside Light:", Tahoma8, LEFT_ALIGN, 1);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	free(pos_);
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_form5(uint8_t clear) {
+	char tmp_str[40];
+	bounding_box_t *pos_ = (bounding_box_t*) malloc(
+			sizeof(bounding_box_t) * 1 * 5);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	clock_cell(pos_);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128, ((pos_[0].y2 - pos_[0].y1) + 1), 1, 1,
+			1, pos_);
+	(TEC_STATE_Value==1)?sprintf(tmp_str,"ACTIVE"):sprintf(tmp_str,"DEACTIVE");
+	pos_[0].x1=60;text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1=1;pos_[0].x2=30;text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128, 64-pos_[0].y2 , 3, 2,
+			1, pos_);
+	text_cell(pos_, 0, "RELAY1", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 1, "RELAY2", Tahoma8, CENTER_ALIGN, 1);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	free(pos_);
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END 0 */
 
@@ -473,16 +561,11 @@ int main(void) {
 	char tmp_str[100], tmp_str1[100];
 	RTC_TimeTypeDef cur_time;
 	RTC_DateTypeDef cur_Date;
-	cur_time.Hours = 12;
-	cur_time.Minutes = 59;
-	cur_time.Seconds = 0;
-	cur_Date.Year = 21;
-	cur_Date.Month = 2;
-	cur_Date.Date = 15;
 	uint32_t byteswritten;
 	FIL myfile;
 	FRESULT fr;
 	uint8_t y = 0, x = 0;
+	uint8_t pre_daylightsaving=0,cur_daylightsaving=0;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	//////////////////////init LCD//////////
@@ -504,6 +587,7 @@ int main(void) {
 			printf("bmp file error\n\r");
 		f_mount(&SDFatFS, "", 1);
 		bmp_img_free(&img);
+		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
 		glcd_refresh();
 		HAL_Delay(1000);
 	}
@@ -518,27 +602,29 @@ int main(void) {
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
-	///////////////////////setting RTC/////////////////////////////////////////////////////////
-	if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x5050) {
-		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-		HAL_RTC_SetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-	}
+//	///////////////////////setting RTC/////////////////////////////////////////////////////////
+//	if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050) {
+//		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+//		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+//		HAL_RTC_SetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+//	}
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
 			&pos_[2]);
-	glcd_refresh();
-	uint8_t ch,inv;
-	for ( ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+	uint8_t ch, inv;
+	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
-			printf("tmp275 sensor (#%d) error\n\r", ch);
-			sprintf(tmp_str1, "tmp(%d)ERR", ch);inv=1;
+			printf("tmp275 sensor (#%d) error\n\r", ch+1);
+			sprintf(tmp_str1, "tmp(%d)ERR", ch+1);
+			inv = 1;
 
 		} else {
-			printf("tmp275 sensor (#%d) OK\n\r", ch);
-			sprintf(tmp_str1, "tmp(%d)OK", ch);inv=0;
+			printf("tmp275 sensor (#%d) OK\n\r", ch+1);
+			sprintf(tmp_str1, "tmp(%d)OK", ch+1);
+			inv = 0;
 		}
-		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
+		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv);
 		HAL_Delay(50);
 	}
 
@@ -546,22 +632,26 @@ int main(void) {
 
 	if ((status = vcnl4200_init()) != VCNL4200_OK) {
 		printf("vcnl4200 sensor error\n\r");
-		sprintf(tmp_str1,"vcnl ERR");inv=1;
+		sprintf(tmp_str1, "vcnl ERR");
+		inv = 1;
 	} else {
 		printf("vcnl4200 sensor OK\n\r");
-		sprintf(tmp_str1,"vcnl OK");inv=0;
+		sprintf(tmp_str1, "vcnl OK");
+		inv = 0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv);
 	ch++;
 	if ((status = veml6030_init()) != VEML6030_OK) {
 		printf("veml6030 sensor error\n\r");
-		sprintf(tmp_str1,"veml ERR");inv=1;
+		sprintf(tmp_str1, "veml ERR");
+		inv = 1;
 
 	} else {
 		printf("veml6030 sensor OK\n\r");
-		sprintf(tmp_str1,"vcnl OK");inv=0;
+		sprintf(tmp_str1, "vcnl OK");
+		inv = 0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN,inv);
+	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv);
 	glcd_refresh();
 	HAL_Delay(5000);
 
@@ -571,27 +661,56 @@ int main(void) {
 		Error_Handler();
 	}
 	///////////////////////////////////////////////////////////////////////////////////
-	if((HAL_RTCEx_BKUPRead (&hrtc,RTC_BKP_DR1) !=0x5050))
-	{
+	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)) {
 #ifndef __DEBUG__
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
-		 HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
 	}
 	update_values();
 	//////////////////////////////////////////////////////////////////////////////////
-	create_menu(5, 1);
-	HAL_Delay(2000);
-	create_form1(1);
-	HAL_Delay(2000);
+//	create_menu(5, 1);
+//	HAL_Delay(2000);
+//	create_form1(1);
+//	HAL_Delay(2000);
 //	create_form2();
-	create_form2(1);
+//	create_form2(1);
 	//
-	create_form3(1);
+	create_form5(1);
 	while (1) {
 		if (flag_rtc_1s) {
 			flag_rtc_1s = 0;
-			create_form3(0);
+			////////////////////////////RTC//////////////////////////////////
+			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+			Date_t tmp_date={.day=cur_Date.Date,
+			.month=cur_Date.Month,.year=cur_Date.Year};
+			cur_daylightsaving=Astro_daylighsaving(tmp_date);
+			if(cur_daylightsaving && !pre_daylightsaving)
+			{
+				if(READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP)
+				 {
+					 __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+					SET_BIT(hrtc.Instance->CR,RTC_CR_ADD1H);
+					SET_BIT(hrtc.Instance->CR,RTC_CR_BKP);
+					CLEAR_BIT(hrtc.Instance->CR,RTC_CR_SUB1H);
+					__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+				 }
+				pre_daylightsaving=cur_daylightsaving;
+			}
+			if(!cur_daylightsaving && pre_daylightsaving)
+			{
+				 if(READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP)
+				 {
+					 __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+					SET_BIT(hrtc.Instance->CR,RTC_CR_SUB1H);
+					SET_BIT(hrtc.Instance->CR,RTC_CR_BKP);
+					CLEAR_BIT(hrtc.Instance->CR,RTC_CR_ADD1H);
+					__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+
+				 }
+			}
+			//////////////////////////////////////////////////////////////////////////////
+			create_form5(0);
 		}
 #ifndef __DEBUG__
 	HAL_IWDG_Refresh(&hiwdg);

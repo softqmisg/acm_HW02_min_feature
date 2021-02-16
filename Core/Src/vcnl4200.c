@@ -69,3 +69,12 @@ HAL_StatusTypeDef vcnl4200_read(uint8_t cmd, uint16_t *value) {
 	*value = ((uint16_t) read_value[1] << 8) | ((uint16_t) read_value[0]);
 	return VCNL4200_OK;
 }
+////////////////////////////////////////////////////////////////////////////////////
+HAL_StatusTypeDef vcnl4200_ps(uint16_t *value) {
+return vcnl4200_read(VCNL4200_PS_Data, value);
+}
+////////////////////////////////////////////////////////////////////////////////////
+HAL_StatusTypeDef vcnl4200_als(uint16_t *value) {
+return vcnl4200_read(VCNL4200_ALS_Data, value);
+}
+

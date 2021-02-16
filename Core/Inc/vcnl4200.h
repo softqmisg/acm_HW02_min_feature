@@ -43,5 +43,7 @@ enum {VCNL4200_PS_1_160 = 0, VCNL4200_PS_1_320 = 64,VCNL4200_PS_1_640=128,VCNL42
 	#define VCNL4200_ERROR	HAL_ERROR
 	HAL_StatusTypeDef vcnl4200_init(void);
 	HAL_StatusTypeDef vcnl4200_read(uint8_t cmd,uint16_t *value);
+	HAL_StatusTypeDef vcnl4200_ps(uint16_t *value);
+	HAL_StatusTypeDef vcnl4200_als(uint16_t *value);
 	
 #endif

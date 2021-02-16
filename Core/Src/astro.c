@@ -42,7 +42,7 @@ uint8_t Astro_daylighsaving(Date_t date)
 	uint8_t r=0;
 	if(date.month>RTC_MONTH_MARCH && date.month<RTC_MONTH_SEPTEMBER) r=1;
 	else if(date.month==RTC_MONTH_MARCH && date.day>=22)	r=1;
-	else if(date.month==RTC_MONTH_SEPTEMBER && date.day<=22)	r=1;
+	else if(date.month==RTC_MONTH_SEPTEMBER && date.day<22)	r=1;
 	return r;
 }
 //////////////////////////////////////////
