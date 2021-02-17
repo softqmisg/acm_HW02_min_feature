@@ -838,10 +838,10 @@ int main(void) {
 	MX_USART2_UART_Init();
 	MX_USART3_UART_Init();
 	MX_USB_HOST_Init();
-#ifdef __LWIP__
+#if __LWIP__
   MX_LWIP_Init();
 #endif
-#ifndef __DEBUG__
+#if !(__DEBUG__)
   MX_IWDG_Init();
 #endif
 	/* USER CODE BEGIN 2 */
@@ -868,7 +868,7 @@ int main(void) {
 	glcd_flip_screen(XLR_YTB);
 
 //	//////////////////////////load Logo/////////////////////////////////////////
-#ifndef __DEBUG__
+#if !(__DEBUG__)
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
@@ -951,7 +951,7 @@ int main(void) {
 	}
 	/////////////////////////////eeprom reading//////////////////////////////////////////////////////
 	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)) {
-#ifndef __DEBUG__
+#if !(__DEBUG__)
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
@@ -1385,9 +1385,11 @@ int main(void) {
 			break;
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
+#if __LWIP__
 		MX_LWIP_Process();
+#endif
 		MX_USB_HOST_Process();
-#ifndef __DEBUG__
+#if !(__DEBUG__)
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 	}
