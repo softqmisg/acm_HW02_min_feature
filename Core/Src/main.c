@@ -155,17 +155,24 @@ FRESULT file_write_SD(char *path, char *wstr) {
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 enum {
-	DISP_IDLE, DISP_FORM1, DISP_FORM2, DISP_FORM3, DISP_FORM4, DISP_FORM5
+	DISP_IDLE,
+	DISP_FORM1,
+	DISP_FORM2,
+	DISP_FORM3,
+	DISP_FORM4,
+	DISP_FORM5,
+	DISP_FORM6
 } DISP_state = DISP_IDLE;
 enum {
-	MAIN_MENU,
+	MAIN_MENU = 0,
 	PASS_MENU,
 	OPTION_MENU,
 	POSITION_MENU,
 	CLOCK_MENU,
 	LED_MENU,
 	RELAY_MENU,
-	CHANGEPASS_MENU
+	CHANGEPASS_MENU,
+	EXIT_MENU
 } MENU_state = MAIN_MENU;
 uint16_t als, white;
 uint8_t buffer[2];
@@ -174,7 +181,7 @@ HAL_StatusTypeDef status;
 double voltage, current, temperature[8];
 uint8_t counter_change_form = 0;
 uint8_t flag_change_form;
-#define FORM_DELAY_SHOW	10
+#define FORM_DELAY_SHOW	4
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //float TL_Value;
@@ -190,10 +197,19 @@ uint8_t flag_change_form;
 //float NTCTH_Value;
 double LAT_Value;
 double LONG_Value;
-uint16_t DAY_BRIGHTNESS_Value;
-double DAY_BLINK_Value;
-uint16_t NIGHT_BRIGHTNESS_Value;
-double NIGHT_BLINK_Value;
+
+uint8_t WHITE_ACTIVE_Value;
+uint16_t WHITE_DAY_BRIGHTNESS_Value;
+double WHITE_DAY_BLINK_Value;
+uint16_t WHITE_NIGHT_BRIGHTNESS_Value;
+double WHITE_NIGHT_BLINK_Value;
+
+uint8_t IR_ACTIVE_Value;
+uint16_t IR_DAY_BRIGHTNESS_Value;
+double IR_DAY_BLINK_Value;
+uint16_t IR_NIGHT_BRIGHTNESS_Value;
+double IR_NIGHT_BLINK_Value;
+
 double AFTER_SUNRISE_Value;
 double BEFORE_SUNSET_Value;
 uint8_t TEC_STATE_Value;
@@ -206,10 +222,19 @@ char PASSWORD_Value[7];
 void update_values(void) {
 	LAT_Value = 35.719086;
 	LONG_Value = 51.398101;
-	DAY_BRIGHTNESS_Value = 0;
-	DAY_BLINK_Value = 0.5;
-	NIGHT_BRIGHTNESS_Value = 80;
-	NIGHT_BLINK_Value = 0;
+
+	WHITE_ACTIVE_Value = 1;
+	WHITE_DAY_BRIGHTNESS_Value = 0;
+	WHITE_DAY_BLINK_Value = 0.5;
+	WHITE_NIGHT_BRIGHTNESS_Value = 80;
+	WHITE_NIGHT_BLINK_Value = 0;
+
+	IR_ACTIVE_Value=0;
+	IR_DAY_BRIGHTNESS_Value = 0;
+	IR_DAY_BLINK_Value = 0.5;
+	IR_NIGHT_BRIGHTNESS_Value = 80;
+	IR_NIGHT_BLINK_Value = 0;
+
 	AFTER_SUNRISE_Value = 1.5;
 	BEFORE_SUNSET_Value = -1.0;
 	TEC_STATE_Value = 1;
@@ -266,7 +291,8 @@ enum {
 };
 bounding_box_t text_cell(bounding_box_t *pos, uint8_t index, char *str,
 		unsigned char *font, uint8_t align, unsigned char inv) {
-	uint8_t x, y = pos[index].y1 + 1;
+	uint8_t x, y = pos[index].y1
+			+ (pos[index].y2 - pos[index].y1 - text_height(str, font)) / 2 + 1;
 	uint8_t length_str = text_width(str, font, 1);
 	switch (align) {
 	case LEFT_ALIGN:
@@ -312,7 +338,7 @@ void creat_doublebutton(bounding_box_t box, uint8_t selected,
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
 		"SET PASS", "Exit" };
-void create_menu(uint8_t selected, uint8_t clear,bounding_box_t *text_pos) {
+void create_menu(uint8_t selected, uint8_t clear, bounding_box_t *text_pos) {
 
 	if (clear)
 		glcd_blank();
@@ -322,10 +348,10 @@ void create_menu(uint8_t selected, uint8_t clear,bounding_box_t *text_pos) {
 	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
 		draw_text(menu[op], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
 				0);
-		text_pos[op].x1=(op / 5) * 66 + 2;
-		text_pos[op].y1= (op % 5) * 12 + 1;
-		text_pos[op].x2=text_pos[op].x1+text_width(menu[op], Tahoma8, 1);
-		text_pos[op].y2=text_pos[op].y1+text_height(menu[op], Tahoma8);
+		text_pos[op].x1 = (op / 5) * 66 + 2;
+		text_pos[op].y1 = (op % 5) * 12 + 1;
+		text_pos[op].x2 = text_pos[op].x1 + text_width(menu[op], Tahoma8, 1);
+		text_pos[op].y2 = text_pos[op].y1 + text_height(menu[op], Tahoma8);
 
 	}
 	if (selected < MENU_ITEMS)
@@ -463,39 +489,112 @@ void create_form3(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 2 * ((pos_[0].y2 - pos_[0].y1) + 1), 2, 1,
-			1, pos_);
-	POS_t lat_pos = latdouble2POS(LAT_Value);
-	sprintf(tmp_str, "Latitude: %d %d\' %.2f\"%c", lat_pos.deg, lat_pos.min,
-			lat_pos.second, lat_pos.direction);
-	pos_[0].x1 = 1;
-	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	POS_t long_pos = longdouble2POS(LONG_Value);
-	sprintf(tmp_str, "Longitude: %d %d\' %.2f\"%c", long_pos.deg, long_pos.min,
-			long_pos.second, long_pos.direction);
-	pos_[1].x1 = 1;
-	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(30, pos_[1].y2, 128 - 30, 64 - pos_[1].y2, 2, 1, 1, pos_);
-	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", DAY_BRIGHTNESS_Value,
-			DAY_BLINK_Value);
+	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
+	if (WHITE_ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%   %3.1fHz", WHITE_DAY_BRIGHTNESS_Value,
+				WHITE_DAY_BLINK_Value);
+	else
+		sprintf(tmp_str, " --%%   ---Hz");
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0);
-	sprintf(tmp_str, "Bri:%2d%% Blnk:%3.1fHz", NIGHT_BRIGHTNESS_Value,
-			NIGHT_BLINK_Value);
+	if (WHITE_ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%  %3.1fHz", WHITE_NIGHT_BRIGHTNESS_Value,
+				WHITE_NIGHT_BLINK_Value);
+	else
+		sprintf(tmp_str, " --%%   ---Hz");
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0);
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y1, 30, (pos_[1].y2 - pos_[0].y1) + 1, 2, 1, 1,
-			pos_);
-	text_cell(pos_, 0, "Day", Tahoma8, CENTER_ALIGN, 1);
-	text_cell(pos_, 1, "Night", Tahoma8, CENTER_ALIGN, 1);
+	if (IR_ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%   %3.1fHz", IR_DAY_BRIGHTNESS_Value,
+				IR_DAY_BLINK_Value);
+	else
+		sprintf(tmp_str, " --%%   ---Hz");
 
+	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+	if (IR_ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%  %3.1fHz", IR_NIGHT_BRIGHTNESS_Value,
+				IR_NIGHT_BLINK_Value);
+	else
+		sprintf(tmp_str, " --%%   ---Hz");
+
+	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(20, pos_[0].y1, 20, 64 - pos_[0].y1, 4, 1, 1, pos_);
+	text_cell(pos_, 0, "D", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 1, "N", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 2, "D", Tahoma8, CENTER_ALIGN, 1);
+	text_cell(pos_, 3, "N", Tahoma8, CENTER_ALIGN, 1);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y1, 20, 64 - pos_[0].y1, 2, 1, 1, pos_);
+	text_cell(pos_, 0, "WT", Tahoma8, CENTER_ALIGN, 0);
+	text_cell(pos_, 1, "IR", Tahoma8, CENTER_ALIGN, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form4(uint8_t clear) {
+	char tmp_str[40];
+	bounding_box_t *pos_ = (bounding_box_t*) malloc(
+			sizeof(bounding_box_t) * 1 * 5);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	RTC_DateTypeDef cur_Date;
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	Date_t date = { .day = cur_Date.Date, .month = cur_Date.Month, .year =
+			cur_Date.Year };
+	Time_t sunrise, sunset, noon;
+	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset,
+			1);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	clock_cell(pos_);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128 - 0, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
+			pos_);
+
+	POS_t lat_pos = latdouble2POS(LAT_Value);
+	sprintf(tmp_str, " %d %d\' %05.2f\"%c", lat_pos.deg, lat_pos.min,
+			lat_pos.second, lat_pos.direction);
+	pos_[0].x1 = 52;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1 = 1;
+	pos_[0].x2 = 50;
+	text_cell(pos_, 0, "Latitude:", Tahoma8, LEFT_ALIGN, 1);
+
+	POS_t long_pos = longdouble2POS(LONG_Value);
+	sprintf(tmp_str, " %d %d\' %05.2f\"%c", long_pos.deg, long_pos.min,
+			long_pos.second, long_pos.direction);
+	pos_[1].x1 = 52;
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[1].x1 = 1;
+	pos_[1].x2 = 50;
+	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1);
+
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunrise.hr, sunrise.min,
+			AFTER_SUNRISE_Value);
+	pos_[2].x1 = 50;
+	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[2].x1 = 1;
+	pos_[2].x2 = 40;
+	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1);
+
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunset.hr, sunset.min,
+			BEFORE_SUNSET_Value);
+	pos_[3].x1 = 50;
+	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[3].x1 = 1;
+	pos_[3].x2 = 40;
+	text_cell(pos_, 3, "sunset:", Tahoma8, LEFT_ALIGN, 1);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	free(pos_);
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_form5(uint8_t clear) {
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
 			sizeof(bounding_box_t) * 1 * 5);
@@ -507,57 +606,34 @@ void create_form4(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128 - 0, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
 			pos_);
-	RTC_DateTypeDef cur_Date;
-	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-	Date_t date = { .day = cur_Date.Date, .month = cur_Date.Month, .year =
-			cur_Date.Year };
-	Time_t sunrise, sunset, noon;
-	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset,
-			1);
-
-	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunrise.hr, sunrise.min,
-			AFTER_SUNRISE_Value);
-	pos_[0].x1 = 50;
-	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[0].x1 = 1;
-	pos_[0].x2 = 30;
-	text_cell(pos_, 0, "sunrise:", Tahoma8, LEFT_ALIGN, 1);
-
-	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunset.hr, sunset.min,
-			BEFORE_SUNSET_Value);
-	pos_[1].x1 = 50;
-	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[1].x1 = 1;
-	pos_[1].x2 = 30;
-	text_cell(pos_, 1, "sunset:", Tahoma8, LEFT_ALIGN, 1);
-
 	uint16_t vcnl_als;
 	if (vcnl4200_als(&vcnl_als) == HAL_OK)
 		sprintf(tmp_str, "%04d", vcnl_als);
 	else
 		sprintf(tmp_str, "----");
-	pos_[2].x1 = 90;
-	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[2].x1 = 1;
-	pos_[2].x2 = 70;
-	text_cell(pos_, 2, "Inside Light:", Tahoma8, LEFT_ALIGN, 1);
+	pos_[0].x1 = 90;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1 = 1;
+	pos_[0].x2 = 70;
+	text_cell(pos_, 0, "Inside Light:", Tahoma8, LEFT_ALIGN, 1);
 
 	uint16_t veml_als;
 	if (veml6030_als(&veml_als) == HAL_OK)
 		sprintf(tmp_str, "%04d", veml_als);
 	else
 		sprintf(tmp_str, "-----");
-	pos_[3].x1 = 90;
-	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[3].x1 = 1;
-	pos_[3].x2 = 70;
-	text_cell(pos_, 3, "Outside Light:", Tahoma8, LEFT_ALIGN, 1);
+	pos_[1].x1 = 90;
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[1].x1 = 1;
+	pos_[1].x2 = 70;
+	text_cell(pos_, 1, "Outside Light:", Tahoma8, LEFT_ALIGN, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
 }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form5(uint8_t clear) {
+void create_form6(uint8_t clear) {
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
 			sizeof(bounding_box_t) * 1 * 5);
@@ -852,6 +928,9 @@ int main(void) {
 				case DISP_FORM5:
 					create_form5(0);
 					break;
+				case DISP_FORM6:
+					create_form6(0);
+					break;
 				}
 			}
 			if (flag_change_form) {
@@ -878,6 +957,10 @@ int main(void) {
 					DISP_state = DISP_FORM5;
 					break;
 				case DISP_FORM5:
+					create_form6(1);
+					DISP_state = DISP_FORM6;
+					break;
+				case DISP_FORM6:
 					create_form1(1);
 					DISP_state = DISP_FORM1;
 					break;
@@ -1054,7 +1137,7 @@ int main(void) {
 					} else {
 						text_pos = (bounding_box_t*) malloc(
 								sizeof(bounding_box_t) * MENU_ITEMS);
-						create_menu(0, 1,text_pos);
+						create_menu(0, 1, text_pos);
 						index_option = 0;
 						MENU_state = OPTION_MENU;
 					}
@@ -1103,64 +1186,66 @@ int main(void) {
 		case OPTION_MENU:
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
 					Long_press);
-			if(joystick_read(Key_TOP, Short_press))
-			{
-				joystick_init(Key_TOP, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						0);
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				index_option++;
-				if(index_option>=MENU_ITEMS) index_option=0;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						1);
+				if (index_option >= MENU_ITEMS)
+					index_option = 0;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
-			if(joystick_read(Key_DOWN, Short_press))
-			{
-				joystick_init(Key_DOWN, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						0);
-				if(index_option==0) index_option=MENU_ITEMS;
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
+				if (index_option == 0)
+					index_option = MENU_ITEMS;
 				index_option--;
 
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						1);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
-			if(joystick_read(Key_LEFT, Short_press))
-			{
+			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						0);
-				if(index_option<5)
-				{
-					index_option+=5;
-					if(index_option>=MENU_ITEMS) index_option=index_option%5;
-				}
-				else
-				 index_option-=5;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						1);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
+				if (index_option < 5) {
+					index_option += 5;
+					if (index_option >= MENU_ITEMS)
+						index_option = index_option % 5;
+				} else
+					index_option -= 5;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
-			if(joystick_read(Key_RIGHT, Short_press))
-			{
+			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						0);
-				index_option+=5;
-				if(index_option>=MENU_ITEMS) index_option=index_option%5;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
-						1);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
+				index_option += 5;
+				if (index_option >= MENU_ITEMS)
+					index_option = index_option % 5;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
-			if(joystick_read(Key_ENTER, Short_press))
-			{
+			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				if(index_option==(MENU_ITEMS-1))
-				{
-					MENU_state=MAIN_MENU;
-					DISP_state=DISP_IDLE;
-					flag_change_form=1;
+				index_option += (uint8_t) OPTION_MENU;
+				switch (index_option) {
+				case POSITION_MENU:
+					break;
+				case EXIT_MENU:
+					MENU_state = MAIN_MENU;
+					DISP_state = DISP_IDLE;
+					flag_change_form = 1;
+
+					break;
 				}
 				free(text_pos);
 			}
