@@ -154,11 +154,28 @@ FRESULT file_write_SD(char *path, char *wstr) {
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+enum {
+	DISP_IDLE, DISP_FORM1, DISP_FORM2, DISP_FORM3, DISP_FORM4, DISP_FORM5
+} DISP_state = DISP_IDLE;
+enum {
+	MAIN_MENU,
+	PASS_MENU,
+	OPTION_MENU,
+	POSITION_MENU,
+	CLOCK_MENU,
+	LED_MENU,
+	RELAY_MENU,
+	CHANGEPASS_MENU
+} MENU_state = MAIN_MENU;
 uint16_t als, white;
 uint8_t buffer[2];
 HAL_StatusTypeDef status;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 double voltage, current, temperature[8];
+uint8_t counter_change_form = 0;
+uint8_t flag_change_form;
+#define FORM_DELAY_SHOW	10
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //float TL_Value;
 //float TH_Value;
@@ -180,6 +197,11 @@ double NIGHT_BLINK_Value;
 double AFTER_SUNRISE_Value;
 double BEFORE_SUNSET_Value;
 uint8_t TEC_STATE_Value;
+double RELAY1_TEMP_Value[2];
+uint8_t RELAY1_Edge_Value[2];
+double RELAY2_TEMP_Value[2];
+char RELAY2_Edge_Value[2];
+char PASSWORD_Value[7];
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	LAT_Value = 35.719086;
@@ -188,9 +210,25 @@ void update_values(void) {
 	DAY_BLINK_Value = 0.5;
 	NIGHT_BRIGHTNESS_Value = 80;
 	NIGHT_BLINK_Value = 0;
-	AFTER_SUNRISE_Value=1.5;
-	BEFORE_SUNSET_Value=-1.0;
-	TEC_STATE_Value=1;
+	AFTER_SUNRISE_Value = 1.5;
+	BEFORE_SUNSET_Value = -1.0;
+	TEC_STATE_Value = 1;
+	RELAY1_TEMP_Value[0] = 33.1;
+	RELAY1_Edge_Value[0] = 'U';
+	RELAY1_TEMP_Value[1] = 0.0;
+	RELAY1_Edge_Value[0] = 'U';
+	RELAY2_TEMP_Value[0] = 33.1;
+	RELAY2_Edge_Value[0] = 'D';
+	RELAY2_TEMP_Value[1] = 35.1;
+	RELAY2_Edge_Value[1] = 'U';
+	PASSWORD_Value[0] = '0';
+	PASSWORD_Value[1] = '0';
+	PASSWORD_Value[2] = '0';
+	PASSWORD_Value[3] = '0';
+	PASSWORD_Value[4] = '0';
+	PASSWORD_Value[5] = '0';
+	PASSWORD_Value[6] = 0;
+
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
@@ -226,7 +264,7 @@ void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 enum {
 	LEFT_ALIGN = 0, RIGHT_ALIGN, CENTER_ALIGN
 };
-void text_cell(bounding_box_t *pos, uint8_t index, char *str,
+bounding_box_t text_cell(bounding_box_t *pos, uint8_t index, char *str,
 		unsigned char *font, uint8_t align, unsigned char inv) {
 	uint8_t x, y = pos[index].y1 + 1;
 	uint8_t length_str = text_width(str, font, 1);
@@ -252,12 +290,30 @@ void text_cell(bounding_box_t *pos, uint8_t index, char *str,
 		draw_fill(pos[index].x1, pos[index].y1, pos[index].x2, pos[index].y2,
 				1);
 	draw_text(str, x, y, font, 1, inv);
+	bounding_box_t box = { .x1 = x, .x2 = x + length_str, .y1 = pos[index].y1,
+			.y2 = pos[index].y2 };
+	return box;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bounding_box_t create_button(bounding_box_t box, char *str, uint8_t inv) {
+	draw_box(box.x1, box.y1, box.x2, box.y2, 1);
+	glcd_refresh();
+	return text_cell(&box, 0, str, Tahoma8, CENTER_ALIGN, inv);
+}
+void creat_doublebutton(bounding_box_t box, uint8_t selected,
+		bounding_box_t *text_pos) {
+	box.x2 = box.x1 + 20;
+	text_pos[0] = create_button(box, "OK", (selected == 1) ? 1 : 0);
+	box.x1 = box.x2;
+	box.x2 = box.x1 + 42;
+	text_pos[1] = create_button(box, "CANCEL", (selected == 2) ? 1 : 0);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define MENU_ITEMS	7
 char *menu[] = { "SET Position", "SET Time", "SET LED", "SET Relay", "SET Door",
 		"SET PASS", "Exit" };
-void create_menu(uint8_t selected, uint8_t clear) {
+void create_menu(uint8_t selected, uint8_t clear,bounding_box_t *text_pos) {
+
 	if (clear)
 		glcd_blank();
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
@@ -266,6 +322,11 @@ void create_menu(uint8_t selected, uint8_t clear) {
 	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
 		draw_text(menu[op], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
 				0);
+		text_pos[op].x1=(op / 5) * 66 + 2;
+		text_pos[op].y1= (op % 5) * 12 + 1;
+		text_pos[op].x2=text_pos[op].x1+text_width(menu[op], Tahoma8, 1);
+		text_pos[op].y2=text_pos[op].y1+text_height(menu[op], Tahoma8);
+
 	}
 	if (selected < MENU_ITEMS)
 		draw_text(menu[selected], (selected / 5) * 66 + 2,
@@ -448,34 +509,49 @@ void create_form4(uint8_t clear) {
 			pos_);
 	RTC_DateTypeDef cur_Date;
 	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-	Date_t date={.day=cur_Date.Date,.month=cur_Date.Month,.year=cur_Date.Year};
-	Time_t sunrise,sunset,noon;
-	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset, 1);
+	Date_t date = { .day = cur_Date.Date, .month = cur_Date.Month, .year =
+			cur_Date.Year };
+	Time_t sunrise, sunset, noon;
+	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset,
+			1);
 
-	sprintf(tmp_str,"%02d:%02d(%+3.1f)",sunrise.hr,sunrise.min,AFTER_SUNRISE_Value);
-	pos_[0].x1=50;text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[0].x1=1;pos_[0].x2=30;text_cell(pos_, 0, "sunrise:", Tahoma8, LEFT_ALIGN, 1);
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunrise.hr, sunrise.min,
+			AFTER_SUNRISE_Value);
+	pos_[0].x1 = 50;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1 = 1;
+	pos_[0].x2 = 30;
+	text_cell(pos_, 0, "sunrise:", Tahoma8, LEFT_ALIGN, 1);
 
-
-	sprintf(tmp_str,"%02d:%02d(%+3.1f)",sunset.hr,sunset.min,BEFORE_SUNSET_Value);
-	pos_[1].x1=50;text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[1].x1=1;pos_[1].x2=30;text_cell(pos_, 1, "sunset:", Tahoma8, LEFT_ALIGN, 1);
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", sunset.hr, sunset.min,
+			BEFORE_SUNSET_Value);
+	pos_[1].x1 = 50;
+	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[1].x1 = 1;
+	pos_[1].x2 = 30;
+	text_cell(pos_, 1, "sunset:", Tahoma8, LEFT_ALIGN, 1);
 
 	uint16_t vcnl_als;
-	if(vcnl4200_als(&vcnl_als)==HAL_OK)
-		sprintf(tmp_str,"%04d",vcnl_als);
+	if (vcnl4200_als(&vcnl_als) == HAL_OK)
+		sprintf(tmp_str, "%04d", vcnl_als);
 	else
-		sprintf(tmp_str,"----");
-	pos_[2].x1=90;text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[2].x1=1;pos_[2].x2=70;text_cell(pos_, 2, "Inside Light:", Tahoma8, LEFT_ALIGN, 1);
+		sprintf(tmp_str, "----");
+	pos_[2].x1 = 90;
+	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[2].x1 = 1;
+	pos_[2].x2 = 70;
+	text_cell(pos_, 2, "Inside Light:", Tahoma8, LEFT_ALIGN, 1);
 
 	uint16_t veml_als;
-	if(veml6030_als( &veml_als)==HAL_OK)
-		sprintf(tmp_str,"%04d",veml_als);
+	if (veml6030_als(&veml_als) == HAL_OK)
+		sprintf(tmp_str, "%04d", veml_als);
 	else
-		sprintf(tmp_str,"-----");
-	pos_[3].x1=90;text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[3].x1=1;pos_[3].x2=70;text_cell(pos_, 3, "Outside Light:", Tahoma8, LEFT_ALIGN, 1);
+		sprintf(tmp_str, "-----");
+	pos_[3].x1 = 90;
+	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[3].x1 = 1;
+	pos_[3].x2 = 70;
+	text_cell(pos_, 3, "Outside Light:", Tahoma8, LEFT_ALIGN, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
@@ -491,19 +567,70 @@ void create_form5(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, ((pos_[0].y2 - pos_[0].y1) + 1), 1, 1,
-			1, pos_);
-	(TEC_STATE_Value==1)?sprintf(tmp_str,"ACTIVE"):sprintf(tmp_str,"DEACTIVE");
-	pos_[0].x1=60;text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
-	pos_[0].x1=1;pos_[0].x2=30;text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1);
+	create_cell(0, pos_[0].y2, 128, ((pos_[0].y2 - pos_[0].y1) + 1), 1, 1, 1,
+			pos_);
+	(TEC_STATE_Value == 1) ?
+			sprintf(tmp_str, "ACTIVE") : sprintf(tmp_str, "DEACTIVE");
+	pos_[0].x1 = 60;
+	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0);
+	pos_[0].x1 = 1;
+	pos_[0].x2 = 30;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 64-pos_[0].y2 , 3, 2,
-			1, pos_);
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 3, 2, 1, pos_);
 	text_cell(pos_, 0, "RELAY1", Tahoma8, CENTER_ALIGN, 1);
 	text_cell(pos_, 1, "RELAY2", Tahoma8, CENTER_ALIGN, 1);
-
+	for (uint8_t i = 0; i < 2; i++) {
+		if (RELAY1_TEMP_Value[i] > 0.0) {
+			sprintf(tmp_str, "%4.1f %c", RELAY1_TEMP_Value[i],
+					RELAY1_Edge_Value[i]);
+			text_cell(pos_, 2 + i * 2, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+		} else {
+			text_cell(pos_, 2 + i * 2, "----", Tahoma8, CENTER_ALIGN, 0);
+		}
+		if (RELAY2_TEMP_Value[i] > 0.0) {
+			sprintf(tmp_str, "%4.1f %c", RELAY2_TEMP_Value[i],
+					RELAY2_Edge_Value[i]);
+			text_cell(pos_, i * 2 + 3, tmp_str, Tahoma8, CENTER_ALIGN, 0);
+		} else {
+			text_cell(pos_, i * 2 + 3, "----", Tahoma8, CENTER_ALIGN, 0);
+		}
+	}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	free(pos_);
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
+	char tmp_str[40];
+	bounding_box_t *pos_ = (bounding_box_t*) malloc(
+			sizeof(bounding_box_t) * 1 * 1);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+	pos_[0].x2 = 57;
+	text_cell(pos_, 0, "PASSWORD", Tahoma8, LEFT_ALIGN, 1);
+	glcd_refresh();
+	pos_[0].x1 = 65;	//creat_doublebutton(pos_[0],0,&text_pos[0]);
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0);
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	uint8_t length_char = text_width("*", Tahoma16, 0) + 5;
+	uint8_t x = (128 - length_char * 6) / 2;
+	for (uint8_t i = 0; i < 6; i++) {
+		draw_char('*', x + i * length_char, 25, Tahoma16, 0);
+		text_pos[i + 2].x1 = x + i * length_char;
+		text_pos[i + 2].x2 = x + (i + 1) * length_char;
+		text_pos[i + 2].y1 = 25;
+		text_pos[i + 2].y2 = 25 + 23;
+	}
 	free(pos_);
 	glcd_refresh();
 }
@@ -565,7 +692,11 @@ int main(void) {
 	FIL myfile;
 	FRESULT fr;
 	uint8_t y = 0, x = 0;
-	uint8_t pre_daylightsaving=0,cur_daylightsaving=0;
+	uint8_t pre_daylightsaving = 0, cur_daylightsaving = 0;
+
+	bounding_box_t *text_pos;
+	uint8_t index_option = 0;
+	char tmp_pass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	//////////////////////init LCD//////////
@@ -602,12 +733,6 @@ int main(void) {
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
-//	///////////////////////setting RTC/////////////////////////////////////////////////////////
-//	if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050) {
-//		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
-//		HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-//		HAL_RTC_SetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-//	}
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
@@ -615,13 +740,13 @@ int main(void) {
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
-			printf("tmp275 sensor (#%d) error\n\r", ch+1);
-			sprintf(tmp_str1, "tmp(%d)ERR", ch+1);
+			printf("tmp275 sensor (#%d) error\n\r", ch + 1);
+			sprintf(tmp_str1, "tmp(%d)ERR", ch + 1);
 			inv = 1;
 
 		} else {
-			printf("tmp275 sensor (#%d) OK\n\r", ch+1);
-			sprintf(tmp_str1, "tmp(%d)OK", ch+1);
+			printf("tmp275 sensor (#%d) OK\n\r", ch + 1);
+			sprintf(tmp_str1, "tmp(%d)OK", ch + 1);
 			inv = 0;
 		}
 		text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv);
@@ -655,63 +780,410 @@ int main(void) {
 	glcd_refresh();
 	HAL_Delay(5000);
 
-	//////////////////////////////////////////////////////////////////////////////
+	///////////////////////////RTC interrupt enable///////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
 		Error_Handler();
 	}
-	///////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////eeprom reading//////////////////////////////////////////////////////
 	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)) {
 #ifndef __DEBUG__
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+
 	}
 	update_values();
 	//////////////////////////////////////////////////////////////////////////////////
-//	create_menu(5, 1);
-//	HAL_Delay(2000);
-//	create_form1(1);
-//	HAL_Delay(2000);
-//	create_form2();
-//	create_form2(1);
-	//
-	create_form5(1);
+	joystick_init(Key_ALL, Both_press);
+	flag_change_form = 1;
 	while (1) {
-		if (flag_rtc_1s) {
-			flag_rtc_1s = 0;
-			////////////////////////////RTC//////////////////////////////////
-			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-			Date_t tmp_date={.day=cur_Date.Date,
-			.month=cur_Date.Month,.year=cur_Date.Year};
-			cur_daylightsaving=Astro_daylighsaving(tmp_date);
-			if(cur_daylightsaving && !pre_daylightsaving)
-			{
-				if(READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP)
-				 {
-					 __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-					SET_BIT(hrtc.Instance->CR,RTC_CR_ADD1H);
-					SET_BIT(hrtc.Instance->CR,RTC_CR_BKP);
-					CLEAR_BIT(hrtc.Instance->CR,RTC_CR_SUB1H);
-					__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-				 }
-				pre_daylightsaving=cur_daylightsaving;
+		switch (MENU_state) {
+		/////////////////////////////////////MAIN_MENU/////////////////////////////////////////////////
+		case MAIN_MENU:
+			////////////////////////////1S flag//////////////////////////////////////////////////
+			if (flag_rtc_1s) {
+				flag_rtc_1s = 0;
+				counter_change_form++;
+				if (counter_change_form > FORM_DELAY_SHOW) {
+					counter_change_form = 0;
+					flag_change_form = 1;
+				}
+				////////////////////////////RTC//////////////////////////////////
+				HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+				Date_t tmp_date = { .day = cur_Date.Date, .month =
+						cur_Date.Month, .year = cur_Date.Year };
+				cur_daylightsaving = Astro_daylighsaving(tmp_date);
+				if (cur_daylightsaving && !pre_daylightsaving) {
+					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+						SET_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+					}
+					pre_daylightsaving = cur_daylightsaving;
+				}
+				if (!cur_daylightsaving && pre_daylightsaving) {
+					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+						SET_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+					}
+				}
+				////////////////////////////DISP Refresh//////////////////////////////////
+				switch (DISP_state) {
+				case DISP_IDLE:
+					break;
+				case DISP_FORM1:
+					create_form1(0);
+					break;
+				case DISP_FORM2:
+					create_form2(0);
+					break;
+				case DISP_FORM3:
+					create_form3(0);
+					break;
+				case DISP_FORM4:
+					create_form4(0);
+					break;
+				case DISP_FORM5:
+					create_form5(0);
+					break;
+				}
 			}
-			if(!cur_daylightsaving && pre_daylightsaving)
-			{
-				 if(READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP)
-				 {
-					 __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-					SET_BIT(hrtc.Instance->CR,RTC_CR_SUB1H);
-					SET_BIT(hrtc.Instance->CR,RTC_CR_BKP);
-					CLEAR_BIT(hrtc.Instance->CR,RTC_CR_ADD1H);
-					__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-
-				 }
+			if (flag_change_form) {
+				flag_change_form = 0;
+				switch (DISP_state) {
+				case DISP_IDLE:
+					create_form1(1);
+					DISP_state = DISP_FORM1;
+					break;
+				case DISP_FORM1:
+					create_form2(1);
+					DISP_state = DISP_FORM2;
+					break;
+				case DISP_FORM2:
+					create_form3(1);
+					DISP_state = DISP_FORM3;
+					break;
+				case DISP_FORM3:
+					create_form4(1);
+					DISP_state = DISP_FORM4;
+					break;
+				case DISP_FORM4:
+					create_form5(1);
+					DISP_state = DISP_FORM5;
+					break;
+				case DISP_FORM5:
+					create_form1(1);
+					DISP_state = DISP_FORM1;
+					break;
+				}
 			}
 			//////////////////////////////////////////////////////////////////////////////
-			create_form5(0);
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
+					Both_press);
+			if (joystick_read(Key_ENTER, Long_press)
+					|| joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Both_press);
+				text_pos = (bounding_box_t*) malloc(sizeof(bounding_box_t) * 8);
+				create_formpass(1, text_pos);
+				index_option = 2;
+				draw_fill(text_pos[index_option].x1, text_pos[index_option].y1,
+						text_pos[index_option].x2, text_pos[index_option].y2,
+						0);
+				sprintf(tmp_pass, "000000");
+				draw_char(tmp_pass[index_option - 2], text_pos[index_option].x1,
+						text_pos[index_option].y1, Tahoma16, 1);
+				glcd_refresh();
+				MENU_state = PASS_MENU;
+			}
+			break;
+			/////////////////////////////////////PASS_MENU/////////////////////////////////////////////////
+		case PASS_MENU:
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
+							- 2] + 1;
+					if (tmp_pass[index_option - 2] > '9')
+						tmp_pass[index_option - 2] = '0';
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 1);
+					glcd_refresh();
+				}
+
+			}
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				if (index_option > 1) {
+					if (tmp_pass[index_option - 2] == '0')
+						tmp_pass[index_option - 2] = '9' + 1;
+					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
+							- 2] - 1;
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 1);
+					glcd_refresh();
+				}
+
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+
+				if (index_option == 0) {
+					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 0);
+					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
+							1);
+					index_option = 1;
+				} else if (index_option == 1) {
+					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
+							0);
+					index_option = 2;
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 1);
+					glcd_refresh();
+				} else {
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 0);
+					glcd_refresh();
+					index_option++;
+					if (index_option > 7)
+						index_option = 0;
+					if (index_option == 0) {
+						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
+								1);
+					} else {
+						draw_fill(text_pos[index_option].x1,
+								text_pos[index_option].y1,
+								text_pos[index_option].x2,
+								text_pos[index_option].y2, 0);
+						draw_char(tmp_pass[index_option - 2],
+								text_pos[index_option].x1,
+								text_pos[index_option].y1, Tahoma16, 1);
+
+					}
+				}
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+
+				if (index_option == 0) {
+					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 0);
+					index_option = 7;
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 1);
+				} else if (index_option == 1) {
+					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 1);
+					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
+							0);
+					index_option = 0;
+				} else {
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 0);
+					glcd_refresh();
+					index_option--;
+					if (index_option == 1) {
+						text_cell(&text_pos[1], 0, "CANCEL", Tahoma8,
+								CENTER_ALIGN, 1);
+					} else {
+						draw_fill(text_pos[index_option].x1,
+								text_pos[index_option].y1,
+								text_pos[index_option].x2,
+								text_pos[index_option].y2, 0);
+						draw_char(tmp_pass[index_option - 2],
+								text_pos[index_option].x1,
+								text_pos[index_option].y1, Tahoma16, 1);
+
+					}
+				}
+				glcd_refresh();
+
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				switch (index_option) {
+				case 0:
+					if (strcmp(tmp_pass, PASSWORD_Value)) {
+						bounding_box_t tmp_box = { .x1 = 0, .x2 = 127, .y1 = 51,
+								.y2 = 63 };
+						text_cell(&tmp_box, 0, "Wrong password", Tahoma8,
+								CENTER_ALIGN, 0);
+						glcd_refresh();
+						HAL_Delay(2000);
+						MENU_state = MAIN_MENU;
+						DISP_state = DISP_IDLE;
+						flag_change_form = 1;
+					} else {
+						text_pos = (bounding_box_t*) malloc(
+								sizeof(bounding_box_t) * MENU_ITEMS);
+						create_menu(0, 1,text_pos);
+						index_option = 0;
+						MENU_state = OPTION_MENU;
+					}
+					free(text_pos);
+
+					/////////////////////////////////////////////////////////////////////////
+					break;
+				case 1:
+					free(text_pos);
+					MENU_state = MAIN_MENU;
+					DISP_state = DISP_IDLE;
+					flag_change_form = 1;
+					break;
+				default:
+					draw_fill(text_pos[index_option].x1,
+							text_pos[index_option].y1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2, 0);
+					draw_char(tmp_pass[index_option - 2],
+							text_pos[index_option].x1,
+							text_pos[index_option].y1, Tahoma16, 0);
+					glcd_refresh();
+					index_option++;
+					if (index_option > 7)
+						index_option = 0;
+					if (index_option == 0) {
+						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
+								1);
+					} else {
+						draw_fill(text_pos[index_option].x1,
+								text_pos[index_option].y1,
+								text_pos[index_option].x2,
+								text_pos[index_option].y2, 0);
+						draw_char(tmp_pass[index_option - 2],
+								text_pos[index_option].x1,
+								text_pos[index_option].y1, Tahoma16, 1);
+
+					}
+					glcd_refresh();
+					break;
+				}
+
+			}
+			break;
+			/////////////////////////////////////OPTION_MENU/////////////////////////////////////////////////
+		case OPTION_MENU:
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
+			if(joystick_read(Key_TOP, Short_press))
+			{
+				joystick_init(Key_TOP, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						0);
+				index_option++;
+				if(index_option>=MENU_ITEMS) index_option=0;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						1);
+				glcd_refresh();
+			}
+			if(joystick_read(Key_DOWN, Short_press))
+			{
+				joystick_init(Key_DOWN, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						0);
+				if(index_option==0) index_option=MENU_ITEMS;
+				index_option--;
+
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						1);
+				glcd_refresh();
+			}
+			if(joystick_read(Key_LEFT, Short_press))
+			{
+				joystick_init(Key_LEFT, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						0);
+				if(index_option<5)
+				{
+					index_option+=5;
+					if(index_option>=MENU_ITEMS) index_option=index_option%5;
+				}
+				else
+				 index_option-=5;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						1);
+				glcd_refresh();
+			}
+			if(joystick_read(Key_RIGHT, Short_press))
+			{
+				joystick_init(Key_RIGHT, Short_press);
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						0);
+				index_option+=5;
+				if(index_option>=MENU_ITEMS) index_option=index_option%5;
+				draw_text(menu[index_option], (index_option / 5) * 66 + 2, (index_option % 5) * 12 + 1, Tahoma8, 1,
+						1);
+				glcd_refresh();
+			}
+			if(joystick_read(Key_ENTER, Short_press))
+			{
+				joystick_init(Key_ENTER, Short_press);
+				if(index_option==(MENU_ITEMS-1))
+				{
+					MENU_state=MAIN_MENU;
+					DISP_state=DISP_IDLE;
+					flag_change_form=1;
+				}
+				free(text_pos);
+			}
+			break;
+			/////////////////////////////////////POSITION_MENU/////////////////////////////////////////////////
+		case POSITION_MENU:
+			break;
+			/////////////////////////////////////CLOCK_MENU/////////////////////////////////////////////////
+		case CLOCK_MENU:
+			break;
+			/////////////////////////////////////LED_MENU/////////////////////////////////////////////////
+		case LED_MENU:
+			break;
+			/////////////////////////////////////RELAY_MENU/////////////////////////////////////////////////
+		case RELAY_MENU:
+			break;
+			/////////////////////////////////////CHANGEPASS_MENU/////////////////////////////////////////////////
+		case CHANGEPASS_MENU:
+			break;
 		}
+		/////////////////////////////////////////////////////////////////////////////////////////////////////
+		MX_LWIP_Process();
+		MX_USB_HOST_Process();
 #ifndef __DEBUG__
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
