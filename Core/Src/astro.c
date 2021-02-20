@@ -8,7 +8,7 @@
 #include "rtc.h"
 double POS2double(POS_t pos)
 {
-	double r=(double)pos.deg+(double)pos.min/60.0+pos.second;
+	double r=(double)pos.deg+(double)pos.min/60.0+(double)pos.second/3600.0;
 	if(pos.direction=='S' || pos.direction=='W')
 		r=-r;
 	return r;

@@ -17,7 +17,10 @@ bounding_box_t draw_text(char *string, unsigned char x, unsigned char y, unsigne
 
 	ret.x1 = x;
 	ret.y1 = y;
-	draw_fill(x, y, x+text_width(string, font, spacing), y+text_height(string, font), inv);
+	//if(inv)
+		draw_fill(x-1, y, x+text_width(string, font, spacing), y+text_height(string, font)-1, inv);
+	//else
+		//draw_fill(x, y, x+text_width(string, font, spacing)-1, y+text_height(string, font)-1, inv);
 
 	spacing += 1;
 
@@ -177,8 +180,11 @@ void draw_box(int x1, int y1, int x2, int y2, char colour)
  */
 void draw_fill(int x1, int y1, int x2, int y2, char colour)
 {
-	for(int i=y1;i<y2;i++)
+	for(int i=y1;i<=y2;i++)
+	{
 		draw_line(x1, i, x2,i, colour);
+
+	}
 }
 /*
  *

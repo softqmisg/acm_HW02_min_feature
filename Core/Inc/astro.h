@@ -44,5 +44,6 @@ uint8_t Astro_daylighsaving(Date_t date);
 uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,Time_t sunset_t);
 
 extern unsigned char  gDaysInMonth[12];
+extern unsigned char  gDaysInMonthLeap[12];
 
 #endif /* INC_ASTRO_H_ */
