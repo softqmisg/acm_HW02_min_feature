@@ -177,7 +177,7 @@ enum {
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
 #define MENU_ITEMS	8
-char *menu[] = { "SET Position", "SET Time", "SET LED WT", "SET LED IR",
+char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		"SET Relay", "SET Door", "SET PASS", "Exit" };
 
 uint16_t als, white;
@@ -211,7 +211,7 @@ typedef struct{
 	double ADD_SUNSET_Value;
 
 }LED_t;
-LED_t IR_LED,WHITE_LED;
+LED_t S1_LED,S2_LED;
 
 double LAT_Value;
 double LONG_Value;
@@ -227,21 +227,21 @@ void update_values(void) {
 	LAT_Value = 35.719086;
 	LONG_Value = 51.398101;
 
-	WHITE_LED.ACTIVE_Value = 1;
-	WHITE_LED.DAY_BRIGHTNESS_Value = 0;
-	WHITE_LED.DAY_BLINK_Value = 0.5;
-	WHITE_LED.NIGHT_BRIGHTNESS_Value = 80;
-	WHITE_LED.NIGHT_BLINK_Value = 0;
-	WHITE_LED.ADD_SUNRISE_Value = 1.5;
-	WHITE_LED.ADD_SUNSET_Value = -1.0;
+	S1_LED.ACTIVE_Value = 1;
+	S1_LED.DAY_BRIGHTNESS_Value = 0;
+	S1_LED.DAY_BLINK_Value = 0.5;
+	S1_LED.NIGHT_BRIGHTNESS_Value = 80;
+	S1_LED.NIGHT_BLINK_Value = 0;
+	S1_LED.ADD_SUNRISE_Value = 1.5;
+	S1_LED.ADD_SUNSET_Value = -1.0;
 
-	IR_LED.ACTIVE_Value = 0;
-	IR_LED.DAY_BRIGHTNESS_Value = 0;
-	IR_LED.DAY_BLINK_Value = 0.5;
-	IR_LED.NIGHT_BRIGHTNESS_Value = 80;
-	IR_LED.NIGHT_BLINK_Value = 0;
-	IR_LED.ADD_SUNRISE_Value = 1.5;
-	IR_LED.ADD_SUNSET_Value = -1.0;
+	S2_LED.ACTIVE_Value = 0;
+	S2_LED.DAY_BRIGHTNESS_Value = 0;
+	S2_LED.DAY_BLINK_Value = 0.5;
+	S2_LED.NIGHT_BRIGHTNESS_Value = 80;
+	S2_LED.NIGHT_BLINK_Value = 0;
+	S2_LED.ADD_SUNRISE_Value = 1.5;
+	S2_LED.ADD_SUNSET_Value = -1.0;
 
 	TEC_STATE_Value = 1;
 	RELAY1_TEMP_Value[0] = 33.1;
@@ -493,29 +493,29 @@ void create_form3(uint8_t clear) {
 	clock_cell(pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
-	if (WHITE_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%   %3.1fHz", WHITE_LED.DAY_BRIGHTNESS_Value,
-				WHITE_LED.DAY_BLINK_Value);
+	if (S1_LED.ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED.DAY_BRIGHTNESS_Value,
+				S1_LED.DAY_BLINK_Value);
 	else
 		sprintf(tmp_str, " --%%   ---Hz");
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-	if (WHITE_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%  %3.1fHz", WHITE_LED.NIGHT_BRIGHTNESS_Value,
-				WHITE_LED.NIGHT_BLINK_Value);
+	if (S1_LED.ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED.NIGHT_BRIGHTNESS_Value,
+				S1_LED.NIGHT_BLINK_Value);
 	else
 		sprintf(tmp_str, " --%%   ---Hz");
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	if (IR_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%   %3.1fHz", IR_LED.DAY_BRIGHTNESS_Value,
-				IR_LED.DAY_BLINK_Value);
+	if (S2_LED.ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED.DAY_BRIGHTNESS_Value,
+				S2_LED.DAY_BLINK_Value);
 	else
 		sprintf(tmp_str, " --%%   ---Hz");
 
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-	if (IR_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%  %3.1fHz", IR_LED.NIGHT_BRIGHTNESS_Value,
-				IR_LED.NIGHT_BLINK_Value);
+	if (S2_LED.ACTIVE_Value)
+		sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED.NIGHT_BRIGHTNESS_Value,
+				S2_LED.NIGHT_BLINK_Value);
 	else
 		sprintf(tmp_str, " --%%   ---Hz");
 
@@ -577,13 +577,13 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d", sunrise.hr, sunrise.min);
-	if(WHITE_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s(%+3.1f",tmp_str,WHITE_LED.ADD_SUNRISE_Value);
+	if(S1_LED.ACTIVE_Value)
+		sprintf(tmp_str,"%s(%+3.1f",tmp_str,S1_LED.ADD_SUNRISE_Value);
 	else
 		sprintf(tmp_str,"%s(---",tmp_str);
 
-	if(IR_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,IR_LED.ADD_SUNRISE_Value);
+	if(S2_LED.ACTIVE_Value)
+		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,S2_LED.ADD_SUNRISE_Value);
 	else
 		sprintf(tmp_str,"%s/---)",tmp_str);
 
@@ -594,13 +594,13 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d", sunset.hr, sunset.min);
-	if(WHITE_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s(%+3.1f",tmp_str,WHITE_LED.ADD_SUNSET_Value);
+	if(S1_LED.ACTIVE_Value)
+		sprintf(tmp_str,"%s(%+3.1f",tmp_str,S1_LED.ADD_SUNSET_Value);
 	else
 		sprintf(tmp_str,"%s(---",tmp_str);
 
-	if(IR_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,IR_LED.ADD_SUNSET_Value);
+	if(S2_LED.ACTIVE_Value)
+		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,S2_LED.ADD_SUNSET_Value);
 	else
 		sprintf(tmp_str,"%s/---)",tmp_str);
 
@@ -891,16 +891,16 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formLEDW(uint8_t clear, bounding_box_t *text_pos,
+void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos,
 		LED_t *tmp_led)
 {
-	tmp_led->ACTIVE_Value=WHITE_LED.ACTIVE_Value;
-	tmp_led->ADD_SUNRISE_Value=WHITE_LED.ADD_SUNRISE_Value;
-	tmp_led->ADD_SUNSET_Value=WHITE_LED.ADD_SUNSET_Value;
-	tmp_led->DAY_BLINK_Value=WHITE_LED.DAY_BLINK_Value;
-	tmp_led->DAY_BRIGHTNESS_Value=WHITE_LED.DAY_BRIGHTNESS_Value;
-	tmp_led->NIGHT_BLINK_Value=WHITE_LED.NIGHT_BLINK_Value;
-	tmp_led->NIGHT_BRIGHTNESS_Value=WHITE_LED.NIGHT_BRIGHTNESS_Value;
+	tmp_led->ACTIVE_Value=S1_LED.ACTIVE_Value;
+	tmp_led->ADD_SUNRISE_Value=S1_LED.ADD_SUNRISE_Value;
+	tmp_led->ADD_SUNSET_Value=S1_LED.ADD_SUNSET_Value;
+	tmp_led->DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
+	tmp_led->DAY_BRIGHTNESS_Value=S1_LED.DAY_BRIGHTNESS_Value;
+	tmp_led->NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
+	tmp_led->NIGHT_BRIGHTNESS_Value=S1_LED.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
@@ -913,7 +913,7 @@ void create_formLEDW(uint8_t clear, bounding_box_t *text_pos,
 
 
 	pos_[0].x2 = 60;
-	text_cell(pos_, 0, "LED WHITE", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "LED SET1", Tahoma8, LEFT_ALIGN, 1, 1);
 
 
 	pos_[0].x1 = 65;
@@ -931,7 +931,7 @@ void create_formLEDW(uint8_t clear, bounding_box_t *text_pos,
 
 	pos_[0].x1 = 0;
 	pos_[0].x2 = 36;
-	text_cell(pos_, 0, "WHITE:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "SET1:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 
 	pos_[1].x1 = 0;
@@ -1000,16 +1000,16 @@ void create_formLEDW(uint8_t clear, bounding_box_t *text_pos,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formLEDIR(uint8_t clear, bounding_box_t *text_pos,
+void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos,
 		LED_t *tmp_led)
 {
-	tmp_led->ACTIVE_Value=IR_LED.ACTIVE_Value;
-	tmp_led->ADD_SUNRISE_Value=IR_LED.ADD_SUNRISE_Value;
-	tmp_led->ADD_SUNSET_Value=IR_LED.ADD_SUNSET_Value;
-	tmp_led->DAY_BLINK_Value=IR_LED.DAY_BLINK_Value;
-	tmp_led->DAY_BRIGHTNESS_Value=IR_LED.DAY_BRIGHTNESS_Value;
-	tmp_led->NIGHT_BLINK_Value=IR_LED.NIGHT_BLINK_Value;
-	tmp_led->NIGHT_BRIGHTNESS_Value=IR_LED.NIGHT_BRIGHTNESS_Value;
+	tmp_led->ACTIVE_Value=S2_LED.ACTIVE_Value;
+	tmp_led->ADD_SUNRISE_Value=S2_LED.ADD_SUNRISE_Value;
+	tmp_led->ADD_SUNSET_Value=S2_LED.ADD_SUNSET_Value;
+	tmp_led->DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
+	tmp_led->DAY_BRIGHTNESS_Value=S2_LED.DAY_BRIGHTNESS_Value;
+	tmp_led->NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
+	tmp_led->NIGHT_BRIGHTNESS_Value=S2_LED.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
 	bounding_box_t *pos_ = (bounding_box_t*) malloc(
@@ -1022,7 +1022,7 @@ void create_formLEDIR(uint8_t clear, bounding_box_t *text_pos,
 
 
 	pos_[0].x2 = 60;
-	text_cell(pos_, 0, "LED IR", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "LED SET2", Tahoma8, LEFT_ALIGN, 1, 1);
 
 
 	pos_[0].x1 = 65;
@@ -1040,7 +1040,7 @@ void create_formLEDIR(uint8_t clear, bounding_box_t *text_pos,
 
 	pos_[0].x1 = 0;
 	pos_[0].x2 = 36;
-	text_cell(pos_, 0, "IR:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "SET2:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 
 	pos_[1].x1 = 0;
@@ -1658,7 +1658,7 @@ int main(void) {
 					MENU_state = TIME_MENU;
 					break;
 				case LEDWT_MENU:
-					create_formLEDW(1, text_pos, &tmp_LED);
+					create_formLEDS1(1, text_pos, &tmp_LED);
 					index_option = 2;
 
 					if(tmp_LED.ACTIVE_Value)
@@ -1671,7 +1671,7 @@ int main(void) {
 					MENU_state = LEDWT_MENU;
 					break;
 				case LEDIR_MENU:
-					create_formLEDIR(1, text_pos, &tmp_LED);
+					create_formLEDS2(1, text_pos, &tmp_LED);
 					index_option = 2;
 
 					if(tmp_LED.ACTIVE_Value)
@@ -2999,13 +2999,13 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					WHITE_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
-					WHITE_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
-					WHITE_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
-					WHITE_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
-					WHITE_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
-					WHITE_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
-					WHITE_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
+					S1_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
+					S1_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
+					S1_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
+					S1_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
+					S1_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
+					S1_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
+					S1_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3452,13 +3452,13 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					IR_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
-					IR_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
-					IR_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
-					IR_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
-					IR_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
-					IR_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
-					IR_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
+					S2_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
+					S2_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
+					S2_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
+					S2_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
+					S2_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
+					S2_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
+					S2_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
