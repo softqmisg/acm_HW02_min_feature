@@ -108,6 +108,25 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define __DEBUG__	1
 #define __LWIP__	1
+
+#define BLINKWT_MAX	5// HZ
+#define BLINKWT_MIN	0
+
+#define BLINKIR_MAX	5//HZ
+#define BLINKIR_MIN	0
+
+#define ADD_SUNRISE_WT_MAX	2
+#define ADD_SUNRISE_WT_MIN	-2
+
+#define ADD_SUNSET_WT_MAX	2
+#define ADD_SUNSET_WT_MIN	-2
+
+#define ADD_SUNRISE_IR_MAX	2
+#define ADD_SUNRISE_IR_MIN	-2
+
+#define ADD_SUNSET_IR_MAX	2
+#define ADD_SUNSET_IR_MIN	-2
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
