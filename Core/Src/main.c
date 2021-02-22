@@ -530,8 +530,8 @@ void create_form3(uint8_t clear) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y1, 20, 64 - pos_[0].y1, 2, 1, 1, pos_);
-	text_cell(pos_, 0, "WT", Tahoma8, CENTER_ALIGN, 0, 0);
-	text_cell(pos_, 1, "IR", Tahoma8, CENTER_ALIGN, 0, 0);
+	text_cell(pos_, 0, "S1", Tahoma8, CENTER_ALIGN, 0, 0);
+	text_cell(pos_, 1, "S2", Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	free(pos_);
 	glcd_refresh();
