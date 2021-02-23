@@ -48,16 +48,31 @@
 #include "st7565.h"
 #include "libbmp.h"
 #include "joystick.h"
+#include "pca9632.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct {
+	uint8_t TYPE_Value;
+	uint16_t DAY_BRIGHTNESS_Value;
+	double DAY_BLINK_Value;
+	uint16_t NIGHT_BRIGHTNESS_Value;
+	double NIGHT_BLINK_Value;
+	double ADD_SUNRISE_Value;
+	double ADD_SUNSET_Value;
+
+} LED_t;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define WHITE_LED	0
+#define IR_LED		1
+
+#define FORM_DELAY_SHOW	4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -169,8 +184,8 @@ enum {
 	OPTION_MENU,
 	POSITION_MENU,
 	TIME_MENU,
-	LEDWT_MENU,
-	LEDIR_MENU,
+	LEDS1_MENU,
+	LEDS2_MENU,
 	RELAY_MENU,
 	DOOR_MENU,
 	CHANGEPASS_MENU,
@@ -180,38 +195,19 @@ enum {
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		"SET Relay", "SET Door", "SET PASS", "Exit" };
 
-uint16_t als, white;
-uint8_t buffer[2];
-HAL_StatusTypeDef status;
+//uint16_t als, white;
+//uint8_t buffer[2];
+//HAL_StatusTypeDef status;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Time_t cur_sunrise, cur_sunset, cur_noon;
 double voltage, current, temperature[8];
 uint8_t counter_change_form = 0;
 uint8_t flag_change_form;
-#define FORM_DELAY_SHOW	4
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//float TL_Value;
-//float TH_Value;
-//float DELTAT_Value;
-//float HL_Value;
-//float HH_Value;
-//uint16_t BrightW_Value;
-//float BlinkW_Value;
-//uint16_t BrightIR_Value;
-//uint16_t Password_Value;
-//float NTCTL_Value;
-//float NTCTH_Value;
-typedef struct{
-	uint8_t ACTIVE_Value;
-	uint16_t DAY_BRIGHTNESS_Value;
-	double DAY_BLINK_Value;
-	uint16_t NIGHT_BRIGHTNESS_Value;
-	double NIGHT_BLINK_Value;
-	double ADD_SUNRISE_Value;
-	double ADD_SUNSET_Value;
 
-}LED_t;
-LED_t S1_LED,S2_LED;
+LED_t S1_LED, S2_LED;
 
 double LAT_Value;
 double LONG_Value;
@@ -227,7 +223,7 @@ void update_values(void) {
 	LAT_Value = 35.719086;
 	LONG_Value = 51.398101;
 
-	S1_LED.ACTIVE_Value = 1;
+	S1_LED.TYPE_Value = WHITE_LED;
 	S1_LED.DAY_BRIGHTNESS_Value = 0;
 	S1_LED.DAY_BLINK_Value = 0.5;
 	S1_LED.NIGHT_BRIGHTNESS_Value = 80;
@@ -235,11 +231,11 @@ void update_values(void) {
 	S1_LED.ADD_SUNRISE_Value = 1.5;
 	S1_LED.ADD_SUNSET_Value = -1.0;
 
-	S2_LED.ACTIVE_Value = 0;
+	S2_LED.TYPE_Value = IR_LED;
 	S2_LED.DAY_BRIGHTNESS_Value = 0;
-	S2_LED.DAY_BLINK_Value = 0.5;
+	S2_LED.DAY_BLINK_Value = 0.0;
 	S2_LED.NIGHT_BRIGHTNESS_Value = 80;
-	S2_LED.NIGHT_BLINK_Value = 0;
+	S2_LED.NIGHT_BLINK_Value = 0.0;
 	S2_LED.ADD_SUNRISE_Value = 1.5;
 	S2_LED.ADD_SUNSET_Value = -1.0;
 
@@ -320,9 +316,9 @@ bounding_box_t text_cell(bounding_box_t *pos, uint8_t index, char *str,
 //		draw_fill(x - 1, y, x + length_str + 1, y + text_height(str, font), 0);
 		break;
 	}
-	if(box_inv)
-		draw_fill(pos[index].x1 , pos[index].y1 + 1, pos[index].x2,
-			pos[index].y2 - 1, box_inv);
+	if (box_inv)
+		draw_fill(pos[index].x1, pos[index].y1 + 1, pos[index].x2,
+				pos[index].y2 - 1, box_inv);
 	else
 		draw_fill(pos[index].x1 + 1, pos[index].y1 + 1, pos[index].x2 - 1,
 				pos[index].y2 - 1, box_inv);
@@ -384,8 +380,7 @@ void clock_cell(bounding_box_t *pos_) {
 void create_form1(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 2 * 5);
+	bounding_box_t pos_[10];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -403,8 +398,6 @@ void create_form1(uint8_t clear) {
 		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	free(pos_);
 	glcd_refresh();
 
 }
@@ -412,8 +405,7 @@ void create_form1(uint8_t clear) {
 void create_form2(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 5);
+	bounding_box_t pos_[5];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -424,48 +416,48 @@ void create_form2(uint8_t clear) {
 			pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH1,7V	//////////////////////////////////////////////////////////
-	if (ina3221_readfloat((uint8_t) VOLTAGE_7V, &voltage) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if (ina3221_readfloat((uint8_t) CURRENT_7V, &current) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) CURRENT_7V, &current) == HAL_OK)
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH2,12V	//////////////////////////////////////////////////////////
-	if (ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if (ina3221_readfloat((uint8_t) CURRENT_12V, &current) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) CURRENT_12V, &current) == HAL_OK)
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH3,3.3V	//////////////////////////////////////////////////////////
-	if (ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if (ina3221_readfloat((uint8_t) CURRENT_3V3, &current) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) CURRENT_3V3, &current) == HAL_OK)
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////TEC,12V	//////////////////////////////////////////////////////////
-	if (ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &voltage) == HAL_OK)
 		sprintf(tmp_str, "V=%3.1f", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if (ina3221_readfloat((uint8_t) CURRENT_TEC, &current) == HAL_OK)
+	if (ina3221_readdouble((uint8_t) CURRENT_TEC, &current) == HAL_OK)
 		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s       C=---", tmp_str);
@@ -478,14 +470,12 @@ void create_form2(uint8_t clear) {
 	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form3(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 5);
+	bounding_box_t pos_[5];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -493,32 +483,21 @@ void create_form3(uint8_t clear) {
 	clock_cell(pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
-	if (S1_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED.DAY_BRIGHTNESS_Value,
-				S1_LED.DAY_BLINK_Value);
-	else
-		sprintf(tmp_str, " --%%   ---Hz");
+
+	sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED.DAY_BRIGHTNESS_Value,
+			S1_LED.DAY_BLINK_Value);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-	if (S1_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED.NIGHT_BRIGHTNESS_Value,
-				S1_LED.NIGHT_BLINK_Value);
-	else
-		sprintf(tmp_str, " --%%   ---Hz");
+
+	sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED.NIGHT_BRIGHTNESS_Value,
+			S1_LED.NIGHT_BLINK_Value);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	if (S2_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED.DAY_BRIGHTNESS_Value,
-				S2_LED.DAY_BLINK_Value);
-	else
-		sprintf(tmp_str, " --%%   ---Hz");
-
+	sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED.DAY_BRIGHTNESS_Value,
+			S2_LED.DAY_BLINK_Value);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-	if (S2_LED.ACTIVE_Value)
-		sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED.NIGHT_BRIGHTNESS_Value,
-				S2_LED.NIGHT_BLINK_Value);
-	else
-		sprintf(tmp_str, " --%%   ---Hz");
 
+	sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED.NIGHT_BRIGHTNESS_Value,
+			S2_LED.NIGHT_BLINK_Value);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -530,25 +509,22 @@ void create_form3(uint8_t clear) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y1, 20, 64 - pos_[0].y1, 2, 1, 1, pos_);
-	text_cell(pos_, 0, "S1", Tahoma8, CENTER_ALIGN, 0, 0);
-	text_cell(pos_, 1, "S2", Tahoma8, CENTER_ALIGN, 0, 0);
+	if (S1_LED.TYPE_Value == WHITE_LED)
+		text_cell(pos_, 0, "WT", Tahoma8, CENTER_ALIGN, 0, 0);
+	else
+		text_cell(pos_, 0, "IR", Tahoma8, CENTER_ALIGN, 0, 0);
+
+	if (S2_LED.TYPE_Value == WHITE_LED)
+		text_cell(pos_, 1, "WT", Tahoma8, CENTER_ALIGN, 0, 0);
+	else
+		text_cell(pos_, 1, "IR", Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form4(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 5);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	RTC_DateTypeDef cur_Date;
-	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-	Date_t date = { .day = cur_Date.Date, .month = cur_Date.Month, .year =
-			cur_Date.Year };
-	Time_t sunrise, sunset, noon;
-	Astro_sunRiseSet(LAT_Value, LONG_Value, 3.5, date, &sunrise, &noon, &sunset,
-			1);
+	bounding_box_t pos_[5];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -576,50 +552,31 @@ void create_form4(uint8_t clear) {
 	pos_[1].x2 = 50;
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	sprintf(tmp_str, "%02d:%02d", sunrise.hr, sunrise.min);
-	if(S1_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s(%+3.1f",tmp_str,S1_LED.ADD_SUNRISE_Value);
-	else
-		sprintf(tmp_str,"%s(---",tmp_str);
-
-	if(S2_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,S2_LED.ADD_SUNRISE_Value);
-	else
-		sprintf(tmp_str,"%s/---)",tmp_str);
-
-	pos_[2].x1 = 50;
+	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunrise.hr, cur_sunrise.min,
+			S1_LED.ADD_SUNRISE_Value, S1_LED.ADD_SUNRISE_Value);
+	pos_[2].x1 = 42;
 	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
 	pos_[2].x1 = 1;
 	pos_[2].x2 = 40;
 	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	sprintf(tmp_str, "%02d:%02d", sunset.hr, sunset.min);
-	if(S1_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s(%+3.1f",tmp_str,S1_LED.ADD_SUNSET_Value);
-	else
-		sprintf(tmp_str,"%s(---",tmp_str);
-
-	if(S2_LED.ACTIVE_Value)
-		sprintf(tmp_str,"%s/%+3.1f)",tmp_str,S2_LED.ADD_SUNSET_Value);
-	else
-		sprintf(tmp_str,"%s/---)",tmp_str);
-
-
-	pos_[3].x1 = 50;
+	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunset.hr, cur_sunset.min,
+			S2_LED.ADD_SUNSET_Value, S2_LED.ADD_SUNSET_Value);
+	pos_[3].x1 = 42;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
 	pos_[3].x1 = 1;
 	pos_[3].x2 = 40;
 	text_cell(pos_, 3, "sunset:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form5(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 5);
+	bounding_box_t pos_[5];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -650,15 +607,13 @@ void create_form5(uint8_t clear) {
 	pos_[1].x2 = 70;
 	text_cell(pos_, 1, "Outside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
 	glcd_refresh();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form6(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 5);
+	bounding_box_t pos_[6];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -696,14 +651,12 @@ void create_form6(uint8_t clear) {
 		}
 	}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 1);
+	bounding_box_t pos_[1];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -728,15 +681,13 @@ void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 		text_pos[i + 2].y1 = 25;
 		text_pos[i + 2].y2 = 25 + 23;
 	}
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formposition(uint8_t clear, bounding_box_t *text_pos,
 		POS_t *tmp_lat, POS_t *tmp_long) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 2 * 1);
+	bounding_box_t pos_[2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -812,16 +763,14 @@ void create_formposition(uint8_t clear, bounding_box_t *text_pos,
 //    text_pos[9].x1=pos_[1].x1;text_pos[9].x2=pos_[1].x2;text_pos[9].y1=pos_[1].y1;text_pos[9].y2=pos_[1].y2;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
-	free(pos_);
+
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formTime(uint8_t clear, bounding_box_t *text_pos,
-		RTC_TimeTypeDef *tmp_time, RTC_DateTypeDef *tmp_date)
-{
+		RTC_TimeTypeDef *tmp_time, RTC_DateTypeDef *tmp_date) {
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 2 * 1);
+	bounding_box_t pos_[2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -854,31 +803,38 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[0].x1 = 42;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[0].x1 = pos_[0].x2; pos_[0].x2 = pos_[0].x1+3;text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 3;
+	text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%02d", tmp_time->Minutes);
 	pos_[0].x1 = pos_[0].x2 + 1;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[3] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[0].x1 = pos_[0].x2; pos_[0].x2 = pos_[0].x1+3;text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 3;
+	text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%02d", tmp_time->Seconds);
 	pos_[0].x1 = pos_[0].x2 + 1;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
-
-	sprintf(tmp_str, "%04d", tmp_date->Year+2000);
+	sprintf(tmp_str, "%04d", tmp_date->Year + 2000);
 	pos_[1].x1 = 42;
 	pos_[1].x2 = pos_[1].x1 + text_width("5555", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+4;text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 4;
+	text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%02d", tmp_date->Month);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[6] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+4;text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 4;
+	text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%02d", tmp_date->Date);
 	pos_[1].x1 = pos_[1].x2 + 1;
@@ -887,39 +843,32 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos,
-		LED_t *tmp_led)
-{
-	tmp_led->ACTIVE_Value=S1_LED.ACTIVE_Value;
-	tmp_led->ADD_SUNRISE_Value=S1_LED.ADD_SUNRISE_Value;
-	tmp_led->ADD_SUNSET_Value=S1_LED.ADD_SUNSET_Value;
-	tmp_led->DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
-	tmp_led->DAY_BRIGHTNESS_Value=S1_LED.DAY_BRIGHTNESS_Value;
-	tmp_led->NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
-	tmp_led->NIGHT_BRIGHTNESS_Value=S1_LED.NIGHT_BRIGHTNESS_Value;
+void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
+//	tmp_led->TYPE_Value=S1_LED.TYPE_Value;
+//	tmp_led->ADD_SUNRISE_Value=S1_LED.ADD_SUNRISE_Value;
+//	tmp_led->ADD_SUNSET_Value=S1_LED.ADD_SUNSET_Value;
+//	tmp_led->DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
+//	tmp_led->DAY_BRIGHTNESS_Value=S1_LED.DAY_BRIGHTNESS_Value;
+//	tmp_led->NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
+//	tmp_led->NIGHT_BRIGHTNESS_Value=S1_LED.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 2 * 1);
+	bounding_box_t pos_ [2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
 
-
 	pos_[0].x2 = 60;
 	text_cell(pos_, 0, "LED SET1", Tahoma8, LEFT_ALIGN, 1, 1);
-
 
 	pos_[0].x1 = 65;
 	pos_[0].x2 = pos_[0].x1 + 20;
 	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
-
 
 	pos_[0].x1 = pos_[0].x2;
 	pos_[0].x2 = pos_[0].x1 + 42;
@@ -933,11 +882,9 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos,
 	pos_[0].x2 = 36;
 	text_cell(pos_, 0, "SET1:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-
 	pos_[1].x1 = 0;
 	pos_[1].x2 = 36;
 	text_cell(pos_, 1, "DAY:", Tahoma8, LEFT_ALIGN, 1, 1);
-
 
 	pos_[2].x1 = 0;
 	pos_[2].x2 = 36;
@@ -946,89 +893,90 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos,
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(36, pos_[0].y1, 128 - 36, 64 - pos_[0].y1, 3, 1, 1, pos_);
 
+	if (tmp_led->TYPE_Value == WHITE_LED)
+		sprintf(tmp_str, "WHITE");
+	else
+		sprintf(tmp_str, "IR");
 
-	if(tmp_led->ACTIVE_Value)	sprintf(tmp_str, "ENABLE");
-	else sprintf(tmp_str, "DISABLE");
 	pos_[0].x1 = 50;
-	pos_[0].x2 = pos_[0].x1 + text_width("DISABLE", Tahoma8, 1) + 1;
+	pos_[0].x2 = pos_[0].x1 + text_width("WHITE", Tahoma8, 1) + 1;
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-
 
 	sprintf(tmp_str, "%03d", tmp_led->DAY_BRIGHTNESS_Value);
 	pos_[1].x1 = 37;
 	pos_[1].x2 = pos_[1].x1 + text_width("055", Tahoma8, 1) + 1;
 	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+11;text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 11;
+	text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-
-	sprintf(tmp_str, "%3.1f", tmp_led->DAY_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value);
 	pos_[1].x1 = pos_[1].x2 + 1;
-	pos_[1].x2 = pos_[1].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	pos_[1].x2 = pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+12;text_cell(pos_, 1, "hz", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 6;
+	text_cell(pos_, 1, "S", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
-	pos_[1].x1 = pos_[1].x2 +1;
+	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+11;text_cell(pos_, 1, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 11;
+	text_cell(pos_, 1, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%03d", tmp_led->NIGHT_BRIGHTNESS_Value);
 	pos_[2].x1 = 37;
 	pos_[2].x2 = pos_[2].x1 + text_width("055", Tahoma8, 1) + 1;
 	text_pos[6] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+11;text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 11;
+	text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-
-	sprintf(tmp_str, "%3.1f", tmp_led->NIGHT_BLINK_Value);
-	pos_[2].x1 = pos_[2].x2 +1;
-	pos_[2].x2 = pos_[2].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value);
+	pos_[2].x1 = pos_[2].x2 + 1;
+	pos_[2].x2 = pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+12;text_cell(pos_, 2, "hz", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 6;
+	text_cell(pos_, 2, "S", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[8] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+11;text_cell(pos_, 2, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 11;
+	text_cell(pos_, 2, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos,
-		LED_t *tmp_led)
-{
-	tmp_led->ACTIVE_Value=S2_LED.ACTIVE_Value;
-	tmp_led->ADD_SUNRISE_Value=S2_LED.ADD_SUNRISE_Value;
-	tmp_led->ADD_SUNSET_Value=S2_LED.ADD_SUNSET_Value;
-	tmp_led->DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
-	tmp_led->DAY_BRIGHTNESS_Value=S2_LED.DAY_BRIGHTNESS_Value;
-	tmp_led->NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
-	tmp_led->NIGHT_BRIGHTNESS_Value=S2_LED.NIGHT_BRIGHTNESS_Value;
+void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
+//	tmp_led->TYPE_Value=S2_LED.TYPE_Value;
+//	tmp_led->ADD_SUNRISE_Value=S2_LED.ADD_SUNRISE_Value;
+//	tmp_led->ADD_SUNSET_Value=S2_LED.ADD_SUNSET_Value;
+//	tmp_led->DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
+//	tmp_led->DAY_BRIGHTNESS_Value=S2_LED.DAY_BRIGHTNESS_Value;
+//	tmp_led->NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
+//	tmp_led->NIGHT_BRIGHTNESS_Value=S2_LED.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 2 * 1);
+	bounding_box_t pos_ [2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
 
-
 	pos_[0].x2 = 60;
 	text_cell(pos_, 0, "LED SET2", Tahoma8, LEFT_ALIGN, 1, 1);
-
 
 	pos_[0].x1 = 65;
 	pos_[0].x2 = pos_[0].x1 + 20;
 	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
-
 
 	pos_[0].x1 = pos_[0].x2;
 	pos_[0].x2 = pos_[0].x1 + 42;
@@ -1040,13 +988,11 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos,
 
 	pos_[0].x1 = 0;
 	pos_[0].x2 = 36;
-	text_cell(pos_, 0, "SET2:", Tahoma8, LEFT_ALIGN, 1, 1);
-
+	text_cell(pos_, 0, "SET1:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[1].x1 = 0;
 	pos_[1].x2 = 36;
 	text_cell(pos_, 1, "DAY:", Tahoma8, LEFT_ALIGN, 1, 1);
-
 
 	pos_[2].x1 = 0;
 	pos_[2].x2 = 36;
@@ -1055,57 +1001,64 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos,
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(36, pos_[0].y1, 128 - 36, 64 - pos_[0].y1, 3, 1, 1, pos_);
 
+	if (tmp_led->TYPE_Value == WHITE_LED)
+		sprintf(tmp_str, "WHITE");
+	else
+		sprintf(tmp_str, "IR");
 
-	if(tmp_led->ACTIVE_Value)	sprintf(tmp_str, "ENABLE");
-	else sprintf(tmp_str, "DISABLE");
 	pos_[0].x1 = 50;
-	pos_[0].x2 = pos_[0].x1 + text_width("DISABLE", Tahoma8, 1) + 1;
+	pos_[0].x2 = pos_[0].x1 + text_width("WHITE", Tahoma8, 1) + 1;
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-
 
 	sprintf(tmp_str, "%03d", tmp_led->DAY_BRIGHTNESS_Value);
 	pos_[1].x1 = 37;
 	pos_[1].x2 = pos_[1].x1 + text_width("055", Tahoma8, 1) + 1;
 	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+11;text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 11;
+	text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-
-	sprintf(tmp_str, "%3.1f", tmp_led->DAY_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value);
 	pos_[1].x1 = pos_[1].x2 + 1;
-	pos_[1].x2 = pos_[1].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	pos_[1].x2 = pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+12;text_cell(pos_, 1, "hz", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 6;
+	text_cell(pos_, 1, "S", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
-	pos_[1].x1 = pos_[1].x2 +1;
+	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[1].x1 = pos_[1].x2; pos_[1].x2 = pos_[1].x1+11;text_cell(pos_, 1, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + 11;
+	text_cell(pos_, 1, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%03d", tmp_led->NIGHT_BRIGHTNESS_Value);
 	pos_[2].x1 = 37;
 	pos_[2].x2 = pos_[2].x1 + text_width("055", Tahoma8, 1) + 1;
 	text_pos[6] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+11;text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 11;
+	text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-
-	sprintf(tmp_str, "%3.1f", tmp_led->NIGHT_BLINK_Value);
-	pos_[2].x1 = pos_[2].x2 +1;
-	pos_[2].x2 = pos_[2].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value);
+	pos_[2].x1 = pos_[2].x2 + 1;
+	pos_[2].x2 = pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+12;text_cell(pos_, 2, "hz", Tahoma8, LEFT_ALIGN, 0, 0);
-
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 6;
+	text_cell(pos_, 2, "S", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[8] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-	pos_[2].x1 = pos_[2].x2; pos_[2].x2 = pos_[2].x1+11;text_cell(pos_, 2, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + 11;
+	text_cell(pos_, 2, "hr", Tahoma8, LEFT_ALIGN, 0, 0);
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1175,6 +1128,9 @@ int main(void) {
 	RTC_DateTypeDef tmp_Date;
 	LED_t tmp_LED;
 	bounding_box_t text_pos[12];
+	HAL_StatusTypeDef status;
+	Time_t cur_time_t;
+	Date_t cur_date_t;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	//////////////////////init LCD//////////
@@ -1212,9 +1168,10 @@ int main(void) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
 	///////////////////////initialize & checking sensors///////////////////////////////////////
-	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
-	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
-			&pos_[2]);
+//	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
+//	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
+//			&pos_[2]);
+	create_cell(0, 1, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
@@ -1231,7 +1188,10 @@ int main(void) {
 		HAL_Delay(50);
 	}
 
-	status = ina3221_init();
+	glcd_refresh();
+	HAL_Delay(3000);
+	glcd_blank();
+	create_cell(0, 1, 128, 64, 4, 2, 1, pos_);
 
 	if ((status = vcnl4200_init()) != VCNL4200_OK) {
 		printf("vcnl4200 sensor error\n\r");
@@ -1242,8 +1202,7 @@ int main(void) {
 		sprintf(tmp_str1, "vcnl OK");
 		inv = 0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
-	ch++;
+	text_cell(pos_, 0, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
 	if ((status = veml6030_init()) != VEML6030_OK) {
 		printf("veml6030 sensor error\n\r");
 		sprintf(tmp_str1, "veml ERR");
@@ -1254,10 +1213,48 @@ int main(void) {
 		sprintf(tmp_str1, "vcnl OK");
 		inv = 0;
 	}
-	text_cell(pos_, ch, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
+	text_cell(pos_, 1, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
+
+	if ((status = pca9632_init()) != HAL_OK) {
+		printf("pca9631 sensor error\n\r");
+		sprintf(tmp_str1, "pca9 ERR");
+		inv = 1;
+
+	} else {
+		printf("pca9631 sensor OK\n\r");
+		sprintf(tmp_str1, "pca9 OK");
+		inv = 0;
+	}
+	text_cell(pos_, 2, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
+	status = ina3221_init(INA3221_LED_BASEADDRESS);
+
+	if((status = ina3221_init(INA3221_LED_BASEADDRESS))!=HAL_OK)
+	{
+		printf("ina3221 LED sensor error\n\r");
+		sprintf(tmp_str1, "ina_1 ERR");
+		inv = 1;
+	} else {
+		printf("ina3221 sensor OK\n\r");
+		sprintf(tmp_str1, "ina_1 OK");
+		inv = 0;
+	}
+	text_cell(pos_, 3, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
+
+	if((status = ina3221_init(INA3221_TEC_BASEADDRESS))!=HAL_OK)
+	{
+		printf("ina3221 TEC sensor error\n\r");
+		sprintf(tmp_str1, "ina_2 ERR");
+		inv = 1;
+
+	} else {
+		printf("ina3221 sensor OK\n\r");
+		sprintf(tmp_str1, "ina_2 OK");
+		inv = 0;
+	}
+	text_cell(pos_, 4, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
+
 	glcd_refresh();
 	HAL_Delay(3000);
-
 	///////////////////////////RTC interrupt enable///////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
@@ -1275,6 +1272,7 @@ int main(void) {
 	//////////////////////////////////////////////////////////////////////////////////
 	joystick_init(Key_ALL, Both_press);
 	flag_change_form = 1;
+	flag_rtc_1s=1;
 	while (1) {
 		switch (MENU_state) {
 		/////////////////////////////////////MAIN_MENU/////////////////////////////////////////////////
@@ -1289,9 +1287,8 @@ int main(void) {
 				}
 				////////////////////////////RTC//////////////////////////////////
 				HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-				Date_t tmp_date = { .day = cur_Date.Date, .month =
-						cur_Date.Month, .year = cur_Date.Year };
-				cur_daylightsaving = Astro_daylighsaving(tmp_date);
+				 cur_date_t.day = cur_Date.Date; cur_date_t.month =	cur_Date.Month;cur_date_t.year = cur_Date.Year;
+				cur_daylightsaving = Astro_daylighsaving(cur_date_t);
 				if (cur_daylightsaving && !pre_daylightsaving) {
 					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
 						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
@@ -1310,6 +1307,28 @@ int main(void) {
 						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
 						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
 					}
+				}
+				HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+				cur_time_t.hr=cur_time.Hours;cur_time_t.min=cur_time.Minutes;cur_time_t.sec=cur_time.Seconds;
+				////////////////////////////LED control////////////////////////////////////
+				if(cur_time_t.hr==0 && cur_time_t.min==0 && cur_time_t.sec==0)
+					Astro_sunRiseSet(LAT_Value, LONG_Value, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED.ADD_SUNRISE_Value,S1_LED.ADD_SUNSET_Value)==ASTRO_DAY)
+				{
+					pca9632_setbrighnessblinking(LEDS1, S1_LED.DAY_BRIGHTNESS_Value, S1_LED.DAY_BLINK_Value);
+				}
+				else
+				{
+					pca9632_setbrighnessblinking(LEDS1, S1_LED.NIGHT_BRIGHTNESS_Value, S1_LED.NIGHT_BLINK_Value);
+				}
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED.ADD_SUNRISE_Value,S1_LED.ADD_SUNSET_Value)==ASTRO_DAY)
+				{
+					pca9632_setbrighnessblinking(LEDS2, S2_LED.DAY_BRIGHTNESS_Value, S2_LED.DAY_BLINK_Value);
+				}
+				else
+				{
+					pca9632_setbrighnessblinking(LEDS2, S2_LED.NIGHT_BRIGHTNESS_Value, S2_LED.NIGHT_BLINK_Value);
+
 				}
 				////////////////////////////DISP Refresh//////////////////////////////////
 				switch (DISP_state) {
@@ -1339,6 +1358,7 @@ int main(void) {
 				flag_change_form = 0;
 				switch (DISP_state) {
 				case DISP_IDLE:
+					Astro_sunRiseSet(LAT_Value, LONG_Value, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
 					create_form1(1);
 					DISP_state = DISP_FORM1;
 					break;
@@ -1657,31 +1677,33 @@ int main(void) {
 					glcd_refresh();
 					MENU_state = TIME_MENU;
 					break;
-				case LEDWT_MENU:
+				case LEDS1_MENU:
+					tmp_LED = S1_LED;
 					create_formLEDS1(1, text_pos, &tmp_LED);
 					index_option = 2;
 
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
-					MENU_state = LEDWT_MENU;
+					MENU_state = LEDS1_MENU;
 					break;
-				case LEDIR_MENU:
+				case LEDS2_MENU:
+					tmp_LED = S2_LED;
 					create_formLEDS2(1, text_pos, &tmp_LED);
 					index_option = 2;
 
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					if (tmp_LED.TYPE_Value== WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
-					MENU_state = LEDIR_MENU;
+					MENU_state = LEDS2_MENU;
 					break;
 				case EXIT_MENU:
 					MENU_state = MAIN_MENU;
@@ -1697,9 +1719,10 @@ int main(void) {
 			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -1766,9 +1789,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_TOP, Long_press)) {
 				joystick_init(Key_TOP, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -1838,9 +1862,10 @@ int main(void) {
 
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -1909,9 +1934,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_DOWN, Long_press)) {
 				joystick_init(Key_DOWN, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -1981,9 +2007,10 @@ int main(void) {
 
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -1991,18 +2018,20 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 
 					sprintf(tmp_str, "%c", tmp_long.direction);
 					index_option = 9;
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				case 2:
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 					break;
 				case 3:
@@ -2047,9 +2076,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2064,7 +2094,8 @@ int main(void) {
 					index_option = 1;
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					sprintf(tmp_str, "%02d", tmp_lat.deg);
 					index_option = 2;
 					break;
@@ -2110,9 +2141,10 @@ int main(void) {
 
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2177,9 +2209,10 @@ int main(void) {
 			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2200,7 +2233,7 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_time.Minutes);
 					break;
 				case 4:
-					tmp_time.Seconds ++;
+					tmp_time.Seconds++;
 					if (tmp_time.Seconds >= 60)
 						tmp_time.Seconds = 0;
 					sprintf(tmp_str, "%02d", tmp_time.Seconds);
@@ -2209,7 +2242,7 @@ int main(void) {
 					tmp_Date.Year++;
 					if (tmp_Date.Year > 99)
 						tmp_Date.Year = 0;
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					break;
 				case 6:
 					tmp_Date.Month++;
@@ -2219,15 +2252,12 @@ int main(void) {
 					break;
 				case 7:
 					tmp_Date.Date++;
-					if(leap(tmp_Date.Year))
-					{
-						if(tmp_Date.Date>gDaysInMonthLeap[tmp_Date.Date])
-							tmp_Date.Date=1;
-					}
-					else
-					{
-						if(tmp_Date.Date>gDaysInMonth[tmp_Date.Date])
-							tmp_Date.Date=1;
+					if (leap(tmp_Date.Year)) {
+						if (tmp_Date.Date > gDaysInMonthLeap[tmp_Date.Date])
+							tmp_Date.Date = 1;
+					} else {
+						if (tmp_Date.Date > gDaysInMonth[tmp_Date.Date])
+							tmp_Date.Date = 1;
 					}
 					sprintf(tmp_str, "%02d", tmp_Date.Date);
 					break;
@@ -2239,9 +2269,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_TOP, Long_press)) {
 				joystick_init(Key_TOP, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2262,7 +2293,7 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_time.Minutes);
 					break;
 				case 4:
-					tmp_time.Seconds ++;
+					tmp_time.Seconds++;
 					if (tmp_time.Seconds >= 60)
 						tmp_time.Seconds = 0;
 					sprintf(tmp_str, "%02d", tmp_time.Seconds);
@@ -2271,7 +2302,7 @@ int main(void) {
 					tmp_Date.Year++;
 					if (tmp_Date.Year > 99)
 						tmp_Date.Year = 0;
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					break;
 				case 6:
 					tmp_Date.Month++;
@@ -2281,15 +2312,12 @@ int main(void) {
 					break;
 				case 7:
 					tmp_Date.Date++;
-					if(leap(tmp_Date.Year))
-					{
-						if(tmp_Date.Date>gDaysInMonthLeap[tmp_Date.Month])
-							tmp_Date.Date=1;
-					}
-					else
-					{
-						if(tmp_Date.Date>gDaysInMonth[tmp_Date.Month])
-							tmp_Date.Date=1;
+					if (leap(tmp_Date.Year)) {
+						if (tmp_Date.Date > gDaysInMonthLeap[tmp_Date.Month])
+							tmp_Date.Date = 1;
+					} else {
+						if (tmp_Date.Date > gDaysInMonth[tmp_Date.Month])
+							tmp_Date.Date = 1;
 					}
 					sprintf(tmp_str, "%02d", tmp_Date.Date);
 					break;
@@ -2302,9 +2330,10 @@ int main(void) {
 
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2313,7 +2342,7 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if (tmp_time.Hours ==0)
+					if (tmp_time.Hours == 0)
 						tmp_time.Hours = 24;
 					tmp_time.Hours--;
 					sprintf(tmp_str, "%02d", tmp_time.Hours);
@@ -2325,16 +2354,16 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_time.Minutes);
 					break;
 				case 4:
-					if (tmp_time.Seconds==0)
+					if (tmp_time.Seconds == 0)
 						tmp_time.Seconds = 60;
 					tmp_time.Seconds--;
 					sprintf(tmp_str, "%02d", tmp_time.Seconds);
 					break;
 				case 5:
-					if (tmp_Date.Year ==21)
+					if (tmp_Date.Year == 21)
 						tmp_Date.Year = 22;
 					tmp_Date.Year--;
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					break;
 				case 6:
 					if (tmp_Date.Month == 1)
@@ -2343,15 +2372,12 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_Date.Month);
 					break;
 				case 7:
-					if(tmp_Date.Date==1)
-					{
-						if(leap(tmp_Date.Year))
-						{
-								tmp_Date.Date=gDaysInMonthLeap[tmp_Date.Month]+1;
-						}
-						else
-						{
-							tmp_Date.Date=gDaysInMonth[tmp_Date.Month]+1;
+					if (tmp_Date.Date == 1) {
+						if (leap(tmp_Date.Year)) {
+							tmp_Date.Date = gDaysInMonthLeap[tmp_Date.Month]
+									+ 1;
+						} else {
+							tmp_Date.Date = gDaysInMonth[tmp_Date.Month] + 1;
 						}
 					}
 					tmp_Date.Date--;
@@ -2366,9 +2392,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_DOWN, Long_press)) {
 				joystick_init(Key_DOWN, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2377,7 +2404,7 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if (tmp_time.Hours ==0)
+					if (tmp_time.Hours == 0)
 						tmp_time.Hours = 24;
 					tmp_time.Hours--;
 					sprintf(tmp_str, "%02d", tmp_time.Hours);
@@ -2389,16 +2416,16 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_time.Minutes);
 					break;
 				case 4:
-					if (tmp_time.Seconds==0)
+					if (tmp_time.Seconds == 0)
 						tmp_time.Seconds = 60;
 					tmp_time.Seconds--;
 					sprintf(tmp_str, "%02d", tmp_time.Seconds);
 					break;
 				case 5:
-					if (tmp_Date.Year ==21)
+					if (tmp_Date.Year == 21)
 						tmp_Date.Year = 22;
 					tmp_Date.Year--;
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					break;
 				case 6:
 					if (tmp_Date.Month == 1)
@@ -2407,15 +2434,12 @@ int main(void) {
 					sprintf(tmp_str, "%02d", tmp_Date.Month);
 					break;
 				case 7:
-					if(tmp_Date.Date==1)
-					{
-						if(leap(tmp_Date.Year))
-						{
-								tmp_Date.Date=gDaysInMonthLeap[tmp_Date.Month]+1;
-						}
-						else
-						{
-							tmp_Date.Date=gDaysInMonth[tmp_Date.Month]+1;
+					if (tmp_Date.Date == 1) {
+						if (leap(tmp_Date.Year)) {
+							tmp_Date.Date = gDaysInMonthLeap[tmp_Date.Month]
+									+ 1;
+						} else {
+							tmp_Date.Date = gDaysInMonth[tmp_Date.Month] + 1;
 						}
 					}
 					tmp_Date.Date--;
@@ -2430,9 +2454,10 @@ int main(void) {
 
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2440,17 +2465,19 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 					sprintf(tmp_str, "%02d", tmp_Date.Date);
 					index_option = 7;
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				case 2:
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 					break;
 				case 3:
@@ -2468,7 +2495,7 @@ int main(void) {
 					index_option = 4;
 					break;
 				case 6:
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					index_option = 5;
 
 					break;
@@ -2486,9 +2513,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2496,14 +2524,15 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
-
 
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					sprintf(tmp_str, "%02d", tmp_time.Hours);
 					index_option = 2;
 					break;
@@ -2516,7 +2545,7 @@ int main(void) {
 					index_option = 4;
 					break;
 				case 4:
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					index_option = 5;
 
 					break;
@@ -2530,7 +2559,7 @@ int main(void) {
 
 					break;
 				case 7:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -2543,9 +2572,10 @@ int main(void) {
 
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2575,7 +2605,7 @@ int main(void) {
 					index_option = 4;
 					break;
 				case 4:
-					sprintf(tmp_str, "%04d", tmp_Date.Year+2000);
+					sprintf(tmp_str, "%04d", tmp_Date.Year + 2000);
 					index_option = 5;
 
 					break;
@@ -2589,7 +2619,7 @@ int main(void) {
 
 					break;
 				case 7:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -2601,14 +2631,15 @@ int main(void) {
 			}
 
 			break;
-			/////////////////////////////////////LEDWT_MENU/////////////////////////////////////////////////
-		case LEDWT_MENU:
+			/////////////////////////////////////LEDS1_MENU/////////////////////////////////////////////////
+		case LEDS1_MENU:
 			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2617,49 +2648,60 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS1(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
 					tmp_LED.DAY_BRIGHTNESS_Value++;
-					if (tmp_LED.DAY_BRIGHTNESS_Value >100)
+					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
 						tmp_LED.DAY_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					tmp_LED.DAY_BLINK_Value+=0.1;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						tmp_LED.DAY_BLINK_Value += (double)0.1;
+					if (tmp_LED.DAY_BLINK_Value > (double) BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = (double) BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value+=0.1;
-					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNRISE_Value +=(double) 0.1;
+					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value++;
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value >100)
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					tmp_LED.NIGHT_BLINK_Value+=0.1;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						tmp_LED.NIGHT_BLINK_Value += (double)0.1;
+					if (tmp_LED.NIGHT_BLINK_Value > (double) BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value+=0.1;
-					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
+						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -2670,9 +2712,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_TOP, Long_press)) {
 				joystick_init(Key_TOP, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2681,49 +2724,62 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS1(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
-					tmp_LED.DAY_BRIGHTNESS_Value+=10;
-					if (tmp_LED.DAY_BRIGHTNESS_Value >100)
-						tmp_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value-100;
+					tmp_LED.DAY_BRIGHTNESS_Value += 10;
+					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
+						tmp_LED.DAY_BRIGHTNESS_Value =
+								tmp_LED.DAY_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					tmp_LED.DAY_BLINK_Value+=1.0;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						tmp_LED.DAY_BLINK_Value += (double)1.0;
+					if (tmp_LED.DAY_BLINK_Value > (double) BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = (double) BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value+=0.1;
-					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					tmp_LED.NIGHT_BRIGHTNESS_Value+=10;
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value >100)
-						tmp_LED.NIGHT_BRIGHTNESS_Value = tmp_LED.NIGHT_BRIGHTNESS_Value-100;
+					tmp_LED.NIGHT_BRIGHTNESS_Value += 10;
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
+						tmp_LED.NIGHT_BRIGHTNESS_Value =
+								tmp_LED.NIGHT_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					tmp_LED.NIGHT_BLINK_Value+=1.0;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						tmp_LED.NIGHT_BLINK_Value += (double)1.0;
+					if (tmp_LED.NIGHT_BLINK_Value > (double) BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value+=0.1;
-					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
+						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -2735,9 +2791,10 @@ int main(void) {
 
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2746,49 +2803,66 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+
 					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS1(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
-					if (tmp_LED.DAY_BRIGHTNESS_Value ==0)
+					if (tmp_LED.DAY_BRIGHTNESS_Value == 0)
 						tmp_LED.DAY_BRIGHTNESS_Value = 101;
 					tmp_LED.DAY_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					if (tmp_LED.DAY_BLINK_Value == (double)BLINKWT_MIN)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MAX+0.1;
-					tmp_LED.DAY_BLINK_Value-=0.1;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						if (tmp_LED.DAY_BLINK_Value == (double) BLINK_MIN)
+							tmp_LED.DAY_BLINK_Value = (double) BLINK_MAX + (double)0.1;
+
+						tmp_LED.DAY_BLINK_Value -= (double)0.1;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_WT_MIN)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MAX+0.1;
-					tmp_LED.ADD_SUNRISE_Value-=0.1;
+					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_S1_MIN)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MAX + (double)0.1;
+					tmp_LED.ADD_SUNRISE_Value -= (double)0.1;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value ==0)
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value == 0)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 101;
 					tmp_LED.NIGHT_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					if (tmp_LED.NIGHT_BLINK_Value == (double)BLINKWT_MIN)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MAX+0.1;
-					tmp_LED.NIGHT_BLINK_Value-=0.1;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						if (tmp_LED.NIGHT_BLINK_Value == (double) BLINK_MIN)
+							tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MAX
+									+ (double)0.1;
+						tmp_LED.NIGHT_BLINK_Value -= (double)0.1;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 8:
-					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_WT_MIN)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_WT_MAX+0.1;
-					tmp_LED.ADD_SUNSET_Value-=0.1;
+					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_S1_MIN)
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MAX + (double)0.1;
+					tmp_LED.ADD_SUNSET_Value -= (double)0.1;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -2799,9 +2873,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_DOWN, Long_press)) {
 				joystick_init(Key_DOWN, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -2810,47 +2885,72 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS1(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
-					else
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
 					break;
 				case 3:
-					if (tmp_LED.DAY_BRIGHTNESS_Value <10)
-						tmp_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value+100;
-					tmp_LED.DAY_BRIGHTNESS_Value-=10;
+					if (tmp_LED.DAY_BRIGHTNESS_Value < 10)
+						tmp_LED.DAY_BRIGHTNESS_Value =
+								tmp_LED.DAY_BRIGHTNESS_Value + 100;
+					tmp_LED.DAY_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					if (tmp_LED.DAY_BLINK_Value < ((double)BLINKWT_MIN+1.0))
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.DAY_BLINK_Value-=1.0;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						if (tmp_LED.DAY_BLINK_Value
+								< ((double) BLINK_MIN + (double)1.0))
+							tmp_LED.DAY_BLINK_Value = (double) BLINK_MAX
+									+ tmp_LED.DAY_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value -= (double)1.0;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					if (tmp_LED.ADD_SUNRISE_Value <((double) ADD_SUNRISE_WT_MIN+1.0))
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MAX +tmp_LED.ADD_SUNRISE_Value;
-					tmp_LED.ADD_SUNRISE_Value-=1.0;
+					if (tmp_LED.ADD_SUNRISE_Value
+							< ((double) ADD_SUNRISE_S1_MIN +(double) 1.0))
+						tmp_LED.ADD_SUNRISE_Value =((double) ADD_SUNRISE_S1_MAX-ADD_SUNRISE_S1_MIN)
+								+ tmp_LED.ADD_SUNRISE_Value;
+					tmp_LED.ADD_SUNRISE_Value -= (double)1.0;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value <10)
-						tmp_LED.NIGHT_BRIGHTNESS_Value = tmp_LED.NIGHT_BRIGHTNESS_Value+100;
-					tmp_LED.NIGHT_BRIGHTNESS_Value-=10;
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value < 10)
+						tmp_LED.NIGHT_BRIGHTNESS_Value =
+								tmp_LED.NIGHT_BRIGHTNESS_Value + 100;
+					tmp_LED.NIGHT_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					if (tmp_LED.NIGHT_BLINK_Value < ((double)BLINKWT_MIN+1.0))
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.NIGHT_BLINK_Value-=1.0;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						if (tmp_LED.NIGHT_BLINK_Value
+								< ((double) BLINK_MIN + (double)1.0))
+							tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MAX
+									+ tmp_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value -=(double) 1.0;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 8:
-					if (tmp_LED.ADD_SUNSET_Value <((double) ADD_SUNSET_WT_MIN+1.0))
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_WT_MAX +tmp_LED.ADD_SUNSET_Value;
-					tmp_LED.ADD_SUNSET_Value-=1.0;
+					if (tmp_LED.ADD_SUNSET_Value
+							< ((double) ADD_SUNSET_S1_MIN + (double)1.0))
+						tmp_LED.ADD_SUNSET_Value = ((double) ADD_SUNSET_S1_MAX-ADD_SUNSET_S1_MIN)
+								+ tmp_LED.ADD_SUNSET_Value;
+					tmp_LED.ADD_SUNSET_Value -= (double)1.0;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -2862,9 +2962,10 @@ int main(void) {
 
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2872,35 +2973,38 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					index_option = 8;
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				case 2:
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 					break;
 				case 3:
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					index_option = 2;
 
 					break;
 				case 4:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 6:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -2910,11 +3014,13 @@ int main(void) {
 				case 7:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 
 					break;
 				case 8:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				}
 				if (index_option > 1) {
@@ -2925,9 +3031,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2935,26 +3042,30 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					index_option = 2;
 					break;
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -2964,10 +3075,12 @@ int main(void) {
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 6:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 
 					break;
 				case 7:
@@ -2975,7 +3088,7 @@ int main(void) {
 					index_option = 8;
 					break;
 				case 8:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -2988,9 +3101,10 @@ int main(void) {
 
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -2999,13 +3113,19 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					S1_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
-					S1_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
-					S1_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
-					S1_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
-					S1_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
-					S1_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
-					S1_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
+					S1_LED.TYPE_Value = tmp_LED.TYPE_Value;
+					S1_LED.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
+					S1_LED.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
+					S1_LED.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
+					S1_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
+					S1_LED.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
+					S1_LED.NIGHT_BRIGHTNESS_Value =
+							tmp_LED.NIGHT_BRIGHTNESS_Value;
+					if(S2_LED.TYPE_Value==WHITE_LED)
+					{
+						S2_LED.DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
+						S2_LED.NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
+					}
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3018,10 +3138,12 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -3031,18 +3153,19 @@ int main(void) {
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 6:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
-
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					index_option = 8;
 					break;
 				case 8:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -3055,13 +3178,14 @@ int main(void) {
 
 			break;
 			/////////////////////////////////////LEDIR_MENU/////////////////////////////////////////////////
-		case LEDIR_MENU:
+		case LEDS2_MENU:
 			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3070,49 +3194,61 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS2(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
 					tmp_LED.DAY_BRIGHTNESS_Value++;
-					if (tmp_LED.DAY_BRIGHTNESS_Value >100)
+					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
 						tmp_LED.DAY_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					tmp_LED.DAY_BLINK_Value+=0.1;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+						tmp_LED.DAY_BLINK_Value+=(double)0.1;
+					if (tmp_LED.DAY_BLINK_Value > (double)BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = (double)BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value+=0.1;
-					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value++;
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value >100)
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					tmp_LED.NIGHT_BLINK_Value+=0.1;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+						tmp_LED.NIGHT_BLINK_Value+=(double)0.1;
+					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value+=0.1;
-					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNSET_Value +=(double) 0.1;
+					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_S1_MAX)
+						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNRISE_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -3123,9 +3259,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_TOP, Long_press)) {
 				joystick_init(Key_TOP, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3134,49 +3271,64 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS2(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
-					tmp_LED.DAY_BRIGHTNESS_Value+=10;
-					if (tmp_LED.DAY_BRIGHTNESS_Value >100)
-						tmp_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value-100;
+					tmp_LED.DAY_BRIGHTNESS_Value += 10;
+					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
+						tmp_LED.DAY_BRIGHTNESS_Value =
+								tmp_LED.DAY_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					tmp_LED.DAY_BLINK_Value+=1.0;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+						tmp_LED.DAY_BLINK_Value+=(double)1.0;
+					if (tmp_LED.DAY_BLINK_Value > (double)BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = (double)BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value+=0.1;
-					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					tmp_LED.NIGHT_BRIGHTNESS_Value+=10;
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value >100)
-						tmp_LED.NIGHT_BRIGHTNESS_Value = tmp_LED.NIGHT_BRIGHTNESS_Value-100;
+					tmp_LED.NIGHT_BRIGHTNESS_Value += 10;
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
+						tmp_LED.NIGHT_BRIGHTNESS_Value =
+								tmp_LED.NIGHT_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 7:
-					tmp_LED.NIGHT_BLINK_Value+=1.0;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINKWT_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MIN;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+						tmp_LED.NIGHT_BLINK_Value+=(double)1.0;
+					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value+=0.1;
-					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_WT_MAX)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNRISE_WT_MIN;
+					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
+						tmp_LED.ADD_SUNSET_Value =(double) ADD_SUNSET_S1_MIN;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -3188,9 +3340,10 @@ int main(void) {
 
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3199,49 +3352,66 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
-					}
-					else
-					{
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS2(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
 				case 3:
-					if (tmp_LED.DAY_BRIGHTNESS_Value ==0)
+					if (tmp_LED.DAY_BRIGHTNESS_Value == 0)
 						tmp_LED.DAY_BRIGHTNESS_Value = 101;
 					tmp_LED.DAY_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					if (tmp_LED.DAY_BLINK_Value == (double)BLINKWT_MIN)
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MAX+0.1;
-					tmp_LED.DAY_BLINK_Value-=0.1;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+					{
+						if (tmp_LED.DAY_BLINK_Value == (double)BLINK_MIN)
+							tmp_LED.DAY_BLINK_Value = (double)BLINK_MAX+(double)0.1;
+						tmp_LED.DAY_BLINK_Value-=(double)0.1;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_WT_MIN)
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MAX+0.1;
-					tmp_LED.ADD_SUNRISE_Value-=0.1;
+					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_S2_MIN)
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S2_MAX +(double) 0.1;
+					tmp_LED.ADD_SUNRISE_Value -= (double)0.1;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value ==0)
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value == 0)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 101;
 					tmp_LED.NIGHT_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 7:
-					if (tmp_LED.NIGHT_BLINK_Value == (double)BLINKWT_MIN)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MAX+0.1;
-					tmp_LED.NIGHT_BLINK_Value-=0.1;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+					{
+					if (tmp_LED.NIGHT_BLINK_Value == (double)BLINK_MIN)
+						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MAX+(double)0.1;
+					tmp_LED.NIGHT_BLINK_Value-=(double)0.1;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 8:
-					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_WT_MIN)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_WT_MAX+0.1;
-					tmp_LED.ADD_SUNSET_Value-=0.1;
+					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_S2_MIN)
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S2_MAX + (double)0.1;
+					tmp_LED.ADD_SUNSET_Value -= (double)0.1;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -3252,9 +3422,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_DOWN, Long_press)) {
 				joystick_init(Key_DOWN, Long_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3263,47 +3434,72 @@ int main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(tmp_LED.ACTIVE_Value)
-					{
-						sprintf(tmp_str, "DISABLE");tmp_LED.ACTIVE_Value=0;
+					if (tmp_LED.TYPE_Value == WHITE_LED) {
+						sprintf(tmp_str, "IR");
+						tmp_LED.TYPE_Value = IR_LED;
+						tmp_LED.NIGHT_BLINK_Value = 0.0;
+						tmp_LED.DAY_BLINK_Value = 0.0;
+						create_formLEDS2(1, text_pos, &tmp_LED);
+					} else {
+						sprintf(tmp_str, "WHITE");
+						tmp_LED.TYPE_Value = WHITE_LED;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
-					else
-						sprintf(tmp_str, "ENABLE");tmp_LED.ACTIVE_Value=1;
 					break;
 				case 3:
-					if (tmp_LED.DAY_BRIGHTNESS_Value <10)
-						tmp_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value+100;
-					tmp_LED.DAY_BRIGHTNESS_Value-=10;
+					if (tmp_LED.DAY_BRIGHTNESS_Value < 10)
+						tmp_LED.DAY_BRIGHTNESS_Value =
+								tmp_LED.DAY_BRIGHTNESS_Value + 100;
+					tmp_LED.DAY_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
-					if (tmp_LED.DAY_BLINK_Value < ((double)BLINKWT_MIN+1.0))
-						tmp_LED.DAY_BLINK_Value = (double)BLINKWT_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.DAY_BLINK_Value-=1.0;
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+					{
+					if (tmp_LED.DAY_BLINK_Value < ((double)BLINK_MIN+(double)1.0))
+						tmp_LED.DAY_BLINK_Value = (double)BLINK_MAX+tmp_LED.DAY_BLINK_Value;
+					tmp_LED.DAY_BLINK_Value-=(double)1.0;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					if (tmp_LED.ADD_SUNRISE_Value <((double) ADD_SUNRISE_WT_MIN+1.0))
-						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_WT_MAX +tmp_LED.ADD_SUNRISE_Value;
-					tmp_LED.ADD_SUNRISE_Value-=1.0;
+					if (tmp_LED.ADD_SUNRISE_Value
+							< ((double) ADD_SUNRISE_S2_MIN + (double)1.0))
+						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MAX-(double)ADD_SUNRISE_S2_MIN
+								+ (double)tmp_LED.ADD_SUNRISE_Value;
+					tmp_LED.ADD_SUNRISE_Value -= (double)1.0;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
 					break;
 				case 6:
-					if (tmp_LED.NIGHT_BRIGHTNESS_Value <10)
-						tmp_LED.NIGHT_BRIGHTNESS_Value = tmp_LED.NIGHT_BRIGHTNESS_Value+100;
-					tmp_LED.NIGHT_BRIGHTNESS_Value-=10;
+					if (tmp_LED.NIGHT_BRIGHTNESS_Value < 10)
+						tmp_LED.NIGHT_BRIGHTNESS_Value =
+								tmp_LED.NIGHT_BRIGHTNESS_Value + 100;
+					tmp_LED.NIGHT_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 7:
-					if (tmp_LED.NIGHT_BLINK_Value < ((double)BLINKWT_MIN+1.0))
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINKWT_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.NIGHT_BLINK_Value-=1.0;
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_LED.TYPE_Value==WHITE_LED)
+					{
+					if (tmp_LED.NIGHT_BLINK_Value < ((double)BLINK_MIN+(double)1.0))
+						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MAX+tmp_LED.DAY_BLINK_Value;
+					tmp_LED.NIGHT_BLINK_Value-=(double)1.0;
+					}
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				case 8:
-					if (tmp_LED.ADD_SUNSET_Value <((double) ADD_SUNSET_WT_MIN+1.0))
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_WT_MAX +tmp_LED.ADD_SUNSET_Value;
-					tmp_LED.ADD_SUNSET_Value-=1.0;
+					if (tmp_LED.ADD_SUNSET_Value
+							< ((double) ADD_SUNSET_S2_MIN + (double)1.0))
+						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S2_MAX-(double)ADD_SUNRISE_S2_MIN
+								+ (double)tmp_LED.ADD_SUNSET_Value;
+					tmp_LED.ADD_SUNSET_Value -= (double)1.0;
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					break;
 				}
@@ -3315,9 +3511,10 @@ int main(void) {
 
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3325,35 +3522,38 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					index_option = 8;
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				case 2:
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 					break;
 				case 3:
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					index_option = 2;
 
 					break;
 				case 4:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 6:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -3363,11 +3563,14 @@ int main(void) {
 				case 7:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 
 					break;
 				case 8:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
 					break;
 				}
 				if (index_option > 1) {
@@ -3378,9 +3581,10 @@ int main(void) {
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3388,26 +3592,30 @@ int main(void) {
 
 				switch (index_option) {
 				case 0:	//OK
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,0,0);
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,		1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
 					index_option = 1;
 
 					break;
 				case 1:	//CANCEL
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,		0);
-					if(tmp_LED.ACTIVE_Value)
-						sprintf(tmp_str, "ENABLE");
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
 					else
-						sprintf(tmp_str, "DISABLE");
+						sprintf(tmp_str, "IR");
 					index_option = 2;
 					break;
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -3417,18 +3625,19 @@ int main(void) {
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 6:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
-
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					index_option = 8;
 					break;
 				case 8:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -3441,9 +3650,10 @@ int main(void) {
 
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				if (index_option > 1)
-				{
-					draw_fill(text_pos[index_option].x1-1 , text_pos[index_option].y1 + 1, text_pos[index_option].x2-1,
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3452,13 +3662,19 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					S2_LED.ACTIVE_Value=tmp_LED.ACTIVE_Value;
-					S2_LED.ADD_SUNRISE_Value=tmp_LED.ADD_SUNRISE_Value;
-					S2_LED.ADD_SUNSET_Value=tmp_LED.ADD_SUNSET_Value;
-					S2_LED.DAY_BLINK_Value=tmp_LED.DAY_BLINK_Value;
-					S2_LED.DAY_BRIGHTNESS_Value=tmp_LED.DAY_BRIGHTNESS_Value;
-					S2_LED.NIGHT_BLINK_Value=tmp_LED.NIGHT_BLINK_Value;
-					S2_LED.NIGHT_BRIGHTNESS_Value=tmp_LED.NIGHT_BRIGHTNESS_Value;
+					S2_LED.TYPE_Value = tmp_LED.TYPE_Value;
+					S2_LED.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
+					S2_LED.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
+					S2_LED.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
+					S2_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
+					S2_LED.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
+					S2_LED.NIGHT_BRIGHTNESS_Value =
+							tmp_LED.NIGHT_BRIGHTNESS_Value;
+					if(S1_LED.TYPE_Value==WHITE_LED)
+					{
+						S1_LED.DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
+						S1_LED.NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
+					}
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3471,10 +3687,12 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%3.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
 					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 4:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
@@ -3484,18 +3702,19 @@ int main(void) {
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 6:
-					sprintf(tmp_str, "%3.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
 					index_option = 7;
-
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
 					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
 					index_option = 8;
 					break;
 				case 8:
-					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,1,1);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
 				}
@@ -3505,7 +3724,6 @@ int main(void) {
 				}
 				glcd_refresh();
 			}
-
 			break;
 			/////////////////////////////////////RELAY_MENU/////////////////////////////////////////////////
 		case RELAY_MENU:
@@ -3526,185 +3744,11 @@ int main(void) {
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 	}
-	////////////////////////keypad check//////////////////////////////////////////
-	glcd_init(64, 128);
-	glcd_flip_screen(XTB_YRL);
-	joystick_init(Key_ALL, Short_press | Long_press);
-//	uint8_t select = 0;
-//	while (!select) {
-//		joystick_init(Key_ALL, Long_press);
-//		if (joystick_read(Key_DOWN, Short_press)) {
-//			joystick_init(Key_DOWN, Short_press);
-//			draw_text("D", 10, 0, Tahoma8, 0, 0);
-//
-//		} else {
-//			draw_text("D", 10, 0, Tahoma8, 0, 1);
-//		}
-//
-//		if (joystick_read(Key_TOP, Short_press)) {
-//			joystick_init(Key_TOP, Short_press);
-//			draw_text("T", 20, 0, Tahoma8, 0, 0);
-//
-//		} else {
-//			draw_text("T", 20, 0, Tahoma8, 0, 1);
-//
-//		}
-//
-//		if (joystick_read(Key_LEFT, Short_press)) {
-//			joystick_init(Key_LEFT, Short_press);
-//			draw_text("L", 30, 0, Tahoma8, 0, 0);
-//
-//		} else {
-//			draw_text("L", 30, 0, Tahoma8, 0, 1);
-//		}
-//
-//		if (joystick_read(Key_RIGHT, Short_press)) {
-//			joystick_init(Key_RIGHT, Short_press);
-//			draw_text("R", 40, 0, Tahoma8, 0, 0);
-//
-//		} else {
-//			draw_text("R", 40, 0, Tahoma8, 0, 1);
-//
-//		}
-//
-//		if (joystick_read(Key_ENTER, Short_press)) {
-//			joystick_init(Key_ENTER, Short_press);
-//			draw_text("E", 50, 0, Tahoma8, 0, 0);
-//			select = 1;
-//
-//		} else {
-//			draw_text("E", 50, 0, Tahoma8, 0, 1);
-//
-//		}
-//		glcd_refresh();
-//		HAL_Delay(500);
-//
-//	}
-	///////////////////////generate menu/////////////////////////////////////////////
-	glcd_blank();
-
-	for (uint8_t op = 0; op < 5; op++) {
-		draw_text(menu[op], 0, op * 11, Tahoma8, 1, 0);
-	}
-	uint8_t cur_op = 0;
-	draw_text(menu[cur_op], 0, cur_op * 11, Tahoma8, 1, 1);
-	cur_op++;
-	glcd_refresh();
-	joystick_init(Key_ALL, Both_press);
-	do {
-		joystick_init(Key_ALL, Long_press);
-		if (joystick_read(Key_DOWN, Short_press)) {
-			joystick_init(Key_DOWN, Short_press);
-			if (cur_op > 0)
-				draw_text(menu[cur_op - 1], 0, (cur_op - 1) * 11, Tahoma8, 1,
-						0);
-			if (cur_op > 4)
-				cur_op = 0;
-			draw_text(menu[cur_op], 0, cur_op * 11, Tahoma8, 1, 1);
-			cur_op++;
-			glcd_refresh();
-
-		}
-	} while (1);
-	//	glcd_blank();
-	/////////////////////////RTC_Sensor test////////////////////////////////////////////////////
-	HAL_RTC_SetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-
-	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
-		status = tmp275_init(ch);
-		HAL_Delay(100);
-	}
-	status = ina3221_init();
-	status = vcnl4200_init();
-	status = veml6030_init();
-
-	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port, TEC_ONOFF_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port, TEC_CURDIR_Pin, GPIO_PIN_SET);
-
-	status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_MANUFACTURE_ID,
-			buffer);
-	sprintf(tmp_str, "MANUFACTURE INA321(1):%c%c\n\r", buffer[0], buffer[1]);
-	if (file_write("test.txt", tmp_str) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_LED_BASEADDRESS, INA3221_DIE_ID, buffer);
-	sprintf(tmp_str, "DIE INA321(1):%c%c\n\r", buffer[0], buffer[1]);
-	if (file_write("test.txt", tmp_str) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_MANUFACTURE_ID,
-			buffer);
-	sprintf(tmp_str, "MANUFACTURE INA321(2):%c%c\n\r", buffer[0], buffer[1]);
-	if (file_write("test.txt", tmp_str) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	status = ina3221_readreg(INA3221_TEC_BASEADDRESS, INA3221_DIE_ID, buffer);
-	sprintf(tmp_str, "DIE INA321(2):%c%c\n\r", buffer[0], buffer[1]);
-	if (file_write("test.txt", tmp_str) != FR_OK) {
-		HAL_Delay(1000);
-	}
-
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-		///////////temperatures//////////////////////////////////
-		for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
-			status = tmp275_readTemperature(ch, &temperature[ch]);
-			if (status == HAL_OK) {
-				sprintf(tmp_str, "tmp(0x%x):%f\n\r", ch + TMP275_BASEADDRESS,
-						temperature[ch]);
-
-			} else {
-				sprintf(tmp_str, "tmp(0x%x):ERROR\n\r",
-						ch + TMP275_BASEADDRESS);
-
-			}
-			if (file_write("test.txt", tmp_str) != FR_OK) {
-				HAL_Delay(1000);
-			}
-			HAL_Delay(100);
-		}
-		//////////////////////////////////////////////////////////
-		status = vcnl4200_read((uint8_t) VCNL4200_ALS_Data, &als);
-		if (status == VCNL4200_OK) {
-			sprintf(tmp_str, "als:%d\n\r", als);
-
-		} else {
-			sprintf(tmp_str, "als:ERROR\n\r");
-
-		}
-		if (file_write("test.txt", tmp_str) != FR_OK) {
-			HAL_Delay(1000);
-		}
-		status = vcnl4200_read((uint8_t) VCNL4200_WHITE_Data, &white);
-		if (status == VCNL4200_OK) {
-			sprintf(tmp_str, "white:%d\n\r", white);
-
-		} else {
-			sprintf(tmp_str, "white:ERROR\n\r");
-
-		}
-		if (file_write("test.txt", tmp_str) != FR_OK) {
-			HAL_Delay(1000);
-		}
-		///////////CH1,7V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_7V, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_7V, &current);
-
-		///////////CH2,12V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_12V, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_12V, &current);
-		///////////CH3,3.3V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_3V3, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_3V3, &current);
-		///////////TEC,12V
-		status = ina3221_readfloat((uint8_t) VOLTAGE_TEC, &voltage);
-		status = ina3221_readfloat((uint8_t) CURRENT_TEC, &current);
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		HAL_Delay(1000);
 		/* USER CODE END WHILE */
 		MX_USB_HOST_Process();
 

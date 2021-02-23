@@ -8,15 +8,6 @@
 #include "i2c.h"
 #include "ina3221.h"
 /**
- *
- */
-HAL_StatusTypeDef ina3221_init(void)
-{
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
-	return HAL_OK;
-}
-/**
  * address :7bit address
  */
 HAL_StatusTypeDef ina3221_readreg(uint8_t address,uint8_t reg,uint8_t *value)
@@ -25,10 +16,38 @@ HAL_StatusTypeDef ina3221_readreg(uint8_t address,uint8_t reg,uint8_t *value)
 	  status=HAL_I2C_Mem_Read(&hi2c3, address<<1, reg, I2C_MEMADD_SIZE_8BIT, value, 2, 1000);
 	  return status;
 }
+/**
+ *
+ */
+HAL_StatusTypeDef ina3221_writereg(uint8_t address,uint8_t reg,uint8_t *value)
+{
+	HAL_StatusTypeDef status;
+	  status=HAL_I2C_Mem_Write(&hi2c3, address<<1, reg, I2C_MEMADD_SIZE_8BIT, value, 2, 1000);
+	  return status;
+}
+/**
+ *
+ */
+HAL_StatusTypeDef ina3221_init(uint8_t add)
+{
+	HAL_StatusTypeDef status;
+	uint8_t buffer[2];
+	HAL_I2C_MspInit(&hi2c3);
+	MX_I2C3_Init();
+//	buffer[1]=0x80;
+//	buffer[0]=0x00;
+//	status=ina3221_writereg( add, INA3221_CONF,buffer);
+//	HAL_Delay(100);
+//	buffer[1]=(0<<7)|(7<<4)|(0<<1)|(1<<0);
+//	buffer[0]=(0<<6)|(4<<3)|(7<<0);
+//	status=ina3221_writereg( add, INA3221_CONF,buffer);
+	return status;
+}
+
 /*
  * channel:from enums
  */
-HAL_StatusTypeDef ina3221_readfloat(uint8_t channel,double *value)
+HAL_StatusTypeDef ina3221_readdouble(uint8_t channel,double *value)
 {
 	HAL_StatusTypeDef status;
 	uint8_t buffer[2];

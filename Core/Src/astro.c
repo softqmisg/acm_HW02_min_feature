@@ -6,6 +6,7 @@
  */
 #include "astro.h"
 #include "rtc.h"
+////////////////////////////////////////////////////////////////////////////////////////
 double POS2double(POS_t pos)
 {
 	double r=(double)pos.deg+(double)pos.min/60.0+(double)pos.second/3600.0;
@@ -13,6 +14,7 @@ double POS2double(POS_t pos)
 		r=-r;
 	return r;
 }
+////////////////////////////////////////////////////////////////////////////////////////
 POS_t latdouble2POS(double lat)
 {
 	POS_t pos;
@@ -24,6 +26,7 @@ POS_t latdouble2POS(double lat)
 	pos.second=pos.second-(double)pos.min*60;
 	return pos;
 }
+////////////////////////////////////////////////////////////////////////////////////////
 POS_t longdouble2POS(double lon)
 {
 	POS_t pos;
@@ -45,9 +48,55 @@ uint8_t Astro_daylighsaving(Date_t date)
 	else if(date.month==RTC_MONTH_SEPTEMBER && date.day<22)	r=1;
 	return r;
 }
-//////////////////////////////////////////
-uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,Time_t sunset_t)
+////////////////////////////////////////////////////////////////////////////////////////
+Time_t addtime(Time_t t1,Time_t t2)
 {
+	Time_t tmp=t1;
+	tmp.sec+=t2.sec;
+	if(tmp.sec>59)
+	{
+		tmp.sec-=60;
+		tmp.min++;
+		if(tmp.min>59)
+			tmp.hr++;
+	}
+	if(tmp.sec<0)
+	{
+		tmp.sec+=60;
+		tmp.min--;
+		if(tmp.min<0)
+			tmp.min+=60;
+	}
+	tmp.min+=t2.min;
+	if(tmp.min>59)
+	{
+		tmp.min-=60;
+		tmp.hr++;
+		if(tmp.hr>=23)
+			tmp.hr=0;
+	}
+	if(tmp.min<0)
+	{
+		tmp.min+=60;
+		tmp.hr--;
+		if(tmp.hr<0)
+			tmp.hr=0;
+	}
+	tmp.hr+=t2.hr;
+	return tmp;
+}
+////////////////////////////////////////////////////////////////////////////////////////
+uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,Time_t sunset_t,double add_sunrise,double add_sunset)
+{
+
+	Time_t sunrise_addtime;
+	sunrise_addtime.hr=(int8_t) add_sunrise;sunrise_addtime.min=(int8_t)((double)add_sunrise-(double)sunrise_addtime.hr)*60;	sunrise_addtime.sec=0;
+	Time_t sunset_addtime;
+	sunset_addtime.hr=(int8_t) add_sunset;sunset_addtime.min=(int8_t)((double)add_sunset-(double)sunset_addtime.hr)*60;	sunset_addtime.sec=0;
+
+	sunrise_t=addtime(sunrise_t,sunrise_addtime);
+	sunset_t=addtime(sunset_t,sunset_addtime);
+
 	uint8_t r=ASTRO_NIGHT;
 	if(cur_time.Hours>sunrise_t.hr && cur_time.Hours<sunset_t.hr) r=ASTRO_DAY;
 	else if(cur_time.Hours==sunrise_t.hr && cur_time.Minutes>=sunrise_t.min) r=ASTRO_DAY;

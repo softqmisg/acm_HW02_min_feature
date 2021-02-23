@@ -46,7 +46,7 @@ enum {VOLTAGE_TEC=0,CURRENT_TEC,VOLTAGE_12V,CURRENT_12V,VOLTAGE_7V,CURRENT_7V,VO
 //////////////////////////
 double ina3221_buffer2double(uint8_t *buffer,double coeff);
 HAL_StatusTypeDef ina3221_readreg(uint8_t address,uint8_t reg,uint8_t *value);
-HAL_StatusTypeDef ina3221_readfloat(uint8_t channel,double *value);
-HAL_StatusTypeDef ina3221_init(void);
+HAL_StatusTypeDef ina3221_readdouble(uint8_t channel,double *value);
+HAL_StatusTypeDef ina3221_init(uint8_t add);
 
 #endif /* INC_INA3221_H_ */

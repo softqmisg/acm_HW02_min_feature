@@ -109,23 +109,21 @@ void Error_Handler(void);
 #define __DEBUG__	1
 #define __LWIP__	1
 
-#define BLINKWT_MAX	5// HZ
-#define BLINKWT_MIN	0
+#define BLINK_MAX	10// second
+#define BLINK_MIN	0 //blinkoff
 
-#define BLINKIR_MAX	5//HZ
-#define BLINKIR_MIN	0
 
-#define ADD_SUNRISE_WT_MAX	2
-#define ADD_SUNRISE_WT_MIN	-2
+#define ADD_SUNRISE_S1_MAX	2.0
+#define ADD_SUNRISE_S1_MIN	-2.0
 
-#define ADD_SUNSET_WT_MAX	2
-#define ADD_SUNSET_WT_MIN	-2
+#define ADD_SUNSET_S1_MAX	2.0
+#define ADD_SUNSET_S1_MIN	-2.0
 
-#define ADD_SUNRISE_IR_MAX	2
-#define ADD_SUNRISE_IR_MIN	-2
+#define ADD_SUNRISE_S2_MAX	2.0
+#define ADD_SUNRISE_S2_MIN	-2.0
 
-#define ADD_SUNSET_IR_MAX	2
-#define ADD_SUNSET_IR_MIN	-2
+#define ADD_SUNSET_S2_MAX	2.0
+#define ADD_SUNSET_S2_MIN	-2.0
 
 /* USER CODE END Private defines */
 
