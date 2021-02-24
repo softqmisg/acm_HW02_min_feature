@@ -217,7 +217,7 @@ double RELAY1_TEMP_Value[2];
 uint8_t RELAY1_Edge_Value[2];
 double RELAY2_TEMP_Value[2];
 char RELAY2_Edge_Value[2];
-char PASSWORD_Value[7];
+char PASSWORD_Value[4];
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	LAT_Value = 35.719086;
@@ -252,9 +252,7 @@ void update_values(void) {
 	PASSWORD_Value[1] = '0';
 	PASSWORD_Value[2] = '0';
 	PASSWORD_Value[3] = '0';
-	PASSWORD_Value[4] = '0';
-	PASSWORD_Value[5] = '0';
-	PASSWORD_Value[6] = 0;
+	PASSWORD_Value[4] = 0;
 
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -656,7 +654,7 @@ void create_form6(uint8_t clear) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	char tmp_str[40];
-	bounding_box_t pos_[1];
+	bounding_box_t pos_[6];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -672,15 +670,19 @@ void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	pos_[0].x2 = pos_[0].x1 + 42;
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	uint8_t length_char = text_width("*", Tahoma16, 0) + 5;
-	uint8_t x = (128 - length_char * 6) / 2;
-	for (uint8_t i = 0; i < 6; i++) {
-		draw_char('*', x + i * length_char, 25, Tahoma16, 0);
-		text_pos[i + 2].x1 = x + i * length_char;
-		text_pos[i + 2].x2 = x + (i + 1) * length_char;
-		text_pos[i + 2].y1 = 25;
-		text_pos[i + 2].y2 = 25 + 23;
-	}
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 4, 1, pos_);
+	for(uint8_t i=0;i<4;i++)
+		text_pos[i+2]=text_cell(pos_, i, "*", Tahoma16, CENTER_ALIGN, 0, 0);
+
+//	uint8_t length_char = text_width("*", Tahoma16, 0) + 5;
+//	uint8_t x = (128 - length_char * 4) / 2;
+//	for (uint8_t i = 0; i < 4; i++) {
+//		draw_char('*', x + i * length_char, 25, Tahoma16, 0);
+//		text_pos[i + 2].x1 = x + i * length_char;
+//		text_pos[i + 2].x2 = x + (i + 1) * length_char;
+//		text_pos[i + 2].y1 = 25;
+//		text_pos[i + 2].y2 = 25 + 23;
+//	}
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1394,16 +1396,20 @@ int main(void) {
 			if (joystick_read(Key_ENTER, Long_press)
 					|| joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Both_press);
+				sprintf(tmp_pass, "0000");
 				create_formpass(1, text_pos);
 				index_option = 2;
-				draw_fill(text_pos[index_option].x1, text_pos[index_option].y1,
-						text_pos[index_option].x2, text_pos[index_option].y2,
-						0);
-				sprintf(tmp_pass, "000000");
-				draw_char(tmp_pass[index_option - 2], text_pos[index_option].x1,
-						text_pos[index_option].y1, Tahoma16, 1);
+//				draw_fill(text_pos[index_option].x1, text_pos[index_option].y1,
+//						text_pos[index_option].x2, text_pos[index_option].y2,
+//						0);
+//				draw_char(tmp_pass[index_option - 2], text_pos[index_option].x1,
+//						text_pos[index_option].y1, Tahoma16, 1);
+				sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+				text_cell(text_pos, index_option, tmp_str, Tahoma16,
+										CENTER_ALIGN, 1, 0);
 				glcd_refresh();
 				MENU_state = PASS_MENU;
+
 			}
 			break;
 			/////////////////////////////////////PASS_MENU/////////////////////////////////////////////////
@@ -1413,17 +1419,23 @@ int main(void) {
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
+
 					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
 							- 2] + 1;
-					if (tmp_pass[index_option - 2] > '9')
+					if (tmp_pass[index_option - 2] > '9' && tmp_pass[index_option - 2] < 'A')
+						tmp_pass[index_option - 2] = 'A';
+					else if (tmp_pass[index_option - 2] > 'Z' && tmp_pass[index_option - 2] < 'a')
+						tmp_pass[index_option - 2] = 'a';
+					if (tmp_pass[index_option - 2] > 'z')
 						tmp_pass[index_option - 2] = '0';
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 1);
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					draw_fill(text_pos[index_option].x1+1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 1, 0);
+
 					glcd_refresh();
 				}
 
@@ -1431,119 +1443,131 @@ int main(void) {
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
 				if (index_option > 1) {
-					if (tmp_pass[index_option - 2] == '0')
-						tmp_pass[index_option - 2] = '9' + 1;
 					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
 							- 2] - 1;
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 1);
+					if (tmp_pass[index_option - 2] < '0')
+						tmp_pass[index_option - 2] = 'z';
+					else if (tmp_pass[index_option - 2] < 'a' && tmp_pass[index_option - 2] > 'Z')
+						tmp_pass[index_option - 2] = 'Z' ;
+					else if (tmp_pass[index_option - 2] < 'A' && tmp_pass[index_option - 2] > '9')
+						tmp_pass[index_option - 2] = '9' ;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+
+					draw_fill(text_pos[index_option].x1+ 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
 				}
 
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-
-				if (index_option == 0) {
-					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 0,
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch(index_option)
+				{
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0,
 							0);
-					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
 							1, 1);
 					index_option = 1;
-				} else if (index_option == 1) {
-					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
 							0, 0);
 					index_option = 2;
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 1);
-					glcd_refresh();
-				} else {
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 0);
-					glcd_refresh();
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 5:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					index_option = 0;
+					break;
+				default:
 					index_option++;
-					if (index_option > 7)
-						index_option = 0;
-					if (index_option == 0) {
-						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
-								1, 1);
-					} else {
-						draw_fill(text_pos[index_option].x1,
-								text_pos[index_option].y1,
-								text_pos[index_option].x2,
-								text_pos[index_option].y2, 0);
-						draw_char(tmp_pass[index_option - 2],
-								text_pos[index_option].x1,
-								text_pos[index_option].y1, Tahoma16, 1);
-					}
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				}
+				if(index_option>1)
+				{
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 1, 0);
 				}
 				glcd_refresh();
 
 			}
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-
-				if (index_option == 0) {
-					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 0,
-							0);
-					index_option = 7;
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 1);
-				} else if (index_option == 1) {
-					text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN, 1,
-							1);
-					text_cell(&text_pos[1], 0, "CANCEL", Tahoma8, CENTER_ALIGN,
-							0, 0);
-					index_option = 0;
-				} else {
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 0);
-					glcd_refresh();
-					index_option--;
-					if (index_option == 1) {
-						text_cell(&text_pos[1], 0, "CANCEL", Tahoma8,
-								CENTER_ALIGN, 1, 1);
-					} else {
-						draw_fill(text_pos[index_option].x1,
-								text_pos[index_option].y1,
-								text_pos[index_option].x2,
-								text_pos[index_option].y2, 0);
-						draw_char(tmp_pass[index_option - 2],
-								text_pos[index_option].x1,
-								text_pos[index_option].y1, Tahoma16, 1);
-					}
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 0, 0);
 				}
+				switch(index_option)
+				{
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0,
+							0);
+
+					index_option = 5;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							0, 0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 0;
+					break;
+				case 2:
+					index_option = 1;
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					break;
+				default:
+					index_option--;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				}
+				if(index_option>1)
+				{
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 1, 0);
+				}
+
 				glcd_refresh();
 
 			}
 
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 0, 0);
+				}
 				switch (index_option) {
 				case 0:
 					if (strcmp(tmp_pass, PASSWORD_Value)) {
@@ -1569,34 +1593,51 @@ int main(void) {
 					DISP_state = DISP_IDLE;
 					flag_change_form = 1;
 					break;
+				case 5:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					index_option = 0;
+					break;
 				default:
-					draw_fill(text_pos[index_option].x1,
-							text_pos[index_option].y1,
-							text_pos[index_option].x2,
-							text_pos[index_option].y2, 0);
-					draw_char(tmp_pass[index_option - 2],
-							text_pos[index_option].x1,
-							text_pos[index_option].y1, Tahoma16, 0);
-					glcd_refresh();
 					index_option++;
-					if (index_option > 7)
-						index_option = 0;
-					if (index_option == 0) {
-						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
-								1, 1);
-					} else {
-						draw_fill(text_pos[index_option].x1,
-								text_pos[index_option].y1,
-								text_pos[index_option].x2,
-								text_pos[index_option].y2, 0);
-						draw_char(tmp_pass[index_option - 2],
-								text_pos[index_option].x1,
-								text_pos[index_option].y1, Tahoma16, 1);
-
-					}
-					glcd_refresh();
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
 					break;
 				}
+
+//				default:
+//					draw_fill(text_pos[index_option].x1,
+//							text_pos[index_option].y1,
+//							text_pos[index_option].x2,
+//							text_pos[index_option].y2, 0);
+//					draw_char(tmp_pass[index_option - 2],
+//							text_pos[index_option].x1,
+//							text_pos[index_option].y1, Tahoma16, 0);
+//					glcd_refresh();
+//					index_option++;
+//					if (index_option > 5)
+//						index_option = 0;
+//					if (index_option == 0) {
+//						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
+//								1, 1);
+//					} else {
+//						draw_fill(text_pos[index_option].x1,
+//								text_pos[index_option].y1,
+//								text_pos[index_option].x2,
+//								text_pos[index_option].y2, 0);
+//						draw_char(tmp_pass[index_option - 2],
+//								text_pos[index_option].x1,
+//								text_pos[index_option].y1, Tahoma16, 1);
+//
+//					}
+//					glcd_refresh();
+//					break;
+//				}
+				if(index_option>1)
+				{
+					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
 
 			}
 			break;
