@@ -34,6 +34,7 @@ typedef struct
 	double  second;
 	char direction;
 } POS_t;
+Time_t addtime(Time_t t1,Time_t t2);
 double POS2double(POS_t pos);
 POS_t longdouble2POS(double lon);
 POS_t latdouble2POS(double lat);
