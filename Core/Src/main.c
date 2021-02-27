@@ -219,9 +219,8 @@ uint8_t TEC_STATE_Value;
 
 double LAT_Value;
 double LONG_Value;
-
-
 char PASSWORD_Value[5];
+uint16_t DOOR_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	LAT_Value = 35.719086;
@@ -265,6 +264,7 @@ void update_values(void) {
 	PASSWORD_Value[3] = '0';
 	PASSWORD_Value[4] = 0;
 
+	DOOR_Value=1200;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
@@ -596,7 +596,7 @@ void create_form5(uint8_t clear) {
 			pos_);
 	uint16_t vcnl_als;
 	if (vcnl4200_als(&vcnl_als) == HAL_OK)
-		sprintf(tmp_str, "%04d", vcnl_als);
+		sprintf(tmp_str, "%05d", vcnl_als);
 	else
 		sprintf(tmp_str, "----");
 	pos_[0].x1 = 90;
@@ -607,7 +607,7 @@ void create_form5(uint8_t clear) {
 
 	uint16_t veml_als;
 	if (veml6030_als(&veml_als) == HAL_OK)
-		sprintf(tmp_str, "%04d", veml_als);
+		sprintf(tmp_str, "%05d", veml_als);
 	else
 		sprintf(tmp_str, "-----");
 	pos_[1].x1 = 90;
@@ -926,7 +926,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[1].x1 = pos_[1].x2;
 	pos_[1].x2 = pos_[1].x1 + 6;
-	text_cell(pos_, 1, "S", Tahoma8, LEFT_ALIGN, 0, 0);
+	text_cell(pos_, 1, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
 	pos_[1].x1 = pos_[1].x2 + 1;
@@ -950,7 +950,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[2].x1 = pos_[2].x2;
 	pos_[2].x2 = pos_[2].x1 + 6;
-	text_cell(pos_, 2, "S", Tahoma8, LEFT_ALIGN, 0, 0);
+	text_cell(pos_, 2, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
 	pos_[2].x1 = pos_[2].x2 + 1;
@@ -1026,7 +1026,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[1].x1 = pos_[1].x2;
 	pos_[1].x2 = pos_[1].x1 + 6;
-	text_cell(pos_, 1, "S", Tahoma8, LEFT_ALIGN, 0, 0);
+	text_cell(pos_, 1, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
 	pos_[1].x1 = pos_[1].x2 + 1;
@@ -1050,7 +1050,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[2].x1 = pos_[2].x2;
 	pos_[2].x2 = pos_[2].x1 + 6;
-	text_cell(pos_, 2, "S", Tahoma8, LEFT_ALIGN, 0, 0);
+	text_cell(pos_, 2, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
 	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
 	pos_[2].x1 = pos_[2].x2 + 1;
@@ -1181,6 +1181,107 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_formDoor(uint8_t clear, bounding_box_t *text_pos, uint16_t  tmp_door)
+{
+	char tmp_str[40];
+	bounding_box_t pos_ [2];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "DOOR SET", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 60, 64 - pos_[0].y2, 2, 1, 1, pos_);
+	pos_[0].x1 = 0;
+	pos_[0].x2 = 59;
+	text_cell(pos_, 0, "Inside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
+	pos_[1].x1 = 0;
+	pos_[1].x2 = 59;
+	text_cell(pos_, 1, "Limit Light:", Tahoma8, LEFT_ALIGN, 1, 1);
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(60, pos_[0].y1, 128 - 60, 64 - pos_[0].y1, 2, 1, 1, pos_);
+
+	uint16_t vcnl_als;
+	if (vcnl4200_als(&vcnl_als) == HAL_OK)
+		sprintf(tmp_str, "%04d", vcnl_als);
+	else
+		sprintf(tmp_str, "-----");
+	pos_[0].x1 = 90;
+	pos_[0].x2 = pos_[0].x1 + text_width("55555", Tahoma8, 1) + 1;
+	text_pos[2]=text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
+	sprintf(tmp_str,"%05d",tmp_door);
+	pos_[1].x1 = 90;
+	pos_[1].x2 = pos_[1].x1 + text_width("55555", Tahoma8, 1) + 1;
+	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_formChangepass(uint8_t clear, bounding_box_t *text_pos, char*  tmp_pass,char *tmp_confirm)
+{
+	char tmp_str[40];
+	bounding_box_t pos_ [3];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "Pass Change", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 40, 64 - pos_[0].y2, 2, 1, 1, pos_);
+	pos_[0].x1 = 0;
+	pos_[0].x2 = 39;
+	text_cell(pos_, 0, "New:", Tahoma8, LEFT_ALIGN, 1, 1);
+	pos_[1].x1 = 0;
+	pos_[1].x2 = 39;
+	text_cell(pos_, 1, "Confirm:", Tahoma8, LEFT_ALIGN, 1, 1);
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(40, pos_[0].y1, 128-40, 64 - pos_[0].y1, 2, 1, 1, pos_);glcd_refresh();
+	pos_[0].x1=52;
+	for(uint8_t i=0;i<4;i++)
+	{
+		pos_[0].x2=pos_[0].x1 +  text_width("W", Tahoma8, 1) + 1;
+		text_pos[i+2]=text_cell(pos_, 0, "*", Tahoma8, CENTER_ALIGN, 0, 0);
+		pos_[0].x1+=15;
+		tmp_pass[i]='0';
+	}
+	pos_[1].x1=52;
+	for(uint8_t i=0;i<4;i++)
+	{
+		pos_[1].x2=pos_[1].x1 +  text_width("W", Tahoma8, 1) + 1;
+		text_pos[i+6]=text_cell(pos_, 1, "*", Tahoma8, CENTER_ALIGN, 0, 0);
+		pos_[1].x1+=15;
+		tmp_confirm[i]='0';
+	}
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 /* USER CODE END 0 */
 
@@ -1242,11 +1343,14 @@ int main(void) {
 
 	uint8_t index_option = 0;
 	char tmp_pass[7] = { '*', '*', '*', '*', '*', '*', 0 };
+	char tmp_confirmpass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	POS_t tmp_lat, tmp_long;
 	RTC_TimeTypeDef tmp_time;
 	RTC_DateTypeDef tmp_Date;
 	LED_t tmp_LED;
 	RELAY_t tmp_Relay1,tmp_Relay2;
+	uint16_t tmp_door;
+	uint16_t cur_vcnl_als;
 	uint8_t tmp_TEC_STATE;
 	bounding_box_t text_pos[12];
 	HAL_StatusTypeDef status;
@@ -1724,34 +1828,6 @@ int main(void) {
 					break;
 				}
 
-//				default:
-//					draw_fill(text_pos[index_option].x1,
-//							text_pos[index_option].y1,
-//							text_pos[index_option].x2,
-//							text_pos[index_option].y2, 0);
-//					draw_char(tmp_pass[index_option - 2],
-//							text_pos[index_option].x1,
-//							text_pos[index_option].y1, Tahoma16, 0);
-//					glcd_refresh();
-//					index_option++;
-//					if (index_option > 5)
-//						index_option = 0;
-//					if (index_option == 0) {
-//						text_cell(&text_pos[0], 0, "OK", Tahoma8, CENTER_ALIGN,
-//								1, 1);
-//					} else {
-//						draw_fill(text_pos[index_option].x1,
-//								text_pos[index_option].y1,
-//								text_pos[index_option].x2,
-//								text_pos[index_option].y2, 0);
-//						draw_char(tmp_pass[index_option - 2],
-//								text_pos[index_option].x1,
-//								text_pos[index_option].y1, Tahoma16, 1);
-//
-//					}
-//					glcd_refresh();
-//					break;
-//				}
 				if(index_option>1)
 				{
 					text_cell(text_pos, index_option, tmp_str, Tahoma16,
@@ -1881,6 +1957,27 @@ int main(void) {
 							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
 					MENU_state = RELAY_MENU;
+					break;
+				case DOOR_MENU:
+					tmp_door=DOOR_Value;
+					create_formDoor(1, text_pos, tmp_door);
+					index_option = 3;
+					sprintf(tmp_str,"%05d",tmp_door);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+					glcd_refresh();
+					MENU_state = DOOR_MENU;
+					break;
+				case CHANGEPASS_MENU:
+					sprintf(tmp_pass,"****");
+					sprintf(tmp_confirmpass,"****");
+					create_formChangepass(1, text_pos, tmp_pass,tmp_confirmpass);
+					index_option = 2;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+					glcd_refresh();
+					MENU_state = CHANGEPASS_MENU;
 					break;
 				case EXIT_MENU:
 					MENU_state = MAIN_MENU;
@@ -4758,6 +4855,228 @@ int main(void) {
 			break;
 			/////////////////////////////////////DOOR_MENU/////////////////////////////////////////////////
 		case DOOR_MENU:
+			if(flag_rtc_1s)
+			{
+				flag_rtc_1s=0;
+				draw_fill(text_pos[2].x1 - 1,
+						text_pos[2].y1 + 1,
+						text_pos[2].x2 - 1,
+						text_pos[2].y2 - 1, 0);
+
+				if (vcnl4200_als(&cur_vcnl_als) == HAL_OK)
+					sprintf(tmp_str1, "%05d", cur_vcnl_als);
+				else
+					sprintf(tmp_str1, "----");
+				text_cell(text_pos, 2, tmp_str1, Tahoma8,
+						CENTER_ALIGN, 0, 0);
+				glcd_refresh();
+			}
+			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 3:
+					tmp_door++;
+					sprintf(tmp_str, "%05d", tmp_door);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+			}
+			if (joystick_read(Key_TOP, Long_press)) {
+				joystick_init(Key_TOP, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 3:
+					tmp_door+=100;
+					sprintf(tmp_str, "%05d", tmp_door);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 3:
+					tmp_door--;
+					sprintf(tmp_str, "%05d", tmp_door);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+			if (joystick_read(Key_DOWN, Long_press)) {
+				joystick_init(Key_DOWN, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 3:
+					tmp_door-=100;
+					sprintf(tmp_str, "%05d", tmp_door);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					sprintf(tmp_str, "%05d",tmp_door);
+					index_option = 3;
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				case 3:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					sprintf(tmp_str, "%05d",tmp_door);
+					index_option = 3;
+					break;
+				case 3:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				glcd_refresh();
+				switch (index_option) {
+				case 0:	//OK
+						//save in eeprom
+					DOOR_Value = tmp_door;
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 1:					//CANCEL
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 3:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
 			break;
 			/////////////////////////////////////CHANGEPASS_MENU/////////////////////////////////////////////////
 		case CHANGEPASS_MENU:
