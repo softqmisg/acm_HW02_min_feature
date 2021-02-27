@@ -64,6 +64,12 @@ typedef struct {
 	double ADD_SUNSET_Value;
 
 } LED_t;
+typedef struct
+{
+	double Temperature[2];
+	char Edge[2];
+	uint8_t active[2];
+} RELAY_t;
 
 /* USER CODE END PTD */
 
@@ -207,47 +213,52 @@ uint8_t flag_change_form;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-LED_t S1_LED, S2_LED;
+LED_t S1_LED_Value, S2_LED_Value;
+RELAY_t RELAY1_Value,RELAY2_Value;
+uint8_t TEC_STATE_Value;
 
 double LAT_Value;
 double LONG_Value;
 
-uint8_t TEC_STATE_Value;
-double RELAY1_TEMP_Value[2];
-uint8_t RELAY1_Edge_Value[2];
-double RELAY2_TEMP_Value[2];
-char RELAY2_Edge_Value[2];
-char PASSWORD_Value[4];
+
+char PASSWORD_Value[5];
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	LAT_Value = 35.719086;
 	LONG_Value = 51.398101;
 
-	S1_LED.TYPE_Value = WHITE_LED;
-	S1_LED.DAY_BRIGHTNESS_Value = 0;
-	S1_LED.DAY_BLINK_Value = 0.5;
-	S1_LED.NIGHT_BRIGHTNESS_Value = 80;
-	S1_LED.NIGHT_BLINK_Value = 0;
-	S1_LED.ADD_SUNRISE_Value = 1.5;
-	S1_LED.ADD_SUNSET_Value = -1.0;
+	S1_LED_Value.TYPE_Value = WHITE_LED;
+	S1_LED_Value.DAY_BRIGHTNESS_Value = 0;
+	S1_LED_Value.DAY_BLINK_Value = 0.5;
+	S1_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
+	S1_LED_Value.NIGHT_BLINK_Value = 0;
+	S1_LED_Value.ADD_SUNRISE_Value = 1.5;
+	S1_LED_Value.ADD_SUNSET_Value = -1.0;
 
-	S2_LED.TYPE_Value = IR_LED;
-	S2_LED.DAY_BRIGHTNESS_Value = 0;
-	S2_LED.DAY_BLINK_Value = 0.0;
-	S2_LED.NIGHT_BRIGHTNESS_Value = 80;
-	S2_LED.NIGHT_BLINK_Value = 0.0;
-	S2_LED.ADD_SUNRISE_Value = 1.5;
-	S2_LED.ADD_SUNSET_Value = -1.0;
+	S2_LED_Value.TYPE_Value = IR_LED;
+	S2_LED_Value.DAY_BRIGHTNESS_Value = 0;
+	S2_LED_Value.DAY_BLINK_Value = 0.0;
+	S2_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
+	S2_LED_Value.NIGHT_BLINK_Value = 0.0;
+	S2_LED_Value.ADD_SUNRISE_Value = 1.5;
+	S2_LED_Value.ADD_SUNSET_Value = -1.0;
 
 	TEC_STATE_Value = 1;
-	RELAY1_TEMP_Value[0] = 33.1;
-	RELAY1_Edge_Value[0] = 'U';
-	RELAY1_TEMP_Value[1] = 0.0;
-	RELAY1_Edge_Value[0] = 'U';
-	RELAY2_TEMP_Value[0] = 33.1;
-	RELAY2_Edge_Value[0] = 'D';
-	RELAY2_TEMP_Value[1] = 35.1;
-	RELAY2_Edge_Value[1] = 'U';
+	RELAY1_Value.Temperature[0] = 33.1;
+	RELAY1_Value.Edge[0] = 'U';
+	RELAY1_Value.active[0]=1;
+	RELAY1_Value.Temperature[1] = 0.0;
+	RELAY1_Value.Edge[1] = 'U';
+	RELAY1_Value.active[1]=0;
+
+	RELAY2_Value.Temperature[0] = 33.1;
+	RELAY2_Value.Edge[0] = 'D';
+	RELAY2_Value.active[0]=1;
+	RELAY2_Value.Temperature[1] = 35.1;
+	RELAY2_Value.Edge[1] = 'U';
+	RELAY2_Value.active[1]=1;
+
+
 	PASSWORD_Value[0] = '0';
 	PASSWORD_Value[1] = '0';
 	PASSWORD_Value[2] = '0';
@@ -378,7 +389,7 @@ void clock_cell(bounding_box_t *pos_) {
 void create_form1(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
-	bounding_box_t pos_[10];
+	bounding_box_t pos_[8];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -390,7 +401,7 @@ void create_form1(uint8_t clear) {
 
 	for (uint8_t i = 0; i < 8; i++) {
 		if (tmp275_readTemperature(i, &temperature[i]) == HAL_OK) {
-			sprintf(tmp_str, "T(%d)=%4.1f", i + 1, temperature[i]);
+			sprintf(tmp_str, "T(%d)=%+4.1f", i + 1, temperature[i]);
 		} else
 			sprintf(tmp_str, "T(%d)=---", i + 1);
 		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -403,7 +414,7 @@ void create_form1(uint8_t clear) {
 void create_form2(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
-	bounding_box_t pos_[5];
+	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -473,7 +484,7 @@ void create_form2(uint8_t clear) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form3(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t pos_[5];
+	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -482,20 +493,20 @@ void create_form3(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
 
-	sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED.DAY_BRIGHTNESS_Value,
-			S1_LED.DAY_BLINK_Value);
+	sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED_Value.DAY_BRIGHTNESS_Value,
+			S1_LED_Value.DAY_BLINK_Value);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED.NIGHT_BRIGHTNESS_Value,
-			S1_LED.NIGHT_BLINK_Value);
+	sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+			S1_LED_Value.NIGHT_BLINK_Value);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED.DAY_BRIGHTNESS_Value,
-			S2_LED.DAY_BLINK_Value);
+	sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED_Value.DAY_BRIGHTNESS_Value,
+			S2_LED_Value.DAY_BLINK_Value);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED.NIGHT_BRIGHTNESS_Value,
-			S2_LED.NIGHT_BLINK_Value);
+	sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+			S2_LED_Value.NIGHT_BLINK_Value);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -507,12 +518,12 @@ void create_form3(uint8_t clear) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y1, 20, 64 - pos_[0].y1, 2, 1, 1, pos_);
-	if (S1_LED.TYPE_Value == WHITE_LED)
+	if (S1_LED_Value.TYPE_Value == WHITE_LED)
 		text_cell(pos_, 0, "WT", Tahoma8, CENTER_ALIGN, 0, 0);
 	else
 		text_cell(pos_, 0, "IR", Tahoma8, CENTER_ALIGN, 0, 0);
 
-	if (S2_LED.TYPE_Value == WHITE_LED)
+	if (S2_LED_Value.TYPE_Value == WHITE_LED)
 		text_cell(pos_, 1, "WT", Tahoma8, CENTER_ALIGN, 0, 0);
 	else
 		text_cell(pos_, 1, "IR", Tahoma8, CENTER_ALIGN, 0, 0);
@@ -522,7 +533,7 @@ void create_form3(uint8_t clear) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form4(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t pos_[5];
+	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -551,7 +562,7 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunrise.hr, cur_sunrise.min,
-			S1_LED.ADD_SUNRISE_Value, S1_LED.ADD_SUNRISE_Value);
+			S1_LED_Value.ADD_SUNRISE_Value, S1_LED_Value.ADD_SUNRISE_Value);
 	pos_[2].x1 = 42;
 	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -560,7 +571,7 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunset.hr, cur_sunset.min,
-			S2_LED.ADD_SUNSET_Value, S2_LED.ADD_SUNSET_Value);
+			S2_LED_Value.ADD_SUNSET_Value, S2_LED_Value.ADD_SUNSET_Value);
 	pos_[3].x1 = 42;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -574,7 +585,7 @@ void create_form4(uint8_t clear) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_form5(uint8_t clear) {
 	char tmp_str[40];
-	bounding_box_t pos_[5];
+	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -633,19 +644,25 @@ void create_form6(uint8_t clear) {
 	text_cell(pos_, 0, "RELAY1", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 1, "RELAY2", Tahoma8, CENTER_ALIGN, 1, 1);
 	for (uint8_t i = 0; i < 2; i++) {
-		if (RELAY1_TEMP_Value[i] > 0.0) {
-			sprintf(tmp_str, "%4.1f %c", RELAY1_TEMP_Value[i],
-					RELAY1_Edge_Value[i]);
+		if(RELAY1_Value.active[i])
+		{
+			sprintf(tmp_str, "%c %+4.1f", RELAY1_Value.Edge[i],
+					RELAY1_Value.Temperature[i]);
 			text_cell(pos_, 2 + i * 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-		} else {
-			text_cell(pos_, 2 + i * 2, "----", Tahoma8, CENTER_ALIGN, 0, 0);
 		}
-		if (RELAY2_TEMP_Value[i] > 0.0) {
-			sprintf(tmp_str, "%4.1f %c", RELAY2_TEMP_Value[i],
-					RELAY2_Edge_Value[i]);
-			text_cell(pos_, i * 2 + 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-		} else {
-			text_cell(pos_, i * 2 + 3, "----", Tahoma8, CENTER_ALIGN, 0, 0);
+		else
+		{
+			text_cell(pos_, 2 + i * 2, "- ------", Tahoma8, CENTER_ALIGN, 0, 0);
+		}
+		if(RELAY2_Value.active[i])
+		{
+			sprintf(tmp_str, "%c %+4.1f", RELAY2_Value.Edge[i],
+					RELAY2_Value.Temperature[i]);
+			text_cell(pos_,3 + i * 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+		}
+		else
+		{
+			text_cell(pos_, 3 + i * 2, "- ------", Tahoma8, CENTER_ALIGN, 0, 0);
 		}
 	}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -654,7 +671,7 @@ void create_form6(uint8_t clear) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	char tmp_str[40];
-	bounding_box_t pos_[6];
+	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -674,15 +691,6 @@ void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	for(uint8_t i=0;i<4;i++)
 		text_pos[i+2]=text_cell(pos_, i, "*", Tahoma16, CENTER_ALIGN, 0, 0);
 
-//	uint8_t length_char = text_width("*", Tahoma16, 0) + 5;
-//	uint8_t x = (128 - length_char * 4) / 2;
-//	for (uint8_t i = 0; i < 4; i++) {
-//		draw_char('*', x + i * length_char, 25, Tahoma16, 0);
-//		text_pos[i + 2].x1 = x + i * length_char;
-//		text_pos[i + 2].x2 = x + (i + 1) * length_char;
-//		text_pos[i + 2].y1 = 25;
-//		text_pos[i + 2].y2 = 25 + 23;
-//	}
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -849,16 +857,16 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
-//	tmp_led->TYPE_Value=S1_LED.TYPE_Value;
-//	tmp_led->ADD_SUNRISE_Value=S1_LED.ADD_SUNRISE_Value;
-//	tmp_led->ADD_SUNSET_Value=S1_LED.ADD_SUNSET_Value;
-//	tmp_led->DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
-//	tmp_led->DAY_BRIGHTNESS_Value=S1_LED.DAY_BRIGHTNESS_Value;
-//	tmp_led->NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
-//	tmp_led->NIGHT_BRIGHTNESS_Value=S1_LED.NIGHT_BRIGHTNESS_Value;
+//	tmp_led->TYPE_Value=S1_LED_Value.TYPE_Value;
+//	tmp_led->ADD_SUNRISE_Value=S1_LED_Value.ADD_SUNRISE_Value;
+//	tmp_led->ADD_SUNSET_Value=S1_LED_Value.ADD_SUNSET_Value;
+//	tmp_led->DAY_BLINK_Value=S1_LED_Value.DAY_BLINK_Value;
+//	tmp_led->DAY_BRIGHTNESS_Value=S1_LED_Value.DAY_BRIGHTNESS_Value;
+//	tmp_led->NIGHT_BLINK_Value=S1_LED_Value.NIGHT_BLINK_Value;
+//	tmp_led->NIGHT_BRIGHTNESS_Value=S1_LED_Value.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
-	bounding_box_t pos_ [2];
+	bounding_box_t pos_ [3];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -957,16 +965,9 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
-//	tmp_led->TYPE_Value=S2_LED.TYPE_Value;
-//	tmp_led->ADD_SUNRISE_Value=S2_LED.ADD_SUNRISE_Value;
-//	tmp_led->ADD_SUNSET_Value=S2_LED.ADD_SUNSET_Value;
-//	tmp_led->DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
-//	tmp_led->DAY_BRIGHTNESS_Value=S2_LED.DAY_BRIGHTNESS_Value;
-//	tmp_led->NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
-//	tmp_led->NIGHT_BRIGHTNESS_Value=S2_LED.NIGHT_BRIGHTNESS_Value;
 
 	char tmp_str[40];
-	bounding_box_t pos_ [2];
+	bounding_box_t pos_ [3];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -986,7 +987,6 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 37, 64 - pos_[0].y2, 3, 1, 1, pos_);
-	glcd_refresh();
 
 	pos_[0].x1 = 0;
 	pos_[0].x2 = 36;
@@ -1065,6 +1065,123 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay1,RELAY_t tmp_Relay2,uint8_t tmp_tec) {
+	char tmp_str[40];
+	bounding_box_t pos_ [3];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "RELAY", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 40, 64 - pos_[0].y2, 3, 1, 1, pos_);
+
+	pos_[0].x1 = 0;
+	pos_[0].x2 = 39;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[1].x1 = 0;
+	pos_[1].x2 = 39;
+	text_cell(pos_, 1, "RELAY1:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[2].x1 = 0;
+	pos_[2].x2 = 39;
+	text_cell(pos_, 2, "RELAY2:", Tahoma8, LEFT_ALIGN, 1, 1);
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 3, 1, 1, pos_);
+	if (tmp_tec == 1)
+		sprintf(tmp_str, "ENABLE");
+	else
+		sprintf(tmp_str, "DISABLE");
+
+	pos_[0].x1 = 50;
+	pos_[0].x2 = pos_[0].x1 + text_width("DISABLE", Tahoma8, 1) + 1;
+	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	////////////////////////////////////////
+	if(tmp_Relay1.active[0])
+		sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+	else
+		sprintf(tmp_str, "-");
+
+	pos_[1].x1 = 42;
+	pos_[1].x2 = pos_[1].x1 + text_width("D", Tahoma8, 1) + 1;
+	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
+	if(tmp_Relay1.active[0])
+		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+	else
+		sprintf(tmp_str, "------");
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
+	text_pos[4]=text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	////////////////////////////////////////
+	if(tmp_Relay1.active[1])
+		sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+	else
+		sprintf(tmp_str, "-");
+	pos_[1].x1 = pos_[1].x2 + 12;
+	pos_[1].x2 = pos_[1].x1 + text_width("D", Tahoma8, 1) + 1;
+	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
+	if(tmp_Relay1.active[1])
+		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+	else
+		sprintf(tmp_str, "------");
+	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
+	text_pos[6]=text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	////////////////////////////////////////
+	////////////////////////////////////////
+	if(tmp_Relay2.active[0])
+		sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+	else
+		sprintf(tmp_str, "-");
+
+	pos_[2].x1 = 42;
+	pos_[2].x2 = pos_[2].x1 + text_width("D", Tahoma8, 1) + 1;
+	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
+	if(tmp_Relay2.active[0])
+		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+	else
+		sprintf(tmp_str, "------");
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
+	text_pos[8]=text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	////////////////////////////////////////
+	if(tmp_Relay2.active[1])
+		sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+	else
+		sprintf(tmp_str, "-");
+	pos_[2].x1 = pos_[2].x2 + 12;
+	pos_[2].x2 = pos_[2].x1 + text_width("D", Tahoma8, 1) + 1;
+	text_pos[9] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+
+	if(tmp_Relay2.active[1])
+		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+	else
+		sprintf(tmp_str, "------");
+	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
+	text_pos[10]=text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* USER CODE END 0 */
 
 /**
@@ -1129,6 +1246,8 @@ int main(void) {
 	RTC_TimeTypeDef tmp_time;
 	RTC_DateTypeDef tmp_Date;
 	LED_t tmp_LED;
+	RELAY_t tmp_Relay1,tmp_Relay2;
+	uint8_t tmp_TEC_STATE;
 	bounding_box_t text_pos[12];
 	HAL_StatusTypeDef status;
 	Time_t cur_time_t;
@@ -1173,7 +1292,7 @@ int main(void) {
 //	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
 //	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
 //			&pos_[2]);
-	create_cell(0, 1, 128, 64, 4, 2, 1, pos_);
+	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
@@ -1192,8 +1311,9 @@ int main(void) {
 
 	glcd_refresh();
 	HAL_Delay(3000);
+
 	glcd_blank();
-	create_cell(0, 1, 128, 64, 4, 2, 1, pos_);
+	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 
 	if ((status = vcnl4200_init()) != VCNL4200_OK) {
 		printf("vcnl4200 sensor error\n\r");
@@ -1315,21 +1435,21 @@ int main(void) {
 				////////////////////////////LED control////////////////////////////////////
 				if(cur_time_t.hr==0 && cur_time_t.min==0 && cur_time_t.sec==0)
 					Astro_sunRiseSet(LAT_Value, LONG_Value, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
-				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED.ADD_SUNRISE_Value,S1_LED.ADD_SUNSET_Value)==ASTRO_DAY)
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value,S1_LED_Value.ADD_SUNSET_Value)==ASTRO_DAY)
 				{
-					pca9632_setbrighnessblinking(LEDS1, S1_LED.DAY_BRIGHTNESS_Value, S1_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.DAY_BRIGHTNESS_Value, S1_LED_Value.DAY_BLINK_Value);
 				}
 				else
 				{
-					pca9632_setbrighnessblinking(LEDS1, S1_LED.NIGHT_BRIGHTNESS_Value, S1_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.NIGHT_BRIGHTNESS_Value, S1_LED_Value.NIGHT_BLINK_Value);
 				}
-				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED.ADD_SUNRISE_Value,S1_LED.ADD_SUNSET_Value)==ASTRO_DAY)
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value,S1_LED_Value.ADD_SUNSET_Value)==ASTRO_DAY)
 				{
-					pca9632_setbrighnessblinking(LEDS2, S2_LED.DAY_BRIGHTNESS_Value, S2_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.DAY_BRIGHTNESS_Value, S2_LED_Value.DAY_BLINK_Value);
 				}
 				else
 				{
-					pca9632_setbrighnessblinking(LEDS2, S2_LED.NIGHT_BRIGHTNESS_Value, S2_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.NIGHT_BRIGHTNESS_Value, S2_LED_Value.NIGHT_BLINK_Value);
 
 				}
 				////////////////////////////DISP Refresh//////////////////////////////////
@@ -1719,7 +1839,7 @@ int main(void) {
 					MENU_state = TIME_MENU;
 					break;
 				case LEDS1_MENU:
-					tmp_LED = S1_LED;
+					tmp_LED = S1_LED_Value;
 					create_formLEDS1(1, text_pos, &tmp_LED);
 					index_option = 2;
 
@@ -1733,7 +1853,7 @@ int main(void) {
 					MENU_state = LEDS1_MENU;
 					break;
 				case LEDS2_MENU:
-					tmp_LED = S2_LED;
+					tmp_LED = S2_LED_Value;
 					create_formLEDS2(1, text_pos, &tmp_LED);
 					index_option = 2;
 
@@ -1745,6 +1865,22 @@ int main(void) {
 							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
 					MENU_state = LEDS2_MENU;
+					break;
+				case RELAY_MENU:
+					tmp_Relay1=RELAY1_Value;
+					tmp_Relay2=RELAY2_Value;
+					tmp_TEC_STATE=TEC_STATE_Value;
+					create_formRelay(1, text_pos, tmp_Relay1,tmp_Relay2,tmp_TEC_STATE);
+					index_option = 2;
+
+					if (tmp_TEC_STATE== 1)
+						sprintf(tmp_str, "ENABLE");
+					else
+						sprintf(tmp_str, "DISABLE");
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+					glcd_refresh();
+					MENU_state = RELAY_MENU;
 					break;
 				case EXIT_MENU:
 					MENU_state = MAIN_MENU;
@@ -2698,8 +2834,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED_Value.DAY_BLINK_Value;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -2774,8 +2910,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED_Value.DAY_BLINK_Value;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -2855,8 +2991,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED_Value.DAY_BLINK_Value;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -2935,8 +3071,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S1_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S1_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S1_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S1_LED_Value.DAY_BLINK_Value;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -3154,18 +3290,18 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					S1_LED.TYPE_Value = tmp_LED.TYPE_Value;
-					S1_LED.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
-					S1_LED.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
-					S1_LED.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
-					S1_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
-					S1_LED.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
-					S1_LED.NIGHT_BRIGHTNESS_Value =
+					S1_LED_Value.TYPE_Value = tmp_LED.TYPE_Value;
+					S1_LED_Value.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
+					S1_LED_Value.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
+					S1_LED_Value.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
+					S1_LED_Value.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
+					S1_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
+					S1_LED_Value.NIGHT_BRIGHTNESS_Value =
 							tmp_LED.NIGHT_BRIGHTNESS_Value;
-					if(S2_LED.TYPE_Value==WHITE_LED)
+					if(S2_LED_Value.TYPE_Value==WHITE_LED)
 					{
-						S2_LED.DAY_BLINK_Value=S1_LED.DAY_BLINK_Value;
-						S2_LED.NIGHT_BLINK_Value=S1_LED.NIGHT_BLINK_Value;
+						S2_LED_Value.DAY_BLINK_Value=S1_LED_Value.DAY_BLINK_Value;
+						S2_LED_Value.NIGHT_BLINK_Value=S1_LED_Value.NIGHT_BLINK_Value;
 					}
 					create_menu(0, 1, text_pos);
 					index_option = 0;
@@ -3244,8 +3380,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED_Value.DAY_BLINK_Value;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -3321,8 +3457,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED_Value.DAY_BLINK_Value;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -3402,8 +3538,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED_Value.DAY_BLINK_Value;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -3484,8 +3620,8 @@ int main(void) {
 					} else {
 						sprintf(tmp_str, "WHITE");
 						tmp_LED.TYPE_Value = WHITE_LED;
-						tmp_LED.NIGHT_BLINK_Value = S2_LED.NIGHT_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value = S2_LED.DAY_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value = S2_LED_Value.NIGHT_BLINK_Value;
+						tmp_LED.DAY_BLINK_Value = S2_LED_Value.DAY_BLINK_Value;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					}
 					break;
@@ -3703,18 +3839,18 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					S2_LED.TYPE_Value = tmp_LED.TYPE_Value;
-					S2_LED.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
-					S2_LED.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
-					S2_LED.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
-					S2_LED.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
-					S2_LED.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
-					S2_LED.NIGHT_BRIGHTNESS_Value =
+					S2_LED_Value.TYPE_Value = tmp_LED.TYPE_Value;
+					S2_LED_Value.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
+					S2_LED_Value.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
+					S2_LED_Value.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
+					S2_LED_Value.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
+					S2_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
+					S2_LED_Value.NIGHT_BRIGHTNESS_Value =
 							tmp_LED.NIGHT_BRIGHTNESS_Value;
-					if(S1_LED.TYPE_Value==WHITE_LED)
+					if(S1_LED_Value.TYPE_Value==WHITE_LED)
 					{
-						S1_LED.DAY_BLINK_Value=S2_LED.DAY_BLINK_Value;
-						S1_LED.NIGHT_BLINK_Value=S2_LED.NIGHT_BLINK_Value;
+						S1_LED_Value.DAY_BLINK_Value=S2_LED_Value.DAY_BLINK_Value;
+						S1_LED_Value.NIGHT_BLINK_Value=S2_LED_Value.NIGHT_BLINK_Value;
 					}
 					create_menu(0, 1, text_pos);
 					index_option = 0;
@@ -3768,6 +3904,762 @@ int main(void) {
 			break;
 			/////////////////////////////////////RELAY_MENU/////////////////////////////////////////////////
 		case RELAY_MENU:
+			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					if (tmp_TEC_STATE) {
+						sprintf(tmp_str, "DISBALE");
+						tmp_TEC_STATE=0;
+					} else {
+						sprintf(tmp_str, "ENABLE");
+						tmp_TEC_STATE=1;
+					}
+					break;
+				case 3:
+					if(tmp_Relay1.Edge[0]=='U')
+					{
+						tmp_Relay1.Edge[0]='D';
+						tmp_Relay1.active[0]=1;
+					}
+					else if(tmp_Relay1.Edge[0]=='D')
+					{
+						tmp_Relay1.Edge[0]='-';
+						tmp_Relay1.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[0]='U';
+						tmp_Relay1.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+					break;
+				case 4:
+					tmp_Relay1.Temperature[0]+=0.1;
+					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
+						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					break;
+
+				case 5:
+					if(tmp_Relay1.Edge[1]=='U')
+					{
+						tmp_Relay1.Edge[1]='D';
+						tmp_Relay1.active[1]=1;
+					}
+					else if(tmp_Relay1.Edge[1]=='D')
+					{
+						tmp_Relay1.Edge[1]='-';
+						tmp_Relay1.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[1]='U';
+						tmp_Relay1.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					break;
+				case 6:
+					tmp_Relay1.Temperature[1]+=0.1;
+					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
+						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+
+					break;
+				case 7:
+
+					if(tmp_Relay2.Edge[0]=='U')
+					{
+						tmp_Relay2.Edge[0]='D';
+						tmp_Relay2.active[0]=1;
+					}
+					else if(tmp_Relay2.Edge[0]=='D')
+					{
+						tmp_Relay2.Edge[0]='-';
+						tmp_Relay2.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[0]='U';
+						tmp_Relay2.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+
+					break;
+				case 8:
+					tmp_Relay2.Temperature[0]+=0.1;
+					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
+						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					break;
+				case 9:
+					if(tmp_Relay2.Edge[1]=='U')
+					{
+						tmp_Relay2.Edge[1]='D';
+						tmp_Relay2.active[1]=1;
+					}
+					else if(tmp_Relay2.Edge[1]=='D')
+					{
+						tmp_Relay2.Edge[1]='-';
+						tmp_Relay2.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[1]='U';
+						tmp_Relay2.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+
+					break;
+				case 10:
+
+					tmp_Relay2.Temperature[1]+=0.1;
+					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
+						tmp_Relay2.Temperature[10] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_TOP, Long_press)) {
+				joystick_init(Key_TOP, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					if (tmp_TEC_STATE) {
+						sprintf(tmp_str, "DISBALE");
+						tmp_TEC_STATE=0;
+					} else {
+						sprintf(tmp_str, "ENABLE");
+						tmp_TEC_STATE=1;
+					}
+					break;
+				case 3:
+					if(tmp_Relay1.Edge[0]=='U')
+					{
+						tmp_Relay1.Edge[0]='D';
+						tmp_Relay1.active[0]=1;
+					}
+					else if(tmp_Relay1.Edge[0]=='D')
+					{
+						tmp_Relay1.Edge[0]='-';
+						tmp_Relay1.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[0]='U';
+						tmp_Relay1.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+					break;
+				case 4:
+					tmp_Relay1.Temperature[0]+=10.0;
+					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
+						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					break;
+
+				case 5:
+					if(tmp_Relay1.Edge[1]=='U')
+					{
+						tmp_Relay1.Edge[1]='D';
+						tmp_Relay1.active[1]=1;
+					}
+					else if(tmp_Relay1.Edge[1]=='D')
+					{
+						tmp_Relay1.Edge[1]='-';
+						tmp_Relay1.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[1]='U';
+						tmp_Relay1.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					break;
+				case 6:
+					tmp_Relay1.Temperature[1]+=10.0;
+					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
+						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+
+					break;
+				case 7:
+
+					if(tmp_Relay2.Edge[0]=='U')
+					{
+						tmp_Relay2.Edge[0]='D';
+						tmp_Relay2.active[0]=1;
+					}
+					else if(tmp_Relay2.Edge[0]=='D')
+					{
+						tmp_Relay2.Edge[0]='-';
+						tmp_Relay2.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[0]='U';
+						tmp_Relay2.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+
+					break;
+				case 8:
+					tmp_Relay2.Temperature[0]+=10.0;
+					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
+						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					break;
+				case 9:
+					if(tmp_Relay2.Edge[1]=='U')
+					{
+						tmp_Relay2.Edge[1]='D';
+						tmp_Relay2.active[1]=1;
+					}
+					else if(tmp_Relay2.Edge[1]=='D')
+					{
+						tmp_Relay2.Edge[1]='-';
+						tmp_Relay2.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[1]='U';
+						tmp_Relay2.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+
+					break;
+				case 10:
+
+					tmp_Relay2.Temperature[1]+=10.0;
+					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
+						tmp_Relay2.Temperature[10] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					if (tmp_TEC_STATE) {
+						sprintf(tmp_str, "DISBALE");
+						tmp_TEC_STATE=0;
+					} else {
+						sprintf(tmp_str, "ENABLE");
+						tmp_TEC_STATE=1;
+					}
+					break;
+				case 3:
+					if(tmp_Relay1.Edge[0]=='U')
+					{
+						tmp_Relay1.Edge[0]='D';
+						tmp_Relay1.active[0]=1;
+					}
+					else if(tmp_Relay1.Edge[0]=='D')
+					{
+						tmp_Relay1.Edge[0]='-';
+						tmp_Relay1.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[0]='U';
+						tmp_Relay1.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+					break;
+				case 4:
+					tmp_Relay1.Temperature[0]-=0.1;
+					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
+						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					break;
+
+				case 5:
+					if(tmp_Relay1.Edge[1]=='U')
+					{
+						tmp_Relay1.Edge[1]='D';
+						tmp_Relay1.active[1]=1;
+					}
+					else if(tmp_Relay1.Edge[1]=='D')
+					{
+						tmp_Relay1.Edge[1]='-';
+						tmp_Relay1.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[1]='U';
+						tmp_Relay1.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					break;
+				case 6:
+					tmp_Relay1.Temperature[1]-=0.1;
+					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
+						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+
+					break;
+				case 7:
+
+					if(tmp_Relay2.Edge[0]=='U')
+					{
+						tmp_Relay2.Edge[0]='D';
+						tmp_Relay2.active[0]=1;
+					}
+					else if(tmp_Relay2.Edge[0]=='D')
+					{
+						tmp_Relay2.Edge[0]='-';
+						tmp_Relay2.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[0]='U';
+						tmp_Relay2.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+
+					break;
+				case 8:
+					tmp_Relay2.Temperature[0]-=0.1;
+					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
+						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					break;
+				case 9:
+					if(tmp_Relay2.Edge[1]=='U')
+					{
+						tmp_Relay2.Edge[1]='D';
+						tmp_Relay2.active[1]=1;
+					}
+					else if(tmp_Relay2.Edge[1]=='D')
+					{
+						tmp_Relay2.Edge[1]='-';
+						tmp_Relay2.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[1]='U';
+						tmp_Relay2.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+
+					break;
+				case 10:
+
+					tmp_Relay2.Temperature[1]-=0.1;
+					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
+						tmp_Relay2.Temperature[10] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Long_press)) {
+				joystick_init(Key_DOWN, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					if (tmp_TEC_STATE) {
+						sprintf(tmp_str, "DISBALE");
+						tmp_TEC_STATE=0;
+					} else {
+						sprintf(tmp_str, "ENABLE");
+						tmp_TEC_STATE=1;
+					}
+					break;
+				case 3:
+					if(tmp_Relay1.Edge[0]=='U')
+					{
+						tmp_Relay1.Edge[0]='D';
+						tmp_Relay1.active[0]=1;
+					}
+					else if(tmp_Relay1.Edge[0]=='D')
+					{
+						tmp_Relay1.Edge[0]='-';
+						tmp_Relay1.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[0]='U';
+						tmp_Relay1.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+					break;
+				case 4:
+					tmp_Relay1.Temperature[0]-=10.0;
+					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
+						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					break;
+
+				case 5:
+					if(tmp_Relay1.Edge[1]=='U')
+					{
+						tmp_Relay1.Edge[1]='D';
+						tmp_Relay1.active[1]=1;
+					}
+					else if(tmp_Relay1.Edge[1]=='D')
+					{
+						tmp_Relay1.Edge[1]='-';
+						tmp_Relay1.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay1.Edge[1]='U';
+						tmp_Relay1.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					break;
+				case 6:
+					tmp_Relay1.Temperature[1]-=10.0;
+					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
+						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+
+					break;
+				case 7:
+
+					if(tmp_Relay2.Edge[0]=='U')
+					{
+						tmp_Relay2.Edge[0]='D';
+						tmp_Relay2.active[0]=1;
+					}
+					else if(tmp_Relay2.Edge[0]=='D')
+					{
+						tmp_Relay2.Edge[0]='-';
+						tmp_Relay2.active[0]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[0]='U';
+						tmp_Relay2.active[0]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+
+					break;
+				case 8:
+					tmp_Relay2.Temperature[0]-=10.0;
+					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
+						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					break;
+				case 9:
+					if(tmp_Relay2.Edge[1]=='U')
+					{
+						tmp_Relay2.Edge[1]='D';
+						tmp_Relay2.active[1]=1;
+					}
+					else if(tmp_Relay2.Edge[1]=='D')
+					{
+						tmp_Relay2.Edge[1]='-';
+						tmp_Relay2.active[1]=0;
+					}
+					else
+					{
+						tmp_Relay2.Edge[1]='U';
+						tmp_Relay2.active[1]=1;
+					}
+					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2, tmp_TEC_STATE);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+
+					break;
+				case 10:
+
+					tmp_Relay2.Temperature[1]-=10.0;
+					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
+						tmp_Relay2.Temperature[10] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+					index_option = 10;
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				case 2:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+					break;
+				case 3:
+					if (tmp_TEC_STATE )
+						sprintf(tmp_str, "ENABLE");
+					else
+						sprintf(tmp_str, "DISABLE");
+					index_option = 2;
+
+					break;
+				case 4:
+					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 5:
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 6:
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					index_option = 5;
+
+					break;
+				case 7:
+					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
+					break;
+				case 8:
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					if (tmp_LED.TYPE_Value == WHITE_LED)
+						sprintf(tmp_str, "WHITE");
+					else
+						sprintf(tmp_str, "IR");
+					index_option = 2;
+					break;
+				case 2:
+					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 3:
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 4:
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					index_option = 5;
+
+					break;
+				case 5:
+					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					break;
+				case 6:
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					break;
+				case 7:
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					index_option = 8;
+					break;
+				case 8:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				glcd_refresh();
+				switch (index_option) {
+				case 0:	//OK
+						//save in eeprom
+					S2_LED_Value.TYPE_Value = tmp_LED.TYPE_Value;
+					S2_LED_Value.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
+					S2_LED_Value.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
+					S2_LED_Value.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
+					S2_LED_Value.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
+					S2_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
+					S2_LED_Value.NIGHT_BRIGHTNESS_Value =
+							tmp_LED.NIGHT_BRIGHTNESS_Value;
+					if(S1_LED_Value.TYPE_Value==WHITE_LED)
+					{
+						S1_LED_Value.DAY_BLINK_Value=S2_LED_Value.DAY_BLINK_Value;
+						S1_LED_Value.NIGHT_BLINK_Value=S2_LED_Value.NIGHT_BLINK_Value;
+					}
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 1:					//CANCEL
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					index_option = 3;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 3:
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					index_option = 4;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					break;
+				case 4:
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					index_option = 5;
+
+					break;
+				case 5:
+					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
+					index_option = 6;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					break;
+				case 6:
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					index_option = 7;
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					break;
+				case 7:
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					index_option = 8;
+					break;
+				case 8:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
 			break;
 			/////////////////////////////////////DOOR_MENU/////////////////////////////////////////////////
 		case DOOR_MENU:

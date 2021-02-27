@@ -125,6 +125,8 @@ void Error_Handler(void);
 #define ADD_SUNSET_S2_MAX	2.0
 #define ADD_SUNSET_S2_MIN	-2.0
 
+#define TEMPERATURE_MAX		125.0
+#define TEMPERATURE_MIN		-40.0
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
