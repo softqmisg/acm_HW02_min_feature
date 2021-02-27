@@ -248,7 +248,7 @@ void update_values(void) {
 	RELAY1_Value.Edge[0] = 'U';
 	RELAY1_Value.active[0]=1;
 	RELAY1_Value.Temperature[1] = 0.0;
-	RELAY1_Value.Edge[1] = 'U';
+	RELAY1_Value.Edge[1] = '-';
 	RELAY1_Value.active[1]=0;
 
 	RELAY2_Value.Temperature[0] = 33.1;
@@ -426,50 +426,50 @@ void create_form2(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH1,7V	//////////////////////////////////////////////////////////
 	if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &voltage) == HAL_OK)
-		sprintf(tmp_str, "V=%3.1f", voltage);
+		sprintf(tmp_str, "V=%3.1fv", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
 	if (ina3221_readdouble((uint8_t) CURRENT_7V, &current) == HAL_OK)
-		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
+		sprintf(tmp_str, "%s     C=%4.3fA", tmp_str, current);
 	else
-		sprintf(tmp_str, "%s       C=---", tmp_str);
+		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH2,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &voltage) == HAL_OK)
-		sprintf(tmp_str, "V=%3.1f", voltage);
+		sprintf(tmp_str, "V=%3.1fv", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
 	if (ina3221_readdouble((uint8_t) CURRENT_12V, &current) == HAL_OK)
-		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
+		sprintf(tmp_str, "%s     C=%4.3fA", tmp_str, current);
 	else
-		sprintf(tmp_str, "%s       C=---", tmp_str);
+		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH3,3.3V	//////////////////////////////////////////////////////////
 	if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &voltage) == HAL_OK)
-		sprintf(tmp_str, "V=%3.1f", voltage);
+		sprintf(tmp_str, "V=%3.1fv", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
 	if (ina3221_readdouble((uint8_t) CURRENT_3V3, &current) == HAL_OK)
-		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
+		sprintf(tmp_str, "%s     C=%4.3fA", tmp_str, current);
 	else
-		sprintf(tmp_str, "%s       C=---", tmp_str);
+		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////TEC,12V	//////////////////////////////////////////////////////////
 	if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &voltage) == HAL_OK)
-		sprintf(tmp_str, "V=%3.1f", voltage);
+		sprintf(tmp_str, "V=%3.1fv", voltage);
 	else
 		sprintf(tmp_str, "V=---");
 
 	if (ina3221_readdouble((uint8_t) CURRENT_TEC, &current) == HAL_OK)
-		sprintf(tmp_str, "%s       C=%4.3f", tmp_str, current);
+		sprintf(tmp_str, "%s     C=%4.3fA", tmp_str, current);
 	else
-		sprintf(tmp_str, "%s       C=---", tmp_str);
+		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y1, 25, (pos_[3].y2 - pos_[0].y1) + 1, 4, 1, 1,
@@ -493,19 +493,19 @@ void create_form3(uint8_t clear) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
 
-	sprintf(tmp_str, " %2d%%   %3.1fHz", S1_LED_Value.DAY_BRIGHTNESS_Value,
+	sprintf(tmp_str, " %2d%%   %4.1fS", S1_LED_Value.DAY_BRIGHTNESS_Value,
 			S1_LED_Value.DAY_BLINK_Value);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%  %3.1fHz", S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+	sprintf(tmp_str, " %2d%%  %4.1fS", S1_LED_Value.NIGHT_BRIGHTNESS_Value,
 			S1_LED_Value.NIGHT_BLINK_Value);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%   %3.1fHz", S2_LED_Value.DAY_BRIGHTNESS_Value,
+	sprintf(tmp_str, " %2d%%   %4.1fS", S2_LED_Value.DAY_BRIGHTNESS_Value,
 			S2_LED_Value.DAY_BLINK_Value);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	sprintf(tmp_str, " %2d%%  %3.1fHz", S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+	sprintf(tmp_str, " %2d%%  %4.1fS", S2_LED_Value.NIGHT_BRIGHTNESS_Value,
 			S2_LED_Value.NIGHT_BLINK_Value);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
@@ -632,7 +632,7 @@ void create_form6(uint8_t clear) {
 	create_cell(0, pos_[0].y2, 128, ((pos_[0].y2 - pos_[0].y1) + 1), 1, 1, 1,
 			pos_);
 	(TEC_STATE_Value == 1) ?
-			sprintf(tmp_str, "ACTIVE") : sprintf(tmp_str, "DEACTIVE");
+			sprintf(tmp_str, "ENABLE") : sprintf(tmp_str, "DISABLE");
 	pos_[0].x1 = 60;
 	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[0].x1 = 1;
@@ -885,23 +885,23 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 37, 64 - pos_[0].y2, 3, 1, 1, pos_);
+	create_cell(0, pos_[0].y2, 35, 64 - pos_[0].y2, 3, 1, 1, pos_);
 	glcd_refresh();
 
 	pos_[0].x1 = 0;
-	pos_[0].x2 = 36;
+	pos_[0].x2 = 34;
 	text_cell(pos_, 0, "SET1:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[1].x1 = 0;
-	pos_[1].x2 = 36;
+	pos_[1].x2 = 34;
 	text_cell(pos_, 1, "DAY:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[2].x1 = 0;
-	pos_[2].x2 = 36;
+	pos_[2].x2 = 34;
 	text_cell(pos_, 2, "NIGHT:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(36, pos_[0].y1, 128 - 36, 64 - pos_[0].y1, 3, 1, 1, pos_);
+	create_cell(35, pos_[0].y1, 128 - 35, 64 - pos_[0].y1, 3, 1, 1, pos_);
 
 	if (tmp_led->TYPE_Value == WHITE_LED)
 		sprintf(tmp_str, "WHITE");
@@ -986,22 +986,22 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 37, 64 - pos_[0].y2, 3, 1, 1, pos_);
+	create_cell(0, pos_[0].y2, 35, 64 - pos_[0].y2, 3, 1, 1, pos_);
 
 	pos_[0].x1 = 0;
-	pos_[0].x2 = 36;
+	pos_[0].x2 = 34;
 	text_cell(pos_, 0, "SET1:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[1].x1 = 0;
-	pos_[1].x2 = 36;
+	pos_[1].x2 = 34;
 	text_cell(pos_, 1, "DAY:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[2].x1 = 0;
-	pos_[2].x2 = 36;
+	pos_[2].x2 = 34;
 	text_cell(pos_, 2, "NIGHT:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(36, pos_[0].y1, 128 - 36, 64 - pos_[0].y1, 3, 1, 1, pos_);
+	create_cell(35, pos_[0].y1, 128 - 35, 64 - pos_[0].y1, 3, 1, 1, pos_);
 
 	if (tmp_led->TYPE_Value == WHITE_LED)
 		sprintf(tmp_str, "WHITE");
@@ -1123,7 +1123,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
 	else
 		sprintf(tmp_str, "------");
-	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x1 = pos_[1].x2+1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
 	text_pos[4]=text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	////////////////////////////////////////
@@ -1139,7 +1139,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
 	else
 		sprintf(tmp_str, "------");
-	pos_[1].x1 = pos_[1].x2;
+	pos_[1].x1 = pos_[1].x2+1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
 	text_pos[6]=text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	////////////////////////////////////////
@@ -1157,7 +1157,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
 	else
 		sprintf(tmp_str, "------");
-	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x1 = pos_[2].x2+1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
 	text_pos[8]=text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	////////////////////////////////////////
@@ -1173,7 +1173,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
 	else
 		sprintf(tmp_str, "------");
-	pos_[2].x1 = pos_[2].x2;
+	pos_[2].x1 = pos_[2].x2+1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
 	text_pos[10]=text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	////////////////////////////////////////
@@ -3298,7 +3298,7 @@ int main(void) {
 					S1_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
 					S1_LED_Value.NIGHT_BRIGHTNESS_Value =
 							tmp_LED.NIGHT_BRIGHTNESS_Value;
-					if(S2_LED_Value.TYPE_Value==WHITE_LED)
+					if(S2_LED_Value.TYPE_Value==WHITE_LED && S1_LED_Value.TYPE_Value==WHITE_LED)
 					{
 						S2_LED_Value.DAY_BLINK_Value=S1_LED_Value.DAY_BLINK_Value;
 						S2_LED_Value.NIGHT_BLINK_Value=S1_LED_Value.NIGHT_BLINK_Value;
@@ -3847,7 +3847,7 @@ int main(void) {
 					S2_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
 					S2_LED_Value.NIGHT_BRIGHTNESS_Value =
 							tmp_LED.NIGHT_BRIGHTNESS_Value;
-					if(S1_LED_Value.TYPE_Value==WHITE_LED)
+					if(S1_LED_Value.TYPE_Value==WHITE_LED && S2_LED_Value.TYPE_Value==WHITE_LED)
 					{
 						S1_LED_Value.DAY_BLINK_Value=S2_LED_Value.DAY_BLINK_Value;
 						S1_LED_Value.NIGHT_BLINK_Value=S2_LED_Value.NIGHT_BLINK_Value;
@@ -4459,8 +4459,16 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
-					index_option = 10;
+					if(tmp_Relay2.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						index_option = 10;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+						index_option=9;
+					}
 					break;
 				case 1:	//CANCEL
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
@@ -4482,31 +4490,56 @@ int main(void) {
 
 					break;
 				case 4:
-					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 5:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					if(tmp_Relay1.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						index_option = 4;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
+						index_option=3;
+					}
 					break;
 				case 6:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
 					index_option = 5;
-
 					break;
 				case 7:
-					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
-
+					if(tmp_Relay1.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						index_option = 6;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+						index_option=5;
+					}
 					break;
 				case 8:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
-
+					break;
+				case 9:
+					if(tmp_Relay2.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						index_option = 8;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+						index_option=7;
+					}
+					break;
+				case 10:
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+					index_option = 9;
 					break;
 				}
 				if (index_option > 1) {
@@ -4537,42 +4570,78 @@ int main(void) {
 				case 1:	//CANCEL
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
 							0);
-					if (tmp_LED.TYPE_Value == WHITE_LED)
-						sprintf(tmp_str, "WHITE");
+					if (tmp_TEC_STATE )
+						sprintf(tmp_str, "ENABLE");
 					else
-						sprintf(tmp_str, "IR");
+						sprintf(tmp_str, "DISABLE");
 					index_option = 2;
 					break;
 				case 2:
-					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
-					break;
-				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
-					index_option = 5;
+					if(tmp_Relay1.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						index_option = 4;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+						index_option=5;
+					}
 
 					break;
+				case 4:
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					index_option = 5;
+					break;
 				case 5:
-					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_Relay1.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						index_option = 6;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+						index_option=7;
+					}
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
-					index_option = 8;
+					if(tmp_Relay1.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						index_option = 8;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+						index_option=9;
+					}
 					break;
 				case 8:
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+					index_option = 9;
+					break;
+				case 9:
+					if(tmp_Relay2.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						index_option = 10;
+					}
+					else
+					{
+						text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+						index_option=0;
+					}
+					break;
+				case 10:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
@@ -4598,19 +4667,9 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					S2_LED_Value.TYPE_Value = tmp_LED.TYPE_Value;
-					S2_LED_Value.ADD_SUNRISE_Value = tmp_LED.ADD_SUNRISE_Value;
-					S2_LED_Value.ADD_SUNSET_Value = tmp_LED.ADD_SUNSET_Value;
-					S2_LED_Value.DAY_BLINK_Value = tmp_LED.DAY_BLINK_Value;
-					S2_LED_Value.DAY_BRIGHTNESS_Value = tmp_LED.DAY_BRIGHTNESS_Value;
-					S2_LED_Value.NIGHT_BLINK_Value = tmp_LED.NIGHT_BLINK_Value;
-					S2_LED_Value.NIGHT_BRIGHTNESS_Value =
-							tmp_LED.NIGHT_BRIGHTNESS_Value;
-					if(S1_LED_Value.TYPE_Value==WHITE_LED)
-					{
-						S1_LED_Value.DAY_BLINK_Value=S2_LED_Value.DAY_BLINK_Value;
-						S1_LED_Value.NIGHT_BLINK_Value=S2_LED_Value.NIGHT_BLINK_Value;
-					}
+					TEC_STATE_Value=tmp_TEC_STATE;
+					RELAY1_Value=tmp_Relay1;
+					RELAY2_Value=tmp_Relay2;
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -4621,35 +4680,71 @@ int main(void) {
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
-					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
-					break;
-				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
-					index_option = 5;
+					if(tmp_Relay1.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						index_option = 4;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+						index_option=5;
+					}
 
 					break;
+				case 4:
+					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
+					index_option = 5;
+					break;
 				case 5:
-					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					if(tmp_Relay1.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						index_option = 6;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
+						index_option=7;
+					}
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
-					index_option = 8;
+					if(tmp_Relay1.active[0])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						index_option = 8;
+					}
+					else
+					{
+						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+						index_option=9;
+					}
 					break;
 				case 8:
+					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
+					index_option = 9;
+					break;
+				case 9:
+					if(tmp_Relay2.active[1])
+					{
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						index_option = 10;
+					}
+					else
+					{
+						text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+						index_option=0;
+					}
+					break;
+				case 10:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
