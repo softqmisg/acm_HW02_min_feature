@@ -21,7 +21,7 @@
 #define LIMIT_SHORT_L	10/MS_COUNTER//10ms
 #define LIMIT_SHORT_H	400/MS_COUNTER//400ms
 /////about 3sec
-#define LIMIT_T1_L 1500/MS_COUNTER///1.5s
+#define LIMIT_T1_L 800/MS_COUNTER///1.5s
 #define LIMIT_T1_H 3500/MS_COUNTER//3.5
 //////about >7s
 #define LIMIT_T2_L 5000/MS_COUNTER//5s

@@ -57,16 +57,16 @@
 typedef struct {
 	uint8_t TYPE_Value;
 	uint16_t DAY_BRIGHTNESS_Value;
-	double DAY_BLINK_Value;
+	uint8_t DAY_BLINK_Value;
 	uint16_t NIGHT_BRIGHTNESS_Value;
-	double NIGHT_BLINK_Value;
-	double ADD_SUNRISE_Value;
-	double ADD_SUNSET_Value;
+	uint8_t NIGHT_BLINK_Value;
+	int8_t ADD_SUNRISE_Value;
+	int8_t ADD_SUNSET_Value;
 
 } LED_t;
 typedef struct
 {
-	double Temperature[2];
+	int16_t Temperature[2];
 	char Edge[2];
 	uint8_t active[2];
 } RELAY_t;
@@ -184,6 +184,8 @@ enum {
 	DISP_FORM5,
 	DISP_FORM6
 } DISP_state = DISP_IDLE;
+
+#define MENU_ITEMS	10
 enum {
 	MAIN_MENU = 0,
 	PASS_MENU,
@@ -194,66 +196,65 @@ enum {
 	LEDS2_MENU,
 	RELAY_MENU,
 	DOOR_MENU,
+	COPY_MENU,
+	UPGRADE_MENU,
 	CHANGEPASS_MENU,
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
-#define MENU_ITEMS	8
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
-		"SET Relay", "SET Door", "SET PASS", "Exit" };
-
-//uint16_t als, white;
-//uint8_t buffer[2];
-//HAL_StatusTypeDef status;
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-Time_t cur_sunrise, cur_sunset, cur_noon;
-double voltage, current, temperature[8];
-uint8_t counter_change_form = 0;
-uint8_t flag_change_form;
+		"SET Relay", "SET Door", "COPY USB","UGRADE","SET PASS", "Exit" };
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
 LED_t S1_LED_Value, S2_LED_Value;
 RELAY_t RELAY1_Value,RELAY2_Value;
 uint8_t TEC_STATE_Value;
-
-double LAT_Value;
-double LONG_Value;
+POS_t LAT_Value;
+POS_t LONG_Value;
 char PASSWORD_Value[5];
 uint16_t DOOR_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
-	LAT_Value = 35.719086;
-	LONG_Value = 51.398101;
+	LAT_Value.deg=35;
+	LAT_Value.min=43;
+	LAT_Value.second=870;
+	LAT_Value.direction='N';
+
+	LONG_Value.deg=51;
+	LONG_Value.min=23;
+	LONG_Value.second=5316;
+	LONG_Value.direction='E';
+
+
 
 	S1_LED_Value.TYPE_Value = WHITE_LED;
 	S1_LED_Value.DAY_BRIGHTNESS_Value = 0;
-	S1_LED_Value.DAY_BLINK_Value = 0.5;
+	S1_LED_Value.DAY_BLINK_Value = 5;
 	S1_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
 	S1_LED_Value.NIGHT_BLINK_Value = 0;
-	S1_LED_Value.ADD_SUNRISE_Value = 1.5;
-	S1_LED_Value.ADD_SUNSET_Value = -1.0;
+	S1_LED_Value.ADD_SUNRISE_Value = 15;
+	S1_LED_Value.ADD_SUNSET_Value = -10;
 
 	S2_LED_Value.TYPE_Value = IR_LED;
 	S2_LED_Value.DAY_BRIGHTNESS_Value = 0;
-	S2_LED_Value.DAY_BLINK_Value = 0.0;
+	S2_LED_Value.DAY_BLINK_Value = 0;
 	S2_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
-	S2_LED_Value.NIGHT_BLINK_Value = 0.0;
-	S2_LED_Value.ADD_SUNRISE_Value = 1.5;
-	S2_LED_Value.ADD_SUNSET_Value = -1.0;
+	S2_LED_Value.NIGHT_BLINK_Value = 0;
+	S2_LED_Value.ADD_SUNRISE_Value = 15;
+	S2_LED_Value.ADD_SUNSET_Value = -10;
 
 	TEC_STATE_Value = 1;
-	RELAY1_Value.Temperature[0] = 33.1;
+	RELAY1_Value.Temperature[0] = 331;
 	RELAY1_Value.Edge[0] = 'U';
 	RELAY1_Value.active[0]=1;
-	RELAY1_Value.Temperature[1] = 0.0;
+	RELAY1_Value.Temperature[1] = 0;
 	RELAY1_Value.Edge[1] = '-';
 	RELAY1_Value.active[1]=0;
 
-	RELAY2_Value.Temperature[0] = 33.1;
+	RELAY2_Value.Temperature[0] = 331;
 	RELAY2_Value.Edge[0] = 'D';
 	RELAY2_Value.active[0]=1;
-	RELAY2_Value.Temperature[1] = 35.1;
+	RELAY2_Value.Temperature[1] = 351;
 	RELAY2_Value.Edge[1] = 'U';
 	RELAY2_Value.active[1]=1;
 
@@ -390,6 +391,7 @@ void create_form1(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
 	bounding_box_t pos_[8];
+	int16_t  temperature[8];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -401,7 +403,7 @@ void create_form1(uint8_t clear) {
 
 	for (uint8_t i = 0; i < 8; i++) {
 		if (tmp275_readTemperature(i, &temperature[i]) == HAL_OK) {
-			sprintf(tmp_str, "T(%d)=%+4.1f", i + 1, temperature[i]);
+			sprintf(tmp_str, "T(%d)=%+4.1f", i + 1, temperature[i]/10.0);
 		} else
 			sprintf(tmp_str, "T(%d)=---", i + 1);
 		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -415,6 +417,7 @@ void create_form2(uint8_t clear) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
 	bounding_box_t pos_[4];
+	double voltage, current;
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -494,19 +497,19 @@ void create_form3(uint8_t clear) {
 	create_cell(30, pos_[0].y2, 128 - 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
 
 	sprintf(tmp_str, " %2d%%   %4.1fS", S1_LED_Value.DAY_BRIGHTNESS_Value,
-			S1_LED_Value.DAY_BLINK_Value);
+			S1_LED_Value.DAY_BLINK_Value/10.0);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	sprintf(tmp_str, " %2d%%  %4.1fS", S1_LED_Value.NIGHT_BRIGHTNESS_Value,
-			S1_LED_Value.NIGHT_BLINK_Value);
+			S1_LED_Value.NIGHT_BLINK_Value/10.0);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	sprintf(tmp_str, " %2d%%   %4.1fS", S2_LED_Value.DAY_BRIGHTNESS_Value,
-			S2_LED_Value.DAY_BLINK_Value);
+			S2_LED_Value.DAY_BLINK_Value/10.0);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	sprintf(tmp_str, " %2d%%  %4.1fS", S2_LED_Value.NIGHT_BRIGHTNESS_Value,
-			S2_LED_Value.NIGHT_BLINK_Value);
+			S2_LED_Value.NIGHT_BLINK_Value/10.0);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -531,7 +534,7 @@ void create_form3(uint8_t clear) {
 	glcd_refresh();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form4(uint8_t clear) {
+void create_form4(uint8_t clear,Time_t cur_sunrise,Time_t cur_sunset) {
 	char tmp_str[40];
 	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -543,18 +546,16 @@ void create_form4(uint8_t clear) {
 	create_cell(0, pos_[0].y2, 128 - 0, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
 			pos_);
 
-	POS_t lat_pos = latdouble2POS(LAT_Value);
-	sprintf(tmp_str, " %d %d\' %05.2f\"%c", lat_pos.deg, lat_pos.min,
-			lat_pos.second, lat_pos.direction);
+	sprintf(tmp_str, " %d %d\' %05.2f\"%c", LAT_Value.deg, LAT_Value.min,
+			LAT_Value.second/100.0, LAT_Value.direction);
 	pos_[0].x1 = 52;
 	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[0].x1 = 1;
 	pos_[0].x2 = 50;
 	text_cell(pos_, 0, "Latitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	POS_t long_pos = longdouble2POS(LONG_Value);
-	sprintf(tmp_str, " %d %d\' %05.2f\"%c", long_pos.deg, long_pos.min,
-			long_pos.second, long_pos.direction);
+	sprintf(tmp_str, " %d %d\' %05.2f\"%c", LONG_Value.deg, LONG_Value.min,
+			LONG_Value.second/100.0, LONG_Value.direction);
 	pos_[1].x1 = 52;
 	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[1].x1 = 1;
@@ -562,7 +563,7 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunrise.hr, cur_sunrise.min,
-			S1_LED_Value.ADD_SUNRISE_Value, S1_LED_Value.ADD_SUNRISE_Value);
+			S1_LED_Value.ADD_SUNRISE_Value/10.0, S2_LED_Value.ADD_SUNRISE_Value/10.0);
 	pos_[2].x1 = 42;
 	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -571,7 +572,7 @@ void create_form4(uint8_t clear) {
 	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunset.hr, cur_sunset.min,
-			S2_LED_Value.ADD_SUNSET_Value, S2_LED_Value.ADD_SUNSET_Value);
+			S1_LED_Value.ADD_SUNSET_Value/10.0, S2_LED_Value.ADD_SUNSET_Value/10.0);
 	pos_[3].x1 = 42;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -647,7 +648,7 @@ void create_form6(uint8_t clear) {
 		if(RELAY1_Value.active[i])
 		{
 			sprintf(tmp_str, "%c %+4.1f", RELAY1_Value.Edge[i],
-					RELAY1_Value.Temperature[i]);
+					RELAY1_Value.Temperature[i]/10.0);
 			text_cell(pos_, 2 + i * 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 		}
 		else
@@ -657,7 +658,7 @@ void create_form6(uint8_t clear) {
 		if(RELAY2_Value.active[i])
 		{
 			sprintf(tmp_str, "%c %+4.1f", RELAY2_Value.Edge[i],
-					RELAY2_Value.Temperature[i]);
+					RELAY2_Value.Temperature[i]/10.0);
 			text_cell(pos_,3 + i * 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 		}
 		else
@@ -694,8 +695,7 @@ void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formposition(uint8_t clear, bounding_box_t *text_pos,
-		POS_t *tmp_lat, POS_t *tmp_long) {
+void create_formposition(uint8_t clear, bounding_box_t *text_pos,POS_t tmp_lat,POS_t tmp_long) {
 	char tmp_str[40];
 	bounding_box_t pos_[2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -720,53 +720,51 @@ void create_formposition(uint8_t clear, bounding_box_t *text_pos,
 	pos_[1].x2 = 50;
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	*tmp_lat = latdouble2POS(LAT_Value);
-	*tmp_long = longdouble2POS(LONG_Value);
 	create_cell(50, pos_[0].y1, 128 - 50, 64 - pos_[0].y1, 2, 1, 1, pos_);
 
-	sprintf(tmp_str, "%02d", tmp_lat->deg);
+	sprintf(tmp_str, "%02d", tmp_lat.deg);
 	pos_[0].x1 = 52;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[2].x1=pos_[0].x1;text_pos[2].x2=pos_[0].x2;text_pos[2].y1=pos_[0].y1;text_pos[2].y2=pos_[0].y2;
 
-	sprintf(tmp_str, "%02d\'", tmp_lat->min);
+	sprintf(tmp_str, "%02d\'", tmp_lat.min);
 	pos_[0].x1 = pos_[0].x2 + 4;
 	pos_[0].x2 = pos_[0].x1 + text_width("55\'", Tahoma8, 1) + 1;
 	text_pos[3] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[3].x1=pos_[0].x1;text_pos[3].x2=pos_[0].x2;text_pos[3].y1=pos_[0].y1;text_pos[3].y2=pos_[0].y2;
 
-	sprintf(tmp_str, "%05.2f\"", tmp_lat->second);
+	sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 	pos_[0].x1 = pos_[0].x2 + 3;
 	pos_[0].x2 = pos_[0].x1 + text_width("55.55\"", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[4].x1=pos_[0].x1;text_pos[4].x2=pos_[0].x2;text_pos[4].y1=pos_[0].y1;text_pos[4].y2=pos_[0].y2;
 
-	sprintf(tmp_str, "%c", tmp_lat->direction);
+	sprintf(tmp_str, "%c", tmp_lat.direction);
 	pos_[0].x1 = pos_[0].x2 + 2;
 	pos_[0].x2 = pos_[0].x1 + text_width("N", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[5].x1=pos_[0].x1;text_pos[5].x2=pos_[0].x2;text_pos[5].y1=pos_[0].y1;text_pos[5].y2=pos_[0].y2;
 
-	sprintf(tmp_str, "%02d", tmp_long->deg);
+	sprintf(tmp_str, "%02d", tmp_long.deg);
 	pos_[1].x1 = 52;
 	pos_[1].x2 = pos_[1].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[6] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[6].x1=pos_[1].x1;text_pos[6].x2=pos_[1].x2;text_pos[6].y1=pos_[1].y1;text_pos[6].y2=pos_[1].y2;
 
-	sprintf(tmp_str, "%02d\'", tmp_long->min);
+	sprintf(tmp_str, "%02d\'", tmp_long.min);
 	pos_[1].x1 = pos_[1].x2 + 4;
 	pos_[1].x2 = pos_[1].x1 + text_width("55\'", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[7].x1=pos_[1].x1;text_pos[7].x2=pos_[1].x2;text_pos[7].y1=pos_[1].y1;text_pos[7].y2=pos_[1].y2;
 
-	sprintf(tmp_str, "%05.2f\"", tmp_long->second);
+	sprintf(tmp_str, "%05.2f\"",tmp_long.second/100.0);
 	pos_[1].x1 = pos_[1].x2 + 3;
 	pos_[1].x2 = pos_[1].x1 + text_width("55.55\"", Tahoma8, 1) + 1;
 	text_pos[8] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[8].x1=pos_[1].x1;text_pos[8].x2=pos_[1].x2;text_pos[8].y1=pos_[1].y1;text_pos[8].y2=pos_[1].y2;
 
-	sprintf(tmp_str, "%c", tmp_long->direction);
+	sprintf(tmp_str, "%c", tmp_long.direction);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) + 1;
 	text_pos[9] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -920,7 +918,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[1].x2 = pos_[1].x1 + 11;
 	text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value/10.0);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -928,7 +926,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[1].x2 = pos_[1].x1 + 6;
 	text_cell(pos_, 1, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
+	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value/10.0);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -944,7 +942,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[2].x2 = pos_[2].x1 + 11;
 	text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value/10.0);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -952,7 +950,7 @@ void create_formLEDS1(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[2].x2 = pos_[2].x1 + 6;
 	text_cell(pos_, 2, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
+	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value/10.0);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[8] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1020,7 +1018,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[1].x2 = pos_[1].x1 + 11;
 	text_cell(pos_, 1, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->DAY_BLINK_Value/10.0);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1028,7 +1026,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[1].x2 = pos_[1].x1 + 6;
 	text_cell(pos_, 1, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value);
+	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNRISE_Value/10.0);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1044,7 +1042,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[2].x2 = pos_[2].x1 + 11;
 	text_cell(pos_, 2, "%", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value);
+	sprintf(tmp_str, "%4.1f", tmp_led->NIGHT_BLINK_Value/10.0);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1052,7 +1050,7 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 	pos_[2].x2 = pos_[2].x1 + 6;
 	text_cell(pos_, 2, "s", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value);
+	sprintf(tmp_str, "%+3.1f", tmp_led->ADD_SUNSET_Value/10.0);
 	pos_[2].x1 = pos_[2].x2 + 1;
 	pos_[2].x2 = pos_[2].x1 + text_width("+5.5", Tahoma8, 1) + 1;
 	text_pos[8] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1120,7 +1118,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
 	if(tmp_Relay1.active[0])
-		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 	else
 		sprintf(tmp_str, "------");
 	pos_[1].x1 = pos_[1].x2+1;
@@ -1136,7 +1134,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
 	if(tmp_Relay1.active[1])
-		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 	else
 		sprintf(tmp_str, "------");
 	pos_[1].x1 = pos_[1].x2+1;
@@ -1154,7 +1152,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
 	if(tmp_Relay2.active[0])
-		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 	else
 		sprintf(tmp_str, "------");
 	pos_[2].x1 = pos_[2].x2+1;
@@ -1170,7 +1168,7 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos, RELAY_t tmp_Relay
 	text_pos[9] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
 	if(tmp_Relay2.active[1])
-		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 	else
 		sprintf(tmp_str, "------");
 	pos_[2].x1 = pos_[2].x2+1;
@@ -1330,6 +1328,8 @@ int main(void) {
 #endif
 	/* USER CODE BEGIN 2 */
 	/////////////////////////
+  	uint8_t flag_change_form;
+  	uint8_t counter_change_form = 0;
 	bounding_box_t pos_[10];
 	uint8_t backlight = 100;
 	char tmp_str[100], tmp_str1[100];
@@ -1345,6 +1345,7 @@ int main(void) {
 	char tmp_pass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	char tmp_confirmpass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	POS_t tmp_lat, tmp_long;
+	double tmp_dlat,tmp_dlong;
 	RTC_TimeTypeDef tmp_time;
 	RTC_DateTypeDef tmp_Date;
 	LED_t tmp_LED;
@@ -1356,6 +1357,7 @@ int main(void) {
 	HAL_StatusTypeDef status;
 	Time_t cur_time_t;
 	Date_t cur_date_t;
+	Time_t cur_sunrise, cur_sunset, cur_noon;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	//////////////////////init LCD//////////
@@ -1538,22 +1540,26 @@ int main(void) {
 				cur_time_t.hr=cur_time.Hours;cur_time_t.min=cur_time.Minutes;cur_time_t.sec=cur_time.Seconds;
 				////////////////////////////LED control////////////////////////////////////
 				if(cur_time_t.hr==0 && cur_time_t.min==0 && cur_time_t.sec==0)
-					Astro_sunRiseSet(LAT_Value, LONG_Value, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
-				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value,S1_LED_Value.ADD_SUNSET_Value)==ASTRO_DAY)
 				{
-					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.DAY_BRIGHTNESS_Value, S1_LED_Value.DAY_BLINK_Value);
+					tmp_dlat=POS2double(LAT_Value);
+					tmp_dlong=POS2double(LONG_Value);
+					Astro_sunRiseSet(tmp_dlat, tmp_dlong, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
+				}
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value/10.0,S1_LED_Value.ADD_SUNSET_Value/10.0)==ASTRO_DAY)
+				{
+					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.DAY_BRIGHTNESS_Value, S1_LED_Value.DAY_BLINK_Value/10.0);
 				}
 				else
 				{
-					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.NIGHT_BRIGHTNESS_Value, S1_LED_Value.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, S1_LED_Value.NIGHT_BRIGHTNESS_Value, S1_LED_Value.NIGHT_BLINK_Value/10.0);
 				}
-				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value,S1_LED_Value.ADD_SUNSET_Value)==ASTRO_DAY)
+				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S2_LED_Value.ADD_SUNRISE_Value/10.0,S2_LED_Value.ADD_SUNSET_Value/10.0)==ASTRO_DAY)
 				{
-					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.DAY_BRIGHTNESS_Value, S2_LED_Value.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.DAY_BRIGHTNESS_Value, S2_LED_Value.DAY_BLINK_Value/10.0);
 				}
 				else
 				{
-					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.NIGHT_BRIGHTNESS_Value, S2_LED_Value.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, S2_LED_Value.NIGHT_BRIGHTNESS_Value, S2_LED_Value.NIGHT_BLINK_Value/10.0);
 
 				}
 				////////////////////////////DISP Refresh//////////////////////////////////
@@ -1570,7 +1576,7 @@ int main(void) {
 					create_form3(0);
 					break;
 				case DISP_FORM4:
-					create_form4(0);
+					create_form4(0,cur_sunrise,cur_sunset);
 					break;
 				case DISP_FORM5:
 					create_form5(0);
@@ -1584,7 +1590,9 @@ int main(void) {
 				flag_change_form = 0;
 				switch (DISP_state) {
 				case DISP_IDLE:
-					Astro_sunRiseSet(LAT_Value, LONG_Value, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
+					tmp_dlat=POS2double(LAT_Value);
+					tmp_dlong=POS2double(LONG_Value);
+					Astro_sunRiseSet(tmp_dlat, tmp_dlong, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
 					create_form1(1);
 					DISP_state = DISP_FORM1;
 					break;
@@ -1597,7 +1605,7 @@ int main(void) {
 					DISP_state = DISP_FORM3;
 					break;
 				case DISP_FORM3:
-					create_form4(1);
+					create_form4(1,cur_sunrise,cur_sunset);
 					DISP_state = DISP_FORM4;
 					break;
 				case DISP_FORM4:
@@ -1894,7 +1902,9 @@ int main(void) {
 				index_option += (uint8_t) POSITION_MENU;
 				switch (index_option) {
 				case POSITION_MENU:
-					create_formposition(1, text_pos, &tmp_lat, &tmp_long);
+					tmp_lat=LAT_Value;
+					tmp_long=LONG_Value;
+					create_formposition(1, text_pos, tmp_lat, tmp_long);
 					index_option = 2;
 
 					sprintf(tmp_str, "%02d", tmp_lat.deg);
@@ -1979,6 +1989,10 @@ int main(void) {
 					glcd_refresh();
 					MENU_state = CHANGEPASS_MENU;
 					break;
+				case COPY_MENU:
+					break;
+				case UPGRADE_MENU:
+					break;
 				case EXIT_MENU:
 					MENU_state = MAIN_MENU;
 					DISP_state = DISP_IDLE;
@@ -2017,10 +2031,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_lat.min);
 					break;
 				case 4:
-					tmp_lat.second += 0.01;
-					if (tmp_lat.second >= 60.00)
-						tmp_lat.second = 0.00;
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					tmp_lat.second += 1;
+					if (tmp_lat.second >= 6000)
+						tmp_lat.second = 0;
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					break;
 				case 5:
 					if (tmp_lat.direction == 'N')
@@ -2042,10 +2056,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_long.min);
 					break;
 				case 8:
-					tmp_long.second += 0.01;
-					if (tmp_long.second >= 60.00)
-						tmp_long.second = 0.00;
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					tmp_long.second += 1;
+					if (tmp_long.second >= 6000)
+						tmp_long.second = 0;
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					break;
 				case 9:
 					if (tmp_long.direction == 'W')
@@ -2088,10 +2102,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_lat.min);
 					break;
 				case 4:
-					tmp_lat.second += 1.0;
-					if (tmp_lat.second >= 60.00)
-						tmp_lat.second = 0.00;
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					tmp_lat.second += 100;
+					if (tmp_lat.second >= 6000)
+						tmp_lat.second = 0;
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					break;
 				case 5:
 					if (tmp_lat.direction == 'N')
@@ -2113,10 +2127,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_long.min);
 					break;
 				case 8:
-					tmp_long.second += 1.0;
-					if (tmp_long.second >= 60.00)
-						tmp_long.second = 0.00;
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					tmp_long.second += 100;
+					if (tmp_long.second >= 6000)
+						tmp_long.second = 0;
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					break;
 				case 9:
 					if (tmp_long.direction == 'W')
@@ -2161,10 +2175,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_lat.min);
 					break;
 				case 4:
-					if (tmp_lat.second == 0.00)
-						tmp_lat.second = 60.00;
-					tmp_lat.second -= 0.01;
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					if (tmp_lat.second == 0)
+						tmp_lat.second = 6000;
+					tmp_lat.second -= 1;
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					break;
 				case 5:
 					if (tmp_lat.direction == 'N')
@@ -2186,10 +2200,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_long.min);
 					break;
 				case 8:
-					if (tmp_long.second == 0.00)
-						tmp_long.second = 60.00;
-					tmp_long.second -= 0.01;
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					if (tmp_long.second == 0)
+						tmp_long.second = 6000;
+					tmp_long.second -= 1;
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					break;
 				case 9:
 					if (tmp_long.direction == 'W')
@@ -2233,10 +2247,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_lat.min);
 					break;
 				case 4:
-					if (tmp_lat.second < 1.00)
-						tmp_lat.second += 60.00;
-					tmp_lat.second -= 1.00;
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					if (tmp_lat.second < 100)
+						tmp_lat.second += 6000;
+					tmp_lat.second -= 100;
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					break;
 				case 5:
 					if (tmp_lat.direction == 'N')
@@ -2258,10 +2272,10 @@ int main(void) {
 					sprintf(tmp_str, "%02d\'", tmp_long.min);
 					break;
 				case 8:
-					if (tmp_long.second < 1.00)
-						tmp_long.second += 60.00;
-					tmp_long.second -= 1.0;
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					if (tmp_long.second < 100)
+						tmp_long.second += 6000;
+					tmp_long.second -= 100;
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					break;
 				case 9:
 					if (tmp_long.direction == 'W')
@@ -2319,7 +2333,7 @@ int main(void) {
 
 					break;
 				case 5:
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					index_option = 4;
 					break;
 				case 6:
@@ -2338,7 +2352,7 @@ int main(void) {
 					index_option = 7;
 					break;
 				case 9:
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					index_option = 8;
 					break;
 				}
@@ -2378,7 +2392,7 @@ int main(void) {
 					index_option = 3;
 					break;
 				case 3:
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					index_option = 4;
 					break;
 				case 4:
@@ -2394,7 +2408,7 @@ int main(void) {
 					index_option = 7;
 					break;
 				case 7:
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -2427,8 +2441,8 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					LAT_Value = POS2double(tmp_lat);
-					LONG_Value = POS2double(tmp_long);
+					LAT_Value = tmp_lat;
+					LONG_Value = tmp_long;
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -2443,7 +2457,7 @@ int main(void) {
 					index_option = 3;
 					break;
 				case 3:
-					sprintf(tmp_str, "%05.2f\"", tmp_lat.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_lat.second/100.0);
 					index_option = 4;
 					break;
 				case 4:
@@ -2459,7 +2473,7 @@ int main(void) {
 					index_option = 7;
 					break;
 				case 7:
-					sprintf(tmp_str, "%05.2f\"", tmp_long.second);
+					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -2925,8 +2939,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -2941,42 +2955,42 @@ int main(void) {
 					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
 						tmp_LED.DAY_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if (tmp_LED.TYPE_Value == WHITE_LED)
-						tmp_LED.DAY_BLINK_Value += (double)0.1;
-					if (tmp_LED.DAY_BLINK_Value > (double) BLINK_MAX)
-						tmp_LED.DAY_BLINK_Value = (double) BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+						tmp_LED.DAY_BLINK_Value += 1;
+					if (tmp_LED.DAY_BLINK_Value >  BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value =  BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value +=(double) 0.1;
+					tmp_LED.ADD_SUNRISE_Value += 1;
 					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value++;
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
 					if (tmp_LED.TYPE_Value == WHITE_LED)
-						tmp_LED.NIGHT_BLINK_Value += (double)0.1;
-					if (tmp_LED.NIGHT_BLINK_Value > (double) BLINK_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+						tmp_LED.NIGHT_BLINK_Value += 1;
+					if (tmp_LED.NIGHT_BLINK_Value > BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value =  BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					tmp_LED.ADD_SUNSET_Value += 1;
 					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
-						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3001,8 +3015,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3018,21 +3032,21 @@ int main(void) {
 						tmp_LED.DAY_BRIGHTNESS_Value =
 								tmp_LED.DAY_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if (tmp_LED.TYPE_Value == WHITE_LED)
-						tmp_LED.DAY_BLINK_Value += (double)1.0;
-					if (tmp_LED.DAY_BLINK_Value > (double) BLINK_MAX)
-						tmp_LED.DAY_BLINK_Value = (double) BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+						tmp_LED.DAY_BLINK_Value += 10;
+					if (tmp_LED.DAY_BLINK_Value >  BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value =  BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					tmp_LED.ADD_SUNRISE_Value += 1;
 					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value += 10;
@@ -3040,21 +3054,21 @@ int main(void) {
 						tmp_LED.NIGHT_BRIGHTNESS_Value =
 								tmp_LED.NIGHT_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
 					if (tmp_LED.TYPE_Value == WHITE_LED)
-						tmp_LED.NIGHT_BLINK_Value += (double)1.0;
-					if (tmp_LED.NIGHT_BLINK_Value > (double) BLINK_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+						tmp_LED.NIGHT_BLINK_Value += 10;
+					if (tmp_LED.NIGHT_BLINK_Value >  BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value =  BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					tmp_LED.ADD_SUNSET_Value += 1;
 					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
-						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3082,8 +3096,8 @@ int main(void) {
 					{
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3098,46 +3112,46 @@ int main(void) {
 						tmp_LED.DAY_BRIGHTNESS_Value = 101;
 					tmp_LED.DAY_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
-						if (tmp_LED.DAY_BLINK_Value == (double) BLINK_MIN)
-							tmp_LED.DAY_BLINK_Value = (double) BLINK_MAX + (double)0.1;
+						if (tmp_LED.DAY_BLINK_Value ==  BLINK_MIN)
+							tmp_LED.DAY_BLINK_Value = BLINK_MAX + 1;
 
-						tmp_LED.DAY_BLINK_Value -= (double)0.1;
+						tmp_LED.DAY_BLINK_Value -= 1;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
 					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_S1_MIN)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MAX + (double)0.1;
-					tmp_LED.ADD_SUNRISE_Value -= (double)0.1;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MAX + 1;
+					tmp_LED.ADD_SUNRISE_Value -=1;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value == 0)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 101;
 					tmp_LED.NIGHT_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
-						if (tmp_LED.NIGHT_BLINK_Value == (double) BLINK_MIN)
-							tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MAX
-									+ (double)0.1;
-						tmp_LED.NIGHT_BLINK_Value -= (double)0.1;
+						if (tmp_LED.NIGHT_BLINK_Value ==  BLINK_MIN)
+							tmp_LED.NIGHT_BLINK_Value =  BLINK_MAX
+									+ 1;
+						tmp_LED.NIGHT_BLINK_Value -= 1;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 8:
 					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_S1_MIN)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MAX + (double)0.1;
-					tmp_LED.ADD_SUNSET_Value -= (double)0.1;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MAX + 1;
+					tmp_LED.ADD_SUNSET_Value -= 1;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3162,8 +3176,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS1(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3179,26 +3193,26 @@ int main(void) {
 								tmp_LED.DAY_BRIGHTNESS_Value + 100;
 					tmp_LED.DAY_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						if (tmp_LED.DAY_BLINK_Value
-								< ((double) BLINK_MIN + (double)1.0))
-							tmp_LED.DAY_BLINK_Value = (double) BLINK_MAX
+								< (BLINK_MIN + 10))
+							tmp_LED.DAY_BLINK_Value =  BLINK_MAX
 									+ tmp_LED.DAY_BLINK_Value;
-						tmp_LED.DAY_BLINK_Value -= (double)1.0;
+						tmp_LED.DAY_BLINK_Value -= 10;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
 					if (tmp_LED.ADD_SUNRISE_Value
-							< ((double) ADD_SUNRISE_S1_MIN +(double) 1.0))
-						tmp_LED.ADD_SUNRISE_Value =((double) ADD_SUNRISE_S1_MAX-ADD_SUNRISE_S1_MIN)
+							< ( ADD_SUNRISE_S1_MIN + 10))
+						tmp_LED.ADD_SUNRISE_Value =(ADD_SUNRISE_S1_MAX-ADD_SUNRISE_S1_MIN)
 								+ tmp_LED.ADD_SUNRISE_Value;
-					tmp_LED.ADD_SUNRISE_Value -= (double)1.0;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					tmp_LED.ADD_SUNRISE_Value -= 10;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value < 10)
@@ -3206,26 +3220,26 @@ int main(void) {
 								tmp_LED.NIGHT_BRIGHTNESS_Value + 100;
 					tmp_LED.NIGHT_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						if (tmp_LED.NIGHT_BLINK_Value
-								< ((double) BLINK_MIN + (double)1.0))
-							tmp_LED.NIGHT_BLINK_Value = (double) BLINK_MAX
-									+ tmp_LED.DAY_BLINK_Value;
-						tmp_LED.NIGHT_BLINK_Value -=(double) 1.0;
+								< ( BLINK_MIN + 10))
+							tmp_LED.NIGHT_BLINK_Value = BLINK_MAX
+									+ tmp_LED.NIGHT_BLINK_Value;
+						tmp_LED.NIGHT_BLINK_Value -=10;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 8:
 					if (tmp_LED.ADD_SUNSET_Value
-							< ((double) ADD_SUNSET_S1_MIN + (double)1.0))
-						tmp_LED.ADD_SUNSET_Value = ((double) ADD_SUNSET_S1_MAX-ADD_SUNSET_S1_MIN)
+							< ( ADD_SUNSET_S1_MIN + 10))
+						tmp_LED.ADD_SUNSET_Value = ( ADD_SUNSET_S1_MAX-ADD_SUNSET_S1_MIN)
 								+ tmp_LED.ADD_SUNSET_Value;
-					tmp_LED.ADD_SUNSET_Value -= (double)1.0;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					tmp_LED.ADD_SUNSET_Value -= 10;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3248,7 +3262,7 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 1:	//CANCEL
@@ -3273,28 +3287,28 @@ int main(void) {
 				case 4:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 7:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				}
 				if (index_option > 1) {
@@ -3334,31 +3348,31 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -3412,30 +3426,30 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS1, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -3471,8 +3485,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3487,43 +3501,43 @@ int main(void) {
 					if (tmp_LED.DAY_BRIGHTNESS_Value > 100)
 						tmp_LED.DAY_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
-						tmp_LED.DAY_BLINK_Value+=(double)0.1;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINK_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+						tmp_LED.DAY_BLINK_Value+=1;
+					if (tmp_LED.DAY_BLINK_Value > BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					tmp_LED.ADD_SUNRISE_Value += 1;
 					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value++;
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value > 100)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 0;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
-						tmp_LED.NIGHT_BLINK_Value+=(double)0.1;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINK_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+						tmp_LED.NIGHT_BLINK_Value+=1;
+					if (tmp_LED.NIGHT_BLINK_Value > BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value +=(double) 0.1;
-					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_S1_MAX)
-						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNRISE_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					tmp_LED.ADD_SUNSET_Value +=1;
+					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNRISE_S2_MAX)
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S2_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3548,8 +3562,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3565,21 +3579,21 @@ int main(void) {
 						tmp_LED.DAY_BRIGHTNESS_Value =
 								tmp_LED.DAY_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
-						tmp_LED.DAY_BLINK_Value+=(double)1.0;
-					if (tmp_LED.DAY_BLINK_Value > (double)BLINK_MAX)
-						tmp_LED.DAY_BLINK_Value = (double)BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+						tmp_LED.DAY_BLINK_Value+=10;
+					if (tmp_LED.DAY_BLINK_Value > BLINK_MAX)
+						tmp_LED.DAY_BLINK_Value = BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					tmp_LED.ADD_SUNRISE_Value += (double)0.1;
+					tmp_LED.ADD_SUNRISE_Value += 1;
 					if (tmp_LED.ADD_SUNRISE_Value > ADD_SUNRISE_S1_MAX)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					tmp_LED.NIGHT_BRIGHTNESS_Value += 10;
@@ -3587,23 +3601,23 @@ int main(void) {
 						tmp_LED.NIGHT_BRIGHTNESS_Value =
 								tmp_LED.NIGHT_BRIGHTNESS_Value - 100;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 7:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
-						tmp_LED.NIGHT_BLINK_Value+=(double)1.0;
-					if (tmp_LED.NIGHT_BLINK_Value > (double)BLINK_MAX)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MIN;
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+						tmp_LED.NIGHT_BLINK_Value+=10;
+					if (tmp_LED.NIGHT_BLINK_Value > BLINK_MAX)
+						tmp_LED.NIGHT_BLINK_Value = BLINK_MIN;
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
-					tmp_LED.ADD_SUNSET_Value += (double)0.1;
+					tmp_LED.ADD_SUNSET_Value += 1;
 					if (tmp_LED.ADD_SUNSET_Value > ADD_SUNSET_S1_MAX)
-						tmp_LED.ADD_SUNSET_Value =(double) ADD_SUNSET_S1_MIN;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S1_MIN;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3629,8 +3643,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3645,48 +3659,48 @@ int main(void) {
 						tmp_LED.DAY_BRIGHTNESS_Value = 101;
 					tmp_LED.DAY_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
 					{
-						if (tmp_LED.DAY_BLINK_Value == (double)BLINK_MIN)
-							tmp_LED.DAY_BLINK_Value = (double)BLINK_MAX+(double)0.1;
-						tmp_LED.DAY_BLINK_Value-=(double)0.1;
+						if (tmp_LED.DAY_BLINK_Value == BLINK_MIN)
+							tmp_LED.DAY_BLINK_Value = BLINK_MAX+1;
+						tmp_LED.DAY_BLINK_Value-=1;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
 					if (tmp_LED.ADD_SUNRISE_Value == ADD_SUNRISE_S2_MIN)
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S2_MAX +(double) 0.1;
-					tmp_LED.ADD_SUNRISE_Value -= (double)0.1;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S2_MAX +1;
+					tmp_LED.ADD_SUNRISE_Value -= 1;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value == 0)
 						tmp_LED.NIGHT_BRIGHTNESS_Value = 101;
 					tmp_LED.NIGHT_BRIGHTNESS_Value--;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 7:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
 					{
-					if (tmp_LED.NIGHT_BLINK_Value == (double)BLINK_MIN)
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MAX+(double)0.1;
-					tmp_LED.NIGHT_BLINK_Value-=(double)0.1;
+					if (tmp_LED.NIGHT_BLINK_Value == BLINK_MIN)
+						tmp_LED.NIGHT_BLINK_Value = BLINK_MAX+1;
+					tmp_LED.NIGHT_BLINK_Value-=1;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
 					if (tmp_LED.ADD_SUNSET_Value == ADD_SUNSET_S2_MIN)
-						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S2_MAX + (double)0.1;
-					tmp_LED.ADD_SUNSET_Value -= (double)0.1;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S2_MAX + 1;
+					tmp_LED.ADD_SUNSET_Value -= 1;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3711,8 +3725,8 @@ int main(void) {
 					if (tmp_LED.TYPE_Value == WHITE_LED) {
 						sprintf(tmp_str, "IR");
 						tmp_LED.TYPE_Value = IR_LED;
-						tmp_LED.NIGHT_BLINK_Value = 0.0;
-						tmp_LED.DAY_BLINK_Value = 0.0;
+						tmp_LED.NIGHT_BLINK_Value = 0;
+						tmp_LED.DAY_BLINK_Value = 0;
 						create_formLEDS2(1, text_pos, &tmp_LED);
 					} else {
 						sprintf(tmp_str, "WHITE");
@@ -3728,25 +3742,25 @@ int main(void) {
 								tmp_LED.DAY_BRIGHTNESS_Value + 100;
 					tmp_LED.DAY_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
 					{
-					if (tmp_LED.DAY_BLINK_Value < ((double)BLINK_MIN+(double)1.0))
-						tmp_LED.DAY_BLINK_Value = (double)BLINK_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.DAY_BLINK_Value-=(double)1.0;
+					if (tmp_LED.DAY_BLINK_Value < (BLINK_MIN+10))
+						tmp_LED.DAY_BLINK_Value = BLINK_MAX+tmp_LED.DAY_BLINK_Value;
+					tmp_LED.DAY_BLINK_Value-=10;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
 					if (tmp_LED.ADD_SUNRISE_Value
-							< ((double) ADD_SUNRISE_S2_MIN + (double)1.0))
-						tmp_LED.ADD_SUNRISE_Value = (double)ADD_SUNRISE_S1_MAX-(double)ADD_SUNRISE_S2_MIN
-								+ (double)tmp_LED.ADD_SUNRISE_Value;
-					tmp_LED.ADD_SUNRISE_Value -= (double)1.0;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+							< ( ADD_SUNRISE_S2_MIN + 10))
+						tmp_LED.ADD_SUNRISE_Value = ADD_SUNRISE_S1_MAX-ADD_SUNRISE_S2_MIN
+								+ tmp_LED.ADD_SUNRISE_Value;
+					tmp_LED.ADD_SUNRISE_Value -= 10;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					break;
 				case 6:
 					if (tmp_LED.NIGHT_BRIGHTNESS_Value < 10)
@@ -3754,27 +3768,27 @@ int main(void) {
 								tmp_LED.NIGHT_BRIGHTNESS_Value + 100;
 					tmp_LED.NIGHT_BRIGHTNESS_Value -= 10;
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 7:
 					if(tmp_LED.TYPE_Value==WHITE_LED)
 					{
-					if (tmp_LED.NIGHT_BLINK_Value < ((double)BLINK_MIN+(double)1.0))
-						tmp_LED.NIGHT_BLINK_Value = (double)BLINK_MAX+tmp_LED.DAY_BLINK_Value;
-					tmp_LED.NIGHT_BLINK_Value-=(double)1.0;
+					if (tmp_LED.NIGHT_BLINK_Value < (BLINK_MIN+10))
+						tmp_LED.NIGHT_BLINK_Value = BLINK_MAX+tmp_LED.NIGHT_BLINK_Value;
+					tmp_LED.NIGHT_BLINK_Value-=10;
 					}
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
 					if (tmp_LED.ADD_SUNSET_Value
-							< ((double) ADD_SUNSET_S2_MIN + (double)1.0))
-						tmp_LED.ADD_SUNSET_Value = (double)ADD_SUNSET_S2_MAX-(double)ADD_SUNRISE_S2_MIN
-								+ (double)tmp_LED.ADD_SUNSET_Value;
-					tmp_LED.ADD_SUNSET_Value -= (double)1.0;
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+							< ( ADD_SUNSET_S2_MIN + 10))
+						tmp_LED.ADD_SUNSET_Value = ADD_SUNSET_S2_MAX-ADD_SUNRISE_S2_MIN
+								+ tmp_LED.ADD_SUNSET_Value;
+					tmp_LED.ADD_SUNSET_Value -= 10;
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -3797,7 +3811,7 @@ int main(void) {
 				switch (index_option) {
 				case 0:	//OK
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 1:	//CANCEL
@@ -3822,28 +3836,28 @@ int main(void) {
 				case 4:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 5:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 7:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				case 8:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 
 					break;
 				}
@@ -3884,30 +3898,30 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -3961,30 +3975,30 @@ int main(void) {
 				case 2:
 					sprintf(tmp_str, "%03d", tmp_LED.DAY_BRIGHTNESS_Value);
 					index_option = 3;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 3:
-					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.DAY_BLINK_Value/10.0);
 					index_option = 4;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.DAY_BRIGHTNESS_Value, tmp_LED.DAY_BLINK_Value/10.0);
 					break;
 				case 4:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNRISE_Value/10.0);
 					index_option = 5;
 
 					break;
 				case 5:
 					sprintf(tmp_str, "%03d", tmp_LED.NIGHT_BRIGHTNESS_Value);
 					index_option = 6;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 6:
-					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value);
+					sprintf(tmp_str, "%4.1f", tmp_LED.NIGHT_BLINK_Value/10.0);
 					index_option = 7;
-					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value);
+					pca9632_setbrighnessblinking(LEDS2, tmp_LED.NIGHT_BRIGHTNESS_Value, tmp_LED.NIGHT_BLINK_Value/10.0);
 					break;
 				case 7:
-					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value);
+					sprintf(tmp_str, "%+3.1f", tmp_LED.ADD_SUNSET_Value/10.0);
 					index_option = 8;
 					break;
 				case 8:
@@ -4044,10 +4058,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					break;
 				case 4:
-					tmp_Relay1.Temperature[0]+=0.1;
+					tmp_Relay1.Temperature[0]+=1;
 					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
 						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 					break;
 
 				case 5:
@@ -4070,10 +4084,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
 					break;
 				case 6:
-					tmp_Relay1.Temperature[1]+=0.1;
+					tmp_Relay1.Temperature[1]+=1;
 					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
 						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 
 					break;
 				case 7:
@@ -4098,10 +4112,10 @@ int main(void) {
 
 					break;
 				case 8:
-					tmp_Relay2.Temperature[0]+=0.1;
+					tmp_Relay2.Temperature[0]+=1;
 					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
 						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 					break;
 				case 9:
 					if(tmp_Relay2.Edge[1]=='U')
@@ -4125,10 +4139,10 @@ int main(void) {
 					break;
 				case 10:
 
-					tmp_Relay2.Temperature[1]+=0.1;
+					tmp_Relay2.Temperature[1]+=1;
 					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
-						tmp_Relay2.Temperature[10] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						tmp_Relay2.Temperature[1] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -4179,10 +4193,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					break;
 				case 4:
-					tmp_Relay1.Temperature[0]+=10.0;
+					tmp_Relay1.Temperature[0]+=100;
 					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
 						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 					break;
 
 				case 5:
@@ -4205,10 +4219,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
 					break;
 				case 6:
-					tmp_Relay1.Temperature[1]+=10.0;
+					tmp_Relay1.Temperature[1]+=100;
 					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
 						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 
 					break;
 				case 7:
@@ -4233,10 +4247,10 @@ int main(void) {
 
 					break;
 				case 8:
-					tmp_Relay2.Temperature[0]+=10.0;
+					tmp_Relay2.Temperature[0]+=100;
 					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
 						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 					break;
 				case 9:
 					if(tmp_Relay2.Edge[1]=='U')
@@ -4260,10 +4274,10 @@ int main(void) {
 					break;
 				case 10:
 
-					tmp_Relay2.Temperature[1]+=10.0;
+					tmp_Relay2.Temperature[1]+=100;
 					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
-						tmp_Relay2.Temperature[10] = TEMPERATURE_MIN;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						tmp_Relay2.Temperature[1] = TEMPERATURE_MIN;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -4314,10 +4328,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					break;
 				case 4:
-					tmp_Relay1.Temperature[0]-=0.1;
+					tmp_Relay1.Temperature[0]-=1;
 					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
 						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 					break;
 
 				case 5:
@@ -4340,10 +4354,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
 					break;
 				case 6:
-					tmp_Relay1.Temperature[1]-=0.1;
+					tmp_Relay1.Temperature[1]-=1;
 					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
 						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 
 					break;
 				case 7:
@@ -4368,10 +4382,10 @@ int main(void) {
 
 					break;
 				case 8:
-					tmp_Relay2.Temperature[0]-=0.1;
+					tmp_Relay2.Temperature[0]-=1;
 					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
 						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 					break;
 				case 9:
 					if(tmp_Relay2.Edge[1]=='U')
@@ -4395,10 +4409,10 @@ int main(void) {
 					break;
 				case 10:
 
-					tmp_Relay2.Temperature[1]-=0.1;
+					tmp_Relay2.Temperature[1]-=1;
 					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
-						tmp_Relay2.Temperature[10] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						tmp_Relay2.Temperature[1] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -4449,10 +4463,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
 					break;
 				case 4:
-					tmp_Relay1.Temperature[0]-=10.0;
+					tmp_Relay1.Temperature[0]-=100;
 					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
 						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 					break;
 
 				case 5:
@@ -4475,10 +4489,10 @@ int main(void) {
 					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
 					break;
 				case 6:
-					tmp_Relay1.Temperature[1]-=10.0;
+					tmp_Relay1.Temperature[1]-=100;
 					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
 						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 
 					break;
 				case 7:
@@ -4503,10 +4517,10 @@ int main(void) {
 
 					break;
 				case 8:
-					tmp_Relay2.Temperature[0]-=10.0;
+					tmp_Relay2.Temperature[0]-=100;
 					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
 						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 					break;
 				case 9:
 					if(tmp_Relay2.Edge[1]=='U')
@@ -4530,10 +4544,10 @@ int main(void) {
 					break;
 				case 10:
 
-					tmp_Relay2.Temperature[1]-=10.0;
+					tmp_Relay2.Temperature[1]-=100;
 					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
-						tmp_Relay2.Temperature[10] = TEMPERATURE_MAX;
-					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						tmp_Relay2.Temperature[1] = TEMPERATURE_MAX;
+					sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -4558,7 +4572,7 @@ int main(void) {
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 					if(tmp_Relay2.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 						index_option = 10;
 					}
 					else
@@ -4593,7 +4607,7 @@ int main(void) {
 				case 5:
 					if(tmp_Relay1.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 						index_option = 4;
 					}
 					else
@@ -4609,7 +4623,7 @@ int main(void) {
 				case 7:
 					if(tmp_Relay1.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 						index_option = 6;
 					}
 					else
@@ -4625,7 +4639,7 @@ int main(void) {
 				case 9:
 					if(tmp_Relay2.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 						index_option = 8;
 					}
 					else
@@ -4680,7 +4694,7 @@ int main(void) {
 				case 3:
 					if(tmp_Relay1.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 						index_option = 4;
 					}
 					else
@@ -4697,7 +4711,7 @@ int main(void) {
 				case 5:
 					if(tmp_Relay1.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 						index_option = 6;
 					}
 					else
@@ -4713,7 +4727,7 @@ int main(void) {
 				case 7:
 					if(tmp_Relay1.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 						index_option = 8;
 					}
 					else
@@ -4729,7 +4743,7 @@ int main(void) {
 				case 9:
 					if(tmp_Relay2.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 						index_option = 10;
 					}
 					else
@@ -4783,7 +4797,7 @@ int main(void) {
 				case 3:
 					if(tmp_Relay1.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0]/10.0);
 						index_option = 4;
 					}
 					else
@@ -4800,7 +4814,7 @@ int main(void) {
 				case 5:
 					if(tmp_Relay1.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1]/10.0);
 						index_option = 6;
 					}
 					else
@@ -4816,7 +4830,7 @@ int main(void) {
 				case 7:
 					if(tmp_Relay1.active[0])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0]/10.0);
 						index_option = 8;
 					}
 					else
@@ -4832,7 +4846,7 @@ int main(void) {
 				case 9:
 					if(tmp_Relay2.active[1])
 					{
-						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]);
+						sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1]/10.0);
 						index_option = 10;
 					}
 					else
@@ -5080,9 +5094,289 @@ int main(void) {
 			break;
 			/////////////////////////////////////CHANGEPASS_MENU/////////////////////////////////////////////////
 		case CHANGEPASS_MENU:
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
+							- 2] + 1;
+					if (tmp_pass[index_option - 2] > '9' && tmp_pass[index_option - 2] < 'A')
+						tmp_pass[index_option - 2] = 'A';
+					else if (tmp_pass[index_option - 2] > 'Z' && tmp_pass[index_option - 2] < 'a')
+						tmp_pass[index_option - 2] = 'a';
+					if (tmp_pass[index_option - 2] > 'z')
+						tmp_pass[index_option - 2] = '0';
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+					tmp_confirmpass[index_option - 6] = (char) tmp_confirmpass[index_option
+							- 6] + 1;
+					if (tmp_confirmpass[index_option - 6] > '9' && tmp_confirmpass[index_option - 6] < 'A')
+						tmp_confirmpass[index_option - 6] = 'A';
+					else if (tmp_confirmpass[index_option - 6] > 'Z' && tmp_confirmpass[index_option - 6] < 'a')
+						tmp_confirmpass[index_option - 6] = 'a';
+					if (tmp_confirmpass[index_option - 6] > 'z')
+						tmp_confirmpass[index_option - 6] = '0';
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6] );
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
+							- 2] - 1;
+					if (tmp_pass[index_option - 2] < '0')
+						tmp_pass[index_option - 2] = 'z';
+					else if (tmp_pass[index_option - 2] < 'a' && tmp_pass[index_option - 2] > 'Z')
+						tmp_pass[index_option - 2] = 'Z' ;
+					else if (tmp_pass[index_option - 2] < 'A' && tmp_pass[index_option - 2] > '9')
+						tmp_pass[index_option - 2] = '9' ;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+
+					break;
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+					tmp_confirmpass[index_option - 6] = (char) tmp_confirmpass[index_option
+							- 6] - 1;
+					if (tmp_confirmpass[index_option - 6] < '0')
+						tmp_confirmpass[index_option - 6] = 'z';
+					else if (tmp_confirmpass[index_option - 6] < 'a' && tmp_confirmpass[index_option - 6] > 'Z')
+						tmp_confirmpass[index_option - 6] = 'Z' ;
+					else if (tmp_confirmpass[index_option - 6] < 'A' && tmp_confirmpass[index_option - 6] > '9')
+						tmp_confirmpass[index_option - 6] = '9' ;
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch(index_option)
+				{
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					index_option = 1;
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							0, 0);
+					index_option = 2;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 2:
+				case 3:
+				case 4:
+					index_option++;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+					index_option++;
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6] );
+					break;
+				case 9:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					index_option = 0;
+					break;
+				}
+				if(index_option>1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch(index_option)
+				{
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0,
+							0);
+
+					index_option = 9;
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6] );
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							0, 0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 0;
+					break;
+				case 2:
+					index_option = 1;
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					break;
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+					index_option--;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 7:
+				case 8:
+				case 9:
+					index_option--;
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6] );
+					break;
+				}
+				if(index_option>1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if(index_option>1)
+				{
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+					glcd_refresh();
+				}
+				switch (index_option) {
+				case 0:	//OK
+						//save in eeprom
+					if (strcmp(tmp_pass, tmp_confirmpass)) {
+						bounding_box_t tmp_box = { .x1 = 50, .x2 = 127, .y1 = 51,
+								.y2 = 63 };
+						text_cell(&tmp_box, 0, "not same!", Tahoma8,
+								CENTER_ALIGN, 0, 0);
+						glcd_refresh();
+						HAL_Delay(2000);
+						sprintf(tmp_pass,"****");
+						sprintf(tmp_confirmpass,"****");
+						create_formChangepass(1, text_pos, tmp_pass,tmp_confirmpass);
+						index_option = 2;
+						sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+					} else {
+						strncpy(PASSWORD_Value,tmp_pass,5);
+						create_menu(0, 1, text_pos);
+						index_option = 0;
+						MENU_state = OPTION_MENU;
+					}
+					break;
+				case 1:					//CANCEL
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+				case 3:
+				case 4:
+					index_option++;
+					sprintf(tmp_str,"%c",tmp_pass[index_option - 2] );
+					break;
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+					index_option++;
+					sprintf(tmp_str,"%c",tmp_confirmpass[index_option - 6] );
+					break;
+				case 9:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN,
+							1, 1);
+					index_option = 0;
+					break;
+				}
+				if(index_option>1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+
+			}
+			break;
+			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
+		case COPY_MENU:
+			break;
+			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
+		case UPGRADE_MENU:
 			break;
 		}
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////END SWITCH//////////////////////////////////////////////////////
 #if __LWIP__
 		MX_LWIP_Process();
 #endif

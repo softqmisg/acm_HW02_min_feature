@@ -42,7 +42,7 @@
 
 
 HAL_StatusTypeDef tmp275_init(uint8_t ch);
-HAL_StatusTypeDef tmp275_readTemperature(uint8_t ch,double *temperature);
+HAL_StatusTypeDef tmp275_readTemperature(uint8_t ch,int16_t *Temperature);
 HAL_StatusTypeDef tmp275_setResolution(uint8_t ch,uint8_t res);	//1 = 9bit, 2 = 10bit, 3 = 11bit, 4 = 12bit
 
 #endif /* INC_TMP275_H_ */

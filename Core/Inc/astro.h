@@ -31,7 +31,7 @@ typedef struct
 {
 	uint8_t deg;
 	uint8_t min;
-	double  second;
+	uint16_t  second; //*100
 	char direction;
 } POS_t;
 Time_t addtime(Time_t t1,Time_t t2);

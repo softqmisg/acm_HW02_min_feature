@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 double POS2double(POS_t pos)
 {
-	double r=(double)pos.deg+(double)pos.min/60.0+(double)pos.second/3600.0;
+	double r=(double)pos.deg+(double)pos.min/60.0+(double)pos.second/100.00/3600.0;
 	if(pos.direction=='S' || pos.direction=='W')
 		r=-r;
 	return r;
@@ -19,24 +19,26 @@ double POS2double(POS_t pos)
 POS_t latdouble2POS(double lat)
 {
 	POS_t pos;
+	double tmp;
 	if(lat<0) { pos.direction='S'; lat=-lat;}
 	else pos.direction='N';
 	pos.deg=(uint8_t)lat;
-	pos.second=(double)(lat-(double)pos.deg)*3600.0;
-	pos.min=(uint8_t)((double)pos.second/60);
-	pos.second=pos.second-(double)pos.min*60;
+	tmp=(double)(lat-(double)pos.deg)*3600.0;
+	pos.min=(uint8_t)((double)tmp/60.0);
+	pos.second=(uint16_t)(((double)tmp-(double)pos.min*60)*100);
 	return pos;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 POS_t longdouble2POS(double lon)
 {
 	POS_t pos;
+	double tmp;
 	if(lon<0) { pos.direction='W'; lon=-lon;}
 	else pos.direction='E';
 	pos.deg=(uint8_t)lon;
-	pos.second=(double)(lon-(double)pos.deg)*3600.0;
-	pos.min=(uint8_t)((double)pos.second/60);
-	pos.second=pos.second-(double)pos.min*60;
+	tmp=(double)(lon-(double)pos.deg)*3600.0;
+	pos.min=(uint8_t)((double)tmp/60.0);
+	pos.second=(uint16_t)(((double)tmp-(double)pos.min*60)*100);
 	return pos;
 }
 

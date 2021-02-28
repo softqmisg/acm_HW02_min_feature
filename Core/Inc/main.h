@@ -109,24 +109,24 @@ void Error_Handler(void);
 #define __DEBUG__	1
 #define __LWIP__	1
 
-#define BLINK_MAX	10// second
+#define BLINK_MAX	100// second *10 =>blink_max= 10s
 #define BLINK_MIN	0 //blinkoff
 
 
-#define ADD_SUNRISE_S1_MAX	2.0
-#define ADD_SUNRISE_S1_MIN	-2.0
+#define ADD_SUNRISE_S1_MAX	20 //*10
+#define ADD_SUNRISE_S1_MIN	-20 //*10
 
-#define ADD_SUNSET_S1_MAX	2.0
-#define ADD_SUNSET_S1_MIN	-2.0
+#define ADD_SUNSET_S1_MAX	20 //*10
+#define ADD_SUNSET_S1_MIN	-20 //*10
 
-#define ADD_SUNRISE_S2_MAX	2.0
-#define ADD_SUNRISE_S2_MIN	-2.0
+#define ADD_SUNRISE_S2_MAX	20 //10
+#define ADD_SUNRISE_S2_MIN	-20 //10
 
-#define ADD_SUNSET_S2_MAX	2.0
-#define ADD_SUNSET_S2_MIN	-2.0
+#define ADD_SUNSET_S2_MAX	20 //10
+#define ADD_SUNSET_S2_MIN	-20 //10
 
-#define TEMPERATURE_MAX		125.0
-#define TEMPERATURE_MIN		-40.0
+#define TEMPERATURE_MAX		1000 //*10
+#define TEMPERATURE_MIN		-400 //*10
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
