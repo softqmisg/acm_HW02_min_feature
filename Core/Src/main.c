@@ -79,6 +79,27 @@ typedef struct
 #define IR_LED		1
 
 #define FORM_DELAY_SHOW	4
+////////////////send  code to  bootloader////////////////////////////////
+#define WRITE_FROM_SD			1// write from SD with never downgrade
+#define WRITE_FROM_USB			2//write from USB with never downgrade
+#define FORCE_WRITE_FROM_SD		3//write from SD with forced to flash
+#define FORCE_WRITE_FROM_USB		4//write from USB with force to flash
+
+///////////////return codes to application from bootloader/////////////////////////////
+#define	MEM_NOT_PRESENT			1
+#define	MEM_MOUNT_FAIL			2
+#define	FILE_OPEN_FAIL			3
+#define	FILE_READ_FAIL			4
+#define	FLASH_ERASE_FAIL			5
+#define	FLASH_WRITE_FAIL			6
+#define	FLASH_CHECKVERSION_FAIL		7
+#define	FLASH_CHECKSIZE_FAIL		8
+#define	FLASH_VERIFY_FAIL			9
+#define	FLASH_CHECKSUM_FAIL			10
+#define	FLASH_WRITE_OK			11
+//////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t __attribute__((section(".newsection")))  sharedmem;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -1279,6 +1300,7 @@ void create_formChangepass(uint8_t clear, bounding_box_t *text_pos, char*  tmp_p
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 /* USER CODE END 0 */
