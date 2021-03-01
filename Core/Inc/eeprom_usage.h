@@ -8,6 +8,7 @@
 #ifndef INC_EEPROM_USAGE_H_
 #define INC_EEPROM_USAGE_H_
 #include "eeprom.h"
+#include "main.h"
 //////////////////////////////////Address of variable in EEPROM///////////////////////////////////////
 #define		ADD_LAT_deg						0
 #define		ADD_LAT_min						1
@@ -57,6 +58,7 @@
 #define 	ADD_PASSWORD_3					38
 
 #define 	ADD_DOOR						39
+#define 	ADD_UTC_OFF						40
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
 #define		DEFAULT_LAT_min						42
@@ -67,6 +69,7 @@
 #define 	DEFAULT_LONG_min					23
 #define 	DEFAULT_LONG_second					5316
 #define 	DEFAULT_LONG_direction				'E'
+#define 	DEFAULT_UTC_OFF						35
 
 #define 	DEFAULT_S1_LED_TYPE					WHITE_LED
 #define 	DEFAULT_S1_LED_DAY_BRIGHTNESS		0
@@ -109,5 +112,6 @@
 ///////////////////////////////////////////////////////////////////////////////////
 
 uint16_t VirtAddVarTab[NB_OF_VAR];
+void Write_defaults(void);
 
 #endif /* INC_EEPROM_USAGE_H_ */

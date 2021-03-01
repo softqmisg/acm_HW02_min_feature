@@ -98,7 +98,7 @@ void glcd_pixel(unsigned char x, unsigned char y, unsigned char colour) {
 			glcd_buffer[array_pos] &= 0xFF ^ 1 << (y % 8);
 		}
 	} else {
-		unsigned short array_pos = (x/8 + (y * glcd_width)/8);
+		unsigned short array_pos = (x / 8 + (y * glcd_width) / 8);
 		if (colour) {
 			glcd_buffer[array_pos] |= 1 << (x % 8);
 		} else {
@@ -149,23 +149,20 @@ void glcd_refresh() {
 #ifdef ST7565_REVERSE
 		if (!glcd_flipped) {
 #else
-		if (glcd_flipped == 0 ||glcd_flipped==2) {
+		if (glcd_flipped == 0 || glcd_flipped == 2) {
 #endif
 			glcd_command(GLCD_CMD_COLUMN_LOWER | 4);
 		} else {
 			glcd_command(GLCD_CMD_COLUMN_LOWER);
 		}
 		glcd_command(GLCD_CMD_COLUMN_UPPER);
-		if(glcd_flipped == 0 ||glcd_flipped==1)
-		{
-		for (int x = 0; x < 128; x++) {
-			glcd_data(glcd_buffer[y * glcd_width + x]);
-		}
-		}
-		else
-		{
+		if (glcd_flipped == 0 || glcd_flipped == 1) {
 			for (int x = 0; x < 128; x++) {
-				glcd_data(glcd_buffer[y  + x*glcd_width/8]);
+				glcd_data(glcd_buffer[y * glcd_width + x]);
+			}
+		} else {
+			for (int x = 0; x < 128; x++) {
+				glcd_data(glcd_buffer[y + x * glcd_width / 8]);
 			}
 		}
 

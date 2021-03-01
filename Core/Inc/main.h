@@ -127,6 +127,26 @@ void Error_Handler(void);
 
 #define TEMPERATURE_MAX		1000 //*10
 #define TEMPERATURE_MIN		-400 //*10
+
+#define WHITE_LED	0
+#define IR_LED		1
+
+typedef struct {
+	uint8_t TYPE_Value;
+	uint16_t DAY_BRIGHTNESS_Value;
+	uint8_t DAY_BLINK_Value;
+	uint16_t NIGHT_BRIGHTNESS_Value;
+	uint8_t NIGHT_BLINK_Value;
+	int8_t ADD_SUNRISE_Value;
+	int8_t ADD_SUNSET_Value;
+
+} LED_t;
+typedef struct
+{
+	int16_t Temperature[2];
+	char Edge[2];
+	uint8_t active[2];
+} RELAY_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

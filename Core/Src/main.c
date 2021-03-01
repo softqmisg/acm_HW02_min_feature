@@ -51,35 +51,18 @@
 #include "pca9632.h"
 #include "eeprom.h"
 #include "eeprom_usage.h"
-#include "tt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct {
-	uint8_t TYPE_Value;
-	uint16_t DAY_BRIGHTNESS_Value;
-	uint8_t DAY_BLINK_Value;
-	uint16_t NIGHT_BRIGHTNESS_Value;
-	uint8_t NIGHT_BLINK_Value;
-	int8_t ADD_SUNRISE_Value;
-	int8_t ADD_SUNSET_Value;
 
-} LED_t;
-typedef struct
-{
-	int16_t Temperature[2];
-	char Edge[2];
-	uint8_t active[2];
-} RELAY_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define WHITE_LED	0
-#define IR_LED		1
 
-#define FORM_DELAY_SHOW	4
+
+#define FORM_DELAY_SHOW	6
 ////////////////send  code to  bootloader////////////////////////////////
 #define WRITE_FROM_SD				1// write from SD with never downgrade
 #define WRITE_FROM_USB				2//write from USB with never downgrade
@@ -235,59 +218,7 @@ POS_t LAT_Value;
 POS_t LONG_Value;
 char PASSWORD_Value[5];
 uint16_t DOOR_Value;
-/////////////////////////////////////read value of parameter from eeprom///////////////////////////////
-void update_values(void) {
-	uint16_t tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LAT_deg], &tmp);LAT_Value.deg=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LAT_min],&tmp); LAT_Value.min=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LAT_second],&tmp); LAT_Value.second=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LAT_direction],&tmp);LAT_Value.direction=(char)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_LONG_deg], &tmp);LONG_Value.deg=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LONG_min],&tmp);LONG_Value.min=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LONG_second],&tmp);LONG_Value.second=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_LONG_direction],&tmp);LONG_Value.direction=(char)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_TYPE], &tmp);S1_LED_Value.TYPE_Value=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],&tmp);S1_LED_Value.DAY_BRIGHTNESS_Value=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],&tmp);S1_LED_Value.DAY_BLINK_Value=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],&tmp);S1_LED_Value.NIGHT_BRIGHTNESS_Value=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], &tmp);S1_LED_Value.NIGHT_BLINK_Value=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],&tmp);S1_LED_Value.ADD_SUNRISE_Value=(int8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],&tmp);S1_LED_Value.ADD_SUNSET_Value=(int8_t)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_TYPE], &tmp);S2_LED_Value.TYPE_Value=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],&tmp);S2_LED_Value.DAY_BRIGHTNESS_Value=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],&tmp);S2_LED_Value.DAY_BLINK_Value =(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],&tmp);S2_LED_Value.NIGHT_BRIGHTNESS_Value=(uint16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], &tmp);S2_LED_Value.NIGHT_BLINK_Value=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],&tmp);S2_LED_Value.ADD_SUNRISE_Value=(int8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],&tmp);S2_LED_Value.ADD_SUNSET_Value=(int8_t)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_TEC_STATE], &tmp);TEC_STATE_Value=(uint8_t)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],&tmp);RELAY1_Value.Temperature[0]=(int16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge0],&tmp);RELAY1_Value.Edge[0]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active0],&tmp);RELAY1_Value.active[0]=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], &tmp);RELAY1_Value.Temperature[1]=(int16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge1],&tmp);RELAY1_Value.Edge[1]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active1],&tmp);RELAY1_Value.active[1]=(uint8_t)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],&tmp);RELAY2_Value.Temperature[0]=(int16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge0],&tmp);RELAY2_Value.Edge[0]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active0],&tmp);RELAY2_Value.active[0]=(uint8_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], &tmp);RELAY2_Value.Temperature[1]=(int16_t)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge1],&tmp);RELAY2_Value.Edge[1]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active1],&tmp);RELAY2_Value.active[1]=(uint8_t)tmp;
-
-	PASSWORD_Value[4] = 0;
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_0],&tmp);PASSWORD_Value[0]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_1],&tmp);PASSWORD_Value[1]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_2],&tmp);PASSWORD_Value[2]=(char)tmp;
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_3], &tmp);PASSWORD_Value[3]=(char)tmp;
-
-	EE_ReadVariable(VirtAddVarTab[ADD_DOOR],&tmp);DOOR_Value=(uint16_t)tmp;
-}
+int8_t UTC_OFF_Value;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 		uint8_t row, uint8_t col, char colour, bounding_box_t *box) {
@@ -709,16 +640,20 @@ void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
 	pos_[0].x2 = pos_[0].x1 + 42;
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 4, 1, pos_);
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 1, 1, pos_);
 	for(uint8_t i=0;i<4;i++)
-		text_pos[i+2]=text_cell(pos_, i, "*", Tahoma16, CENTER_ALIGN, 0, 0);
+	{
+		pos_[0].x1=i*32;
+		pos_[0].x2=(i+1)*32-1;
+		text_pos[i+2]=text_cell(pos_, 0, "*", Tahoma16, CENTER_ALIGN, 0, 0);
+	}
 
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formposition(uint8_t clear, bounding_box_t *text_pos,POS_t tmp_lat,POS_t tmp_long) {
+void create_formposition(uint8_t clear, bounding_box_t *text_pos,POS_t tmp_lat,POS_t tmp_long,int16_t utc_off) {
 	char tmp_str[40];
-	bounding_box_t pos_[2];
+	bounding_box_t pos_[3];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -733,15 +668,18 @@ void create_formposition(uint8_t clear, bounding_box_t *text_pos,POS_t tmp_lat,P
 	pos_[0].x2 = pos_[0].x1 + 42;
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 50, 64 - pos_[0].y2, 2, 1, 1, pos_);
+	create_cell(0, pos_[0].y2, 50, 64 - pos_[0].y2, 3, 1, 1, pos_);
 	pos_[0].x1 = 0;
 	pos_[0].x2 = 50;
 	text_cell(pos_, 0, "Latitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 	pos_[1].x1 = 0;
 	pos_[1].x2 = 50;
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
+	pos_[2].x1 = 0;
+	pos_[2].x2 = 68;
+	text_cell(pos_, 2, "UTC Offset:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(50, pos_[0].y1, 128 - 50, 64 - pos_[0].y1, 2, 1, 1, pos_);
+	create_cell(50, pos_[0].y1, 128 - 50, 64 - pos_[0].y1, 3, 1, 1, pos_);
 
 	sprintf(tmp_str, "%02d", tmp_lat.deg);
 	pos_[0].x1 = 52;
@@ -791,6 +729,10 @@ void create_formposition(uint8_t clear, bounding_box_t *text_pos,POS_t tmp_lat,P
 	text_pos[9] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 //    text_pos[9].x1=pos_[1].x1;text_pos[9].x2=pos_[1].x2;text_pos[9].y1=pos_[1].y1;text_pos[9].y2=pos_[1].y2;
 
+	sprintf(tmp_str,"%+4.1f",utc_off/10.0);
+	pos_[2].x1 = 70;
+	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
+	text_pos[10] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 
 	glcd_refresh();
@@ -1367,6 +1309,7 @@ int app_main(void) {
 	char tmp_pass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	char tmp_confirmpass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	POS_t tmp_lat, tmp_long;
+	int16_t tmp_utcoff;
 	double tmp_dlat,tmp_dlong;
 	RTC_TimeTypeDef tmp_time;
 	RTC_DateTypeDef tmp_Date;
@@ -1523,54 +1466,7 @@ int app_main(void) {
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
-		EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], DEFAULT_LAT_deg);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],DEFAULT_LAT_min);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],DEFAULT_LAT_second);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],DEFAULT_LAT_direction);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg], DEFAULT_LONG_deg);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],DEFAULT_LONG_min);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],DEFAULT_LONG_second);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],DEFAULT_LONG_direction);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE], DEFAULT_S1_LED_TYPE);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],DEFAULT_S1_LED_DAY_BRIGHTNESS);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],DEFAULT_S1_LED_DAY_BLINK);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],DEFAULT_S1_LED_NIGHT_BRIGHTNESS);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], DEFAULT_S1_LED_NIGHT_BLINK);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],DEFAULT_S1_LED_ADD_SUNRISE);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],DEFAULT_S1_LED_ADD_SUNSET);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE], DEFAULT_S2_LED_TYPE);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],DEFAULT_S2_LED_DAY_BRIGHTNESS);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],DEFAULT_S2_LED_DAY_BLINK);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],DEFAULT_S2_LED_NIGHT_BRIGHTNESS);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], DEFAULT_S2_LED_NIGHT_BLINK);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],DEFAULT_S2_LED_ADD_SUNRISE);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],DEFAULT_S2_LED_ADD_SUNSET);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], DEFAULT_TEC_STATE);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],DEFAULT_RELAY1_Temperature0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],DEFAULT_RELAY1_Edge0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],DEFAULT_RELAY1_active0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], DEFAULT_RELAY1_Temperature1);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],DEFAULT_RELAY1_Edge1);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],DEFAULT_RELAY1_active1);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],DEFAULT_RELAY2_Temperature0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],DEFAULT_RELAY2_Edge0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],DEFAULT_RELAY2_active0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], DEFAULT_RELAY2_Temperature1);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],DEFAULT_RELAY2_Edge1);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],DEFAULT_RELAY2_active1);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],DEFAULT_PASSWORD_0);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],DEFAULT_PASSWORD_1);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],DEFAULT_PASSWORD_2);HAL_Delay(50);
-		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3], DEFAULT_PASSWORD_3);HAL_Delay(50);
-
-		EE_WriteVariable(VirtAddVarTab[ADD_DOOR],DEFAULT_DOOR);HAL_Delay(50);
-
+		Write_defaults();
 	}
 	update_values();
 	//////////////////////////////////////////////////////////////////////////////////
@@ -1619,7 +1515,7 @@ int app_main(void) {
 				{
 					tmp_dlat=POS2double(LAT_Value);
 					tmp_dlong=POS2double(LONG_Value);
-					Astro_sunRiseSet(tmp_dlat, tmp_dlong, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
+					Astro_sunRiseSet(tmp_dlat, tmp_dlong,UTC_OFF_Value/10.0, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
 				}
 				if(Astro_CheckDayNight(cur_time,cur_sunrise,cur_sunset,S1_LED_Value.ADD_SUNRISE_Value/10.0,S1_LED_Value.ADD_SUNSET_Value/10.0)==ASTRO_DAY)
 				{
@@ -1668,7 +1564,7 @@ int app_main(void) {
 				case DISP_IDLE:
 					tmp_dlat=POS2double(LAT_Value);
 					tmp_dlong=POS2double(LONG_Value);
-					Astro_sunRiseSet(tmp_dlat, tmp_dlong, +3.5, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
+					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value/10.0, cur_date_t, &cur_sunrise, &cur_noon,&cur_sunset, 1);
 					create_form1(1);
 					DISP_state = DISP_FORM1;
 					break;
@@ -1980,7 +1876,8 @@ int app_main(void) {
 				case POSITION_MENU:
 					tmp_lat=LAT_Value;
 					tmp_long=LONG_Value;
-					create_formposition(1, text_pos, tmp_lat, tmp_long);
+					tmp_utcoff=UTC_OFF_Value;
+					create_formposition(1, text_pos, tmp_lat, tmp_long,tmp_utcoff);
 					index_option = 2;
 
 					sprintf(tmp_str, "%02d", tmp_lat.deg);
@@ -2144,6 +2041,12 @@ int app_main(void) {
 						tmp_long.direction = 'W';
 					sprintf(tmp_str, "%c", tmp_long.direction);
 					break;
+				case 10:
+					tmp_utcoff+=1;
+					if(tmp_utcoff>120)
+						tmp_utcoff=-120;
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
+					break;
 				}
 				if (index_option > 1)
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
@@ -2214,6 +2117,12 @@ int app_main(void) {
 					else
 						tmp_long.direction = 'W';
 					sprintf(tmp_str, "%c", tmp_long.direction);
+					break;
+				case 10:
+					tmp_utcoff+=10;
+					if(tmp_utcoff>120)
+						tmp_utcoff=-120;
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
 					break;
 				}
 				if (index_option > 1)
@@ -2288,6 +2197,12 @@ int app_main(void) {
 						tmp_long.direction = 'W';
 					sprintf(tmp_str, "%c", tmp_long.direction);
 					break;
+				case 10:
+					tmp_utcoff-=1;
+					if(tmp_utcoff<-120)
+						tmp_utcoff=120;
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
+					break;
 				}
 				if (index_option > 1)
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
@@ -2360,6 +2275,12 @@ int app_main(void) {
 						tmp_long.direction = 'W';
 					sprintf(tmp_str, "%c", tmp_long.direction);
 					break;
+				case 10:
+					tmp_utcoff-=10;
+					if(tmp_utcoff<-120)
+						tmp_utcoff=120;
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
+					break;
 				}
 				if (index_option > 1)
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
@@ -2383,9 +2304,9 @@ int app_main(void) {
 				switch (index_option) {
 				case 0:	//OK
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					sprintf(tmp_str, "%+4.1f", tmp_utcoff/10.0);
+					index_option = 10;
 
-					sprintf(tmp_str, "%c", tmp_long.direction);
-					index_option = 9;
 					break;
 				case 1:	//CANCEL
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
@@ -2430,6 +2351,10 @@ int app_main(void) {
 				case 9:
 					sprintf(tmp_str, "%05.2f\"", tmp_long.second/100.0);
 					index_option = 8;
+					break;
+				case 10:
+					sprintf(tmp_str, "%c", tmp_long.direction);
+					index_option = 9;
 					break;
 				}
 				if (index_option > 1) {
@@ -2492,6 +2417,10 @@ int app_main(void) {
 					index_option = 9;
 					break;
 				case 9:
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
+					index_option = 10;
+					break;
+				case 10:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
@@ -2519,6 +2448,7 @@ int app_main(void) {
 						//save in eeprom
 					LAT_Value = tmp_lat;
 					LONG_Value = tmp_long;
+					UTC_OFF_Value=tmp_utcoff;
 
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], &LAT_Value.deg);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],&LAT_Value.min);
@@ -2529,7 +2459,7 @@ int app_main(void) {
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],&LONG_Value.min);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],&LONG_Value.second);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],&LONG_Value.direction);
-
+					EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF],&UTC_OFF_Value);
 
 					create_menu(0, 1, text_pos);
 					index_option = 0;
@@ -2569,6 +2499,10 @@ int app_main(void) {
 					index_option = 9;
 					break;
 				case 9:
+					sprintf(tmp_str,"%+4.1f",tmp_utcoff/10.0);
+					index_option = 10;
+					break;
+				case 10:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
