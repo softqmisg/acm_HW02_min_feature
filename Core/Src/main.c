@@ -51,6 +51,7 @@
 #include "pca9632.h"
 #include "eeprom.h"
 #include "eeprom_usage.h"
+#include "tt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
