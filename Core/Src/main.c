@@ -49,7 +49,8 @@
 #include "libbmp.h"
 #include "joystick.h"
 #include "pca9632.h"
-
+#include "eeprom.h"
+#include "eeprom_usage.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,7 +71,6 @@ typedef struct
 	char Edge[2];
 	uint8_t active[2];
 } RELAY_t;
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -80,23 +80,23 @@ typedef struct
 
 #define FORM_DELAY_SHOW	4
 ////////////////send  code to  bootloader////////////////////////////////
-#define WRITE_FROM_SD			1// write from SD with never downgrade
-#define WRITE_FROM_USB			2//write from USB with never downgrade
-#define FORCE_WRITE_FROM_SD		3//write from SD with forced to flash
+#define WRITE_FROM_SD				1// write from SD with never downgrade
+#define WRITE_FROM_USB				2//write from USB with never downgrade
+#define FORCE_WRITE_FROM_SD			3//write from SD with forced to flash
 #define FORCE_WRITE_FROM_USB		4//write from USB with force to flash
 
 ///////////////return codes to application from bootloader/////////////////////////////
-#define	MEM_NOT_PRESENT			1
-#define	MEM_MOUNT_FAIL			2
-#define	FILE_OPEN_FAIL			3
-#define	FILE_READ_FAIL			4
+#define	MEM_NOT_PRESENT				1
+#define	MEM_MOUNT_FAIL				2
+#define	FILE_OPEN_FAIL				3
+#define	FILE_READ_FAIL				4
 #define	FLASH_ERASE_FAIL			5
 #define	FLASH_WRITE_FAIL			6
 #define	FLASH_CHECKVERSION_FAIL		7
 #define	FLASH_CHECKSIZE_FAIL		8
 #define	FLASH_VERIFY_FAIL			9
 #define	FLASH_CHECKSUM_FAIL			10
-#define	FLASH_WRITE_OK			11
+#define	FLASH_WRITE_OK				11
 //////////////////////////////////////////////////////////////////////////////////////////////
 uint32_t __attribute__((section(".newsection")))  sharedmem;
 
@@ -236,57 +236,56 @@ char PASSWORD_Value[5];
 uint16_t DOOR_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
-	LAT_Value.deg=35;
-	LAT_Value.min=43;
-	LAT_Value.second=870;
-	LAT_Value.direction='N';
+	uint16_t tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LAT_deg], &tmp);LAT_Value.deg=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LAT_min],&tmp); LAT_Value.min=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LAT_second],&tmp); LAT_Value.second=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LAT_direction],&tmp);LAT_Value.direction=(char)tmp;
 
-	LONG_Value.deg=51;
-	LONG_Value.min=23;
-	LONG_Value.second=5316;
-	LONG_Value.direction='E';
+	EE_ReadVariable(VirtAddVarTab[ADD_LONG_deg], &tmp);LONG_Value.deg=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LONG_min],&tmp);LONG_Value.min=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LONG_second],&tmp);LONG_Value.second=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_LONG_direction],&tmp);LONG_Value.direction=(char)tmp;
 
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_TYPE], &tmp);S1_LED_Value.TYPE_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],&tmp);S1_LED_Value.DAY_BRIGHTNESS_Value=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],&tmp);S1_LED_Value.DAY_BLINK_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],&tmp);S1_LED_Value.NIGHT_BRIGHTNESS_Value=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], &tmp);S1_LED_Value.NIGHT_BLINK_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],&tmp);S1_LED_Value.ADD_SUNRISE_Value=(int8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],&tmp);S1_LED_Value.ADD_SUNSET_Value=(int8_t)tmp;
 
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_TYPE], &tmp);S2_LED_Value.TYPE_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],&tmp);S2_LED_Value.DAY_BRIGHTNESS_Value=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],&tmp);S2_LED_Value.DAY_BLINK_Value =(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],&tmp);S2_LED_Value.NIGHT_BRIGHTNESS_Value=(uint16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], &tmp);S2_LED_Value.NIGHT_BLINK_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],&tmp);S2_LED_Value.ADD_SUNRISE_Value=(int8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],&tmp);S2_LED_Value.ADD_SUNSET_Value=(int8_t)tmp;
 
-	S1_LED_Value.TYPE_Value = WHITE_LED;
-	S1_LED_Value.DAY_BRIGHTNESS_Value = 0;
-	S1_LED_Value.DAY_BLINK_Value = 5;
-	S1_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
-	S1_LED_Value.NIGHT_BLINK_Value = 0;
-	S1_LED_Value.ADD_SUNRISE_Value = 15;
-	S1_LED_Value.ADD_SUNSET_Value = -10;
+	EE_ReadVariable(VirtAddVarTab[ADD_TEC_STATE], &tmp);TEC_STATE_Value=(uint8_t)tmp;
 
-	S2_LED_Value.TYPE_Value = IR_LED;
-	S2_LED_Value.DAY_BRIGHTNESS_Value = 0;
-	S2_LED_Value.DAY_BLINK_Value = 0;
-	S2_LED_Value.NIGHT_BRIGHTNESS_Value = 80;
-	S2_LED_Value.NIGHT_BLINK_Value = 0;
-	S2_LED_Value.ADD_SUNRISE_Value = 15;
-	S2_LED_Value.ADD_SUNSET_Value = -10;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],&tmp);RELAY1_Value.Temperature[0]=(int16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge0],&tmp);RELAY1_Value.Edge[0]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active0],&tmp);RELAY1_Value.active[0]=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], &tmp);RELAY1_Value.Temperature[1]=(int16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge1],&tmp);RELAY1_Value.Edge[1]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active1],&tmp);RELAY1_Value.active[1]=(uint8_t)tmp;
 
-	TEC_STATE_Value = 1;
-	RELAY1_Value.Temperature[0] = 331;
-	RELAY1_Value.Edge[0] = 'U';
-	RELAY1_Value.active[0]=1;
-	RELAY1_Value.Temperature[1] = 0;
-	RELAY1_Value.Edge[1] = '-';
-	RELAY1_Value.active[1]=0;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],&tmp);RELAY2_Value.Temperature[0]=(int16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge0],&tmp);RELAY2_Value.Edge[0]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active0],&tmp);RELAY2_Value.active[0]=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], &tmp);RELAY2_Value.Temperature[1]=(int16_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge1],&tmp);RELAY2_Value.Edge[1]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active1],&tmp);RELAY2_Value.active[1]=(uint8_t)tmp;
 
-	RELAY2_Value.Temperature[0] = 331;
-	RELAY2_Value.Edge[0] = 'D';
-	RELAY2_Value.active[0]=1;
-	RELAY2_Value.Temperature[1] = 351;
-	RELAY2_Value.Edge[1] = 'U';
-	RELAY2_Value.active[1]=1;
-
-
-	PASSWORD_Value[0] = '0';
-	PASSWORD_Value[1] = '0';
-	PASSWORD_Value[2] = '0';
-	PASSWORD_Value[3] = '0';
 	PASSWORD_Value[4] = 0;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_0],&tmp);PASSWORD_Value[0]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_1],&tmp);PASSWORD_Value[1]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_2],&tmp);PASSWORD_Value[2]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_3], &tmp);PASSWORD_Value[3]=(char)tmp;
 
-	DOOR_Value=1200;
+	EE_ReadVariable(VirtAddVarTab[ADD_DOOR],&tmp);DOOR_Value=(uint16_t)tmp;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
@@ -1309,7 +1308,7 @@ void create_formChangepass(uint8_t clear, bounding_box_t *text_pos, char*  tmp_p
  * @brief  The application entry point.
  * @retval int
  */
-int main(void) {
+int app_main(void) {
 	/* USER CODE BEGIN 1 */
 
 	/* USER CODE END 1 */
@@ -1510,12 +1509,66 @@ int main(void) {
 			!= HAL_OK) {
 		Error_Handler();
 	}
-	/////////////////////////////eeprom reading//////////////////////////////////////////////////////
+	/////////////////////////////eeprom writing defaults & reading//////////////////////////////////////////////////////
+	for (uint8_t i=0;i<NB_OF_VAR;i++)
+		VirtAddVarTab[i]=i*2+20;
+	HAL_FLASH_Unlock();
+	if(EE_Init()==HAL_OK)
+		printf("eeprom_OK\n\r");
+	else
+		printf("eeprom_error\n\r");
 	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)) {
 #if !(__DEBUG__)
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+		EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], DEFAULT_LAT_deg);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],DEFAULT_LAT_min);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],DEFAULT_LAT_second);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],DEFAULT_LAT_direction);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg], DEFAULT_LONG_deg);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],DEFAULT_LONG_min);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],DEFAULT_LONG_second);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],DEFAULT_LONG_direction);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE], DEFAULT_S1_LED_TYPE);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],DEFAULT_S1_LED_DAY_BRIGHTNESS);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],DEFAULT_S1_LED_DAY_BLINK);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],DEFAULT_S1_LED_NIGHT_BRIGHTNESS);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], DEFAULT_S1_LED_NIGHT_BLINK);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],DEFAULT_S1_LED_ADD_SUNRISE);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],DEFAULT_S1_LED_ADD_SUNSET);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE], DEFAULT_S2_LED_TYPE);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],DEFAULT_S2_LED_DAY_BRIGHTNESS);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],DEFAULT_S2_LED_DAY_BLINK);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],DEFAULT_S2_LED_NIGHT_BRIGHTNESS);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], DEFAULT_S2_LED_NIGHT_BLINK);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],DEFAULT_S2_LED_ADD_SUNRISE);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],DEFAULT_S2_LED_ADD_SUNSET);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], DEFAULT_TEC_STATE);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],DEFAULT_RELAY1_Temperature0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],DEFAULT_RELAY1_Edge0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],DEFAULT_RELAY1_active0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], DEFAULT_RELAY1_Temperature1);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],DEFAULT_RELAY1_Edge1);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],DEFAULT_RELAY1_active1);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],DEFAULT_RELAY2_Temperature0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],DEFAULT_RELAY2_Edge0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],DEFAULT_RELAY2_active0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], DEFAULT_RELAY2_Temperature1);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],DEFAULT_RELAY2_Edge1);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],DEFAULT_RELAY2_active1);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],DEFAULT_PASSWORD_0);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],DEFAULT_PASSWORD_1);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],DEFAULT_PASSWORD_2);HAL_Delay(50);
+		EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3], DEFAULT_PASSWORD_3);HAL_Delay(50);
+
+		EE_WriteVariable(VirtAddVarTab[ADD_DOOR],DEFAULT_DOOR);HAL_Delay(50);
 
 	}
 	update_values();
@@ -2465,6 +2518,18 @@ int main(void) {
 						//save in eeprom
 					LAT_Value = tmp_lat;
 					LONG_Value = tmp_long;
+
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], &LAT_Value.deg);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],&LAT_Value.min);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],&LAT_Value.second);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],&LAT_Value.direction);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg], &LONG_Value.deg);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],&LONG_Value.min);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],&LONG_Value.second);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],&LONG_Value.direction);
+
+
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3435,7 +3500,20 @@ int main(void) {
 					{
 						S2_LED_Value.DAY_BLINK_Value=S1_LED_Value.DAY_BLINK_Value;
 						S2_LED_Value.NIGHT_BLINK_Value=S1_LED_Value.NIGHT_BLINK_Value;
+						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],S2_LED_Value.DAY_BLINK_Value);
+						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], S2_LED_Value.NIGHT_BLINK_Value);
 					}
+
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE], S1_LED_Value.TYPE_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],S1_LED_Value.DAY_BRIGHTNESS_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],S1_LED_Value.DAY_BLINK_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],S1_LED_Value.NIGHT_BRIGHTNESS_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], S1_LED_Value.NIGHT_BLINK_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],S1_LED_Value.ADD_SUNRISE_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],S1_LED_Value.ADD_SUNSET_Value);
+
+
+
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3984,7 +4062,20 @@ int main(void) {
 					{
 						S1_LED_Value.DAY_BLINK_Value=S2_LED_Value.DAY_BLINK_Value;
 						S1_LED_Value.NIGHT_BLINK_Value=S2_LED_Value.NIGHT_BLINK_Value;
+						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],S1_LED_Value.DAY_BLINK_Value);
+						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK], S1_LED_Value.NIGHT_BLINK_Value);
 					}
+
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE], S2_LED_Value.TYPE_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],S2_LED_Value.DAY_BRIGHTNESS_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],S2_LED_Value.DAY_BLINK_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],S2_LED_Value.NIGHT_BRIGHTNESS_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK], S2_LED_Value.NIGHT_BLINK_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],S2_LED_Value.ADD_SUNRISE_Value);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],S2_LED_Value.ADD_SUNSET_Value);
+
+
+
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -4803,6 +4894,23 @@ int main(void) {
 					TEC_STATE_Value=tmp_TEC_STATE;
 					RELAY1_Value=tmp_Relay1;
 					RELAY2_Value=tmp_Relay2;
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], TEC_STATE_Value);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],RELAY1_Value.Temperature[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],RELAY1_Value.Edge[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],RELAY1_Value.active[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],RELAY1_Value.Temperature[1]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],RELAY1_Value.Edge[1]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],RELAY1_Value.active[1]);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],RELAY2_Value.Temperature[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],RELAY2_Value.Edge[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],RELAY2_Value.active[0]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], RELAY2_Value.Temperature[1]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],RELAY2_Value.Edge[1]);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],RELAY2_Value.active[1]);
+
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -5092,6 +5200,7 @@ int main(void) {
 				case 0:	//OK
 						//save in eeprom
 					DOOR_Value = tmp_door;
+					EE_WriteVariable(VirtAddVarTab[ADD_DOOR],DOOR_Value);
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -5355,6 +5464,11 @@ int main(void) {
 						glcd_refresh();
 					} else {
 						strncpy(PASSWORD_Value,tmp_pass,5);
+						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],PASSWORD_Value[0]);
+						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],PASSWORD_Value[1]);
+						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],PASSWORD_Value[2]);
+						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3], PASSWORD_Value[3]);
+
 						create_menu(0, 1, text_pos);
 						index_option = 0;
 						MENU_state = OPTION_MENU;
