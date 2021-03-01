@@ -224,7 +224,7 @@ enum {
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
-		"SET Relay", "SET Door", "COPY USB","UGRADE","SET PASS", "Exit" };
+		"SET Relay", "SET Door", "Copy USB","Upgrade","SET PASS", "Exit" };
 
 
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
