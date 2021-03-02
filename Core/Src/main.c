@@ -1456,14 +1456,20 @@ int app_main(void)
 		printf("eeprom_OK\n\r");
 	else
 		printf("eeprom_error\n\r");
-	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)) {
+	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050) || HAL_GPIO_ReadPin(BTN2_GPIO_Port,BTN2_Pin)==0) {
 #if !(__DEBUG__)
 		HAL_IWDG_Refresh(&hiwdg);
 #endif
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+		glcd_blank();
+		create_cell(0, 0, 128, 64, 1, 1, 1, text_pos);
+		text_cell(text_pos, 0, "Loading defaults", Tahoma8, CENTER_ALIGN, 0, 0);
+		glcd_refresh();
 		Write_defaults();
+
 	}
 	update_values();
+
 	///////////////////////Check SD_CARD size & log folder/////////////////////////////////
 		while (!USBH_MSC_IsReady(&hUsbHostHS)) {
 			printf("wait for usb detection\n\r");
