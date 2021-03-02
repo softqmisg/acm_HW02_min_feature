@@ -51,6 +51,7 @@
 #include "pca9632.h"
 #include "eeprom.h"
 #include "eeprom_usage.h"
+#include "log_file.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -131,50 +132,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
 	}
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-FRESULT file_write_USB(char *path, char *wstr) {
-	uint32_t byteswritten;
-	FIL myfile;
-	FRESULT fr;
-	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	if ((fr = f_open(&myfile, (const TCHAR*) path, FA_OPEN_APPEND | FA_WRITE))
-			!= FR_OK) {
-		HAL_Delay(1000);
-
-	}
-	if ((fr = f_write(&myfile, wstr, strlen(wstr), (void*) &byteswritten))
-			!= FR_OK) {
-		HAL_Delay(1000);
-	}
-	f_close(&myfile);
-	f_mount(&USBHFatFS, "", 1);
-	return fr;
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-FRESULT file_write_SD(char *path, char *wstr) {
-
-	uint32_t byteswritten;
-	FIL myfile;
-	FRESULT fr;
-	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-		HAL_Delay(1000);
-	}
-	if ((fr = f_open(&myfile, (const TCHAR*) path, FA_OPEN_APPEND | FA_WRITE))
-			!= FR_OK) {
-		HAL_Delay(1000);
-
-	}
-	if ((fr = f_write(&myfile, wstr, strlen(wstr), (void*) &byteswritten))
-			!= FR_OK) {
-		HAL_Delay(1000);
-	}
-	f_close(&myfile);
-	f_mount(0, "", 1);
-	return fr;
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END PFP */
 
@@ -536,9 +493,10 @@ void create_form4(uint8_t clear,Time_t cur_sunrise,Time_t cur_sunset) {
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form5(uint8_t clear) {
+void create_form6(uint8_t clear) {
 	char tmp_str[40];
 	bounding_box_t pos_[4];
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
@@ -568,12 +526,51 @@ void create_form5(uint8_t clear) {
 	pos_[1].x1 = 1;
 	pos_[1].x2 = 70;
 	text_cell(pos_, 1, "Outside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
+	////
+//	FATFS *fs1,*fs2;
+	DWORD fre_clust, fre_sect, tot_sect;
+	FRESULT res;
+
+	if((res=f_mount(&SDFatFS, (TCHAR const*) SDPath, 1))!=FR_OK)
+	{
+	    sprintf(tmp_str,"--/--");
+	}
+	else
+	{
+	    tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
+	    fre_sect = SDFatFS.free_clst * SDFatFS.csize;
+	    sprintf(tmp_str,"%5lu/%5lu",fre_sect / 2048,tot_sect / 2048);
+	}
+	pos_[2].x1 = 67;
+	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[2].x1 = 1;
+	pos_[2].x2 = 65;
+	text_cell(pos_, 2, "Sd Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
+	f_mount(&SDFatFS, "", 1);
+	//////
+	if((res=f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1))!=FR_OK)
+	{
+	    sprintf(tmp_str,"--/--");
+
+	}
+	else
+	{
+	    tot_sect = (USBHFatFS.n_fatent - 2) * USBHFatFS.csize;
+	    fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
+	    sprintf(tmp_str,"%5lu/%5lu",fre_sect / 2048,tot_sect / 2048);
+	}
+	f_mount(&USBHFatFS, "", 1);
+	pos_[3].x1 = 67;
+	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+	pos_[3].x1 = 1;
+	pos_[3].x2 = 65;
+	text_cell(pos_, 3, "Usb Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form6(uint8_t clear) {
+void create_form5(uint8_t clear) {
 	char tmp_str[40];
 	bounding_box_t pos_[6];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1248,49 +1245,50 @@ void create_formChangepass(uint8_t clear, bounding_box_t *text_pos, char*  tmp_p
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int app_main(void) {
-	/* USER CODE BEGIN 1 */
+  * @brief  The application entry point.
+  * @retval int
+  */
+int app_main(void)
+{
+  /* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_I2C3_Init();
-	MX_TIM4_Init();
-	MX_RTC_Init();
-	MX_SDIO_SD_Init();
-	MX_FATFS_Init();
-	MX_USB_DEVICE_Init();
-	MX_USART2_UART_Init();
-	MX_USART3_UART_Init();
-	MX_USB_HOST_Init();
-#if __LWIP__
-	MX_LWIP_Init();
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_I2C3_Init();
+  MX_TIM4_Init();
+  MX_RTC_Init();
+  MX_SDIO_SD_Init();
+  MX_FATFS_Init();
+  MX_USB_DEVICE_Init();
+  MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
+  MX_USB_HOST_Init();
+#if (__LWIP__)
+  MX_LWIP_Init();
 #endif
 #if !(__DEBUG__)
   MX_IWDG_Init();
 #endif
-	/* USER CODE BEGIN 2 */
+  /* USER CODE BEGIN 2 */
 	/////////////////////////
   	uint8_t flag_change_form;
   	uint8_t counter_change_form = 0;
@@ -1360,9 +1358,6 @@ int app_main(void) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
 	///////////////////////initialize & checking sensors///////////////////////////////////////
-//	create_cell(0, 0, 128, 13, 1, 2, 1, pos_);
-//	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 + pos_[0].y1, 4, 2, 1,
-//			&pos_[2]);
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
@@ -1469,6 +1464,152 @@ int app_main(void) {
 		Write_defaults();
 	}
 	update_values();
+	///////////////////////Check SD_CARD size & log folder/////////////////////////////////
+		while (!USBH_MSC_IsReady(&hUsbHostHS)) {
+			printf("wait for usb detection\n\r");
+			MX_USB_HOST_Process();
+		}
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,+25.1,-32.1,-28.1,-4.9,+51.5,-48.1,+11.1,-21.9\n",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+			cur_time.Seconds);
+	if(Log_file(USB_DRIVE, TEMPERATURE_FILE, tmp_str)!=FR_OK)
+		printf("writing log error\n\r");
+//	MX_USB_HOST_Process();
+
+	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+		printf("writing log error\n\r");
+//	MX_USB_HOST_Process();
+
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+
+	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,+00.0,-32.1,-28.1,-4.9,+51.5,-48.1,+11.1,-21.9\n",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+			cur_time.Seconds);
+	if(Log_file(USB_DRIVE, TEMPERATURE_FILE, tmp_str)!=FR_OK)
+		printf("writing log error\n\r");
+//	MX_USB_HOST_Process();
+
+	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+		printf("writing log error\n\r");
+
+	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+		printf("writing log error\n\r");
+
+//	MX_USB_HOST_Process();
+
+//    DWORD fre_clust, fre_sect, tot_sect;
+//	FILINFO fno;
+//	FATFS *fs;
+//	while (!USBH_MSC_IsReady(&hUsbHostHS)) {
+//		printf("wait for usb detection\n\r");
+//		MX_USB_HOST_Process();
+//	}
+//	fr = f_stat("1:/log2", &fno);
+//	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+//		printf("error mount USBH\n\r");
+//	} else {
+//        if((fr=f_getfree("1:", &fre_clust, &fs))!=HAL_OK)
+//        {
+//        	printf("error f_getfree USBH\n\r");
+//        }
+//        tot_sect = (fs->n_fatent - 2) * fs->csize;
+//        fre_sect = fre_clust * fs->csize;
+//        printf("%10lu KiB total drive space.\n\r%10lu KiB available.\n\r", tot_sect / 2, fre_sect / 2);
+////        f_mount(&USBHFatFS, "", 1);
+////        f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1);
+//	    fr = f_stat("1:/log2", &fno);
+//	    switch (fr) {
+//
+//	    case FR_OK:
+//	        printf("Size: %lu\n", fno.fsize);
+//	        printf("Timestamp: %u/%02u/%02u, %02u:%02u\n",
+//	               (fno.fdate >> 9) + 2000, fno.fdate >> 5 & 15, fno.fdate & 31,
+//	               fno.ftime >> 11, fno.ftime >> 5 & 63);
+//	        printf("Attributes: %c%c%c%c%c\n",
+//	               (fno.fattrib & AM_DIR) ? 'D' : '-',
+//	               (fno.fattrib & AM_RDO) ? 'R' : '-',
+//	               (fno.fattrib & AM_HID) ? 'H' : '-',
+//	               (fno.fattrib & AM_SYS) ? 'S' : '-',
+//	               (fno.fattrib & AM_ARC) ? 'A' : '-');
+//	        break;
+//
+//	    case FR_NO_FILE:
+//
+//	        printf("It is not exist.\n\r");
+//	        if(f_chdrive("1:")!=HAL_OK)
+//	        {
+//	        	printf("error f_mkdir USBH (%d)\n\r",fr);
+//	        }
+//	        if((fr=f_mkdir("1:log2"))!=HAL_OK)
+//	        {
+//	        	printf("error f_mkdir USBH (%d)\n\r",fr);
+//	        }
+//	        if((fr=file_write_USB("1:/log2/test1.txt","create\n"))!=HAL_OK)
+//	        {
+//	        	printf("error file_write_USB USBH\n\r");
+//	        }
+//
+//	        if(file_write_USB("1:/log2/test1.txt","write\n")!=HAL_OK)
+//	        {
+//	        	printf("error file_write_USB1 USBH\n\r");
+//	        }
+//	        if( f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)!=HAL_OK)
+//	        {
+//	        	printf("error f_mount USBH\n\r");
+//	        }
+//	        if(f_getfree("1:", &fre_clust, &fs)!=HAL_OK)
+//	        {
+//	        	printf("error f_getfree USBH\n\r");
+//	        }
+//	        tot_sect = (fs->n_fatent - 2) * fs->csize;
+//	        fre_sect = fre_clust * fs->csize;
+//	        printf("%10lu KiB total drive space.\n\r%10lu KiB available.\n\r", tot_sect / 2, fre_sect / 2);
+////	        f_mount(&USBHFatFS, "", 1);
+////	        f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1);
+//	        fr = f_stat("1:/log2/test1.txt", &fno);
+//		    switch (fr) {
+//
+//		    case FR_OK:
+//		        printf("Size: %lu\n", fno.fsize);
+//		        printf("Timestamp: %u/%02u/%02u, %02u:%02u\n",
+//		               (fno.fdate >> 9) + 2000, fno.fdate >> 5 & 15, fno.fdate & 31,
+//		               fno.ftime >> 11, fno.ftime >> 5 & 63);
+//		        printf("Attributes: %c%c%c%c%c\n",
+//		               (fno.fattrib & AM_DIR) ? 'D' : '-',
+//		               (fno.fattrib & AM_RDO) ? 'R' : '-',
+//		               (fno.fattrib & AM_HID) ? 'H' : '-',
+//		               (fno.fattrib & AM_SYS) ? 'S' : '-',
+//		               (fno.fattrib & AM_ARC) ? 'A' : '-');
+//		        break;
+//		    }
+//	        break;
+//
+//	    default:
+//	        printf("An error occured. (%d)\n", fr);
+//	    }
+//	}
+//	fr = f_stat("1:/log2", &fno);
+//	f_mount(&USBHFatFS, "", 1);
+//	 f_mount(&SDFatFS, (TCHAR const*) SDPath, 1);
+//	 fr = f_stat("0:/log2", &fno);
+//	 f_mount(&SDFatFS, "", 1);
+
 	//////////////////////////////////////////////////////////////////////////////////
 	joystick_init(Key_ALL, Both_press);
 	flag_change_form = 1;
@@ -5456,103 +5597,109 @@ int app_main(void) {
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 	}
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
-		MX_USB_HOST_Process();
+    /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
-			| RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 25;
-	RCC_OscInitStruct.PLL.PLLN = 336;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 7;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
-		Error_Handler();
-	}
-	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-	PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
 
-/**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM1 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	/* USER CODE BEGIN Callback 0 */
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM1) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
 	if (htim->Instance == TIM1 && joystick_state() == jostick_initialized) {
 		joystick_read(Key_ALL, no_press);
 	}
-	/* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
