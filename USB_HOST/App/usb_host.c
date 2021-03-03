@@ -59,7 +59,12 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
  * -- Insert your external function declaration here --
  */
 /* USER CODE BEGIN 1 */
+void MX_USB_HOST_DeInit(void)
+{
+	USBH_Stop(&hUsbHostHS);
+	USBH_DeInit(&hUsbHostHS);
 
+}
 /* USER CODE END 1 */
 
 /**

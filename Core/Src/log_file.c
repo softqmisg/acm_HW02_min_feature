@@ -201,10 +201,10 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	//////////////////////unmounting drive//////////////////////////////////
 	switch (drv) {
 	case SDCARD_DRIVE:
-		f_mount(&SDFatFS, "0:", 1);
+		f_mount(NULL, "0:", 1);
 		break;
 	case USB_DRIVE:
-		f_mount(&USBHFatFS, "1:", 1);
+		f_mount(NULL, "1:", 1);
 		break;
 	}
 	return fr;

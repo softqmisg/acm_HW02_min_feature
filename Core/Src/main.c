@@ -576,7 +576,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	pos_[2].x1 = 1;
 	pos_[2].x2 = 65;
 	text_cell(pos_, 2, "Sd Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
-	f_mount(&SDFatFS, "0:", 1);
+	f_mount(NULL, "0:", 1);
 	//////
 	if ((res = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
 		sprintf(tmp_str, "--/--");
@@ -586,7 +586,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 		fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
 		sprintf(tmp_str, "%5lu/%5lu", fre_sect / 2048, tot_sect / 2048);
 	}
-	f_mount(&USBHFatFS, "1:", 1);
+	f_mount(NULL, "1:", 1);
 	pos_[3].x1 = 67;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[3].x1 = 1;
@@ -1258,7 +1258,39 @@ void create_formChangepass(uint8_t clear, bounding_box_t *text_pos,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Peripherials_DeInit(void) {
+	MX_FATFS_DeInit();
 
+	HAL_UART_DeInit(&huart2);
+	HAL_UART_MspDeInit(&huart2);
+
+	HAL_UART_DeInit(&huart3);
+	HAL_UART_MspDeInit(&huart3);
+
+	HAL_I2C_DeInit(&hi2c3);
+	HAL_I2C_MspDeInit(&hi2c3);
+
+	HAL_RTC_DeInit(&hrtc);
+	HAL_RTC_MspDeInit(&hrtc);
+
+	HAL_SD_DeInit(&hsd);
+	HAL_SD_MspDeInit(&hsd);
+
+	f_mount(NULL, "0:", 1);
+	f_mount(NULL, "1:", 1);
+
+	MX_USB_DEVICE_DeInit();
+
+	MX_USB_HOST_DeInit();
+
+	 __HAL_RCC_DMA2_CLK_DISABLE();
+
+	 MX_GPIO_DeInit();
+
+	 __HAL_IWDG_RELOAD_COUNTER(&hiwdg);
+	HAL_FLASH_Lock();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END 0 */
 
 /**
@@ -1367,7 +1399,7 @@ int app_main(void) {
 					img.img_pixels, 1);
 		else
 			printf("bmp file error\n\r");
-		f_mount(&SDFatFS, "0:", 1);
+		f_mount(NULL, "0:", 1);
 		bmp_img_free(&img);
 		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
 		glcd_refresh();
@@ -2210,6 +2242,7 @@ int app_main(void) {
 				case COPY_MENU:
 					break;
 				case UPGRADE_MENU:
+					MENU_state=UPGRADE_MENU;
 					break;
 				case EXIT_MENU:
 //					MENU_state = MAIN_MENU;
@@ -5901,6 +5934,12 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
 		case UPGRADE_MENU:
+			sharedmem = FORCE_WRITE_FROM_USB;
+			Peripherials_DeInit();
+			HAL_Delay(100);
+			SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
+			while (1)
+				;
 			break;
 			/////////////////////////////////////EXIT_MENU/////////////////////////////////////////////////
 		case EXIT_MENU:

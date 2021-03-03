@@ -33,7 +33,6 @@
 #include "usbd_def.h"
 
 /* USER CODE BEGIN INCLUDE */
-
 /* USER CODE END INCLUDE */
 
 /** @addtogroup USBD_OTG_DRIVER
@@ -57,7 +56,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-
+ void MX_USB_DEVICE_DeInit();
 /* USER CODE END PFP */
 
 /*

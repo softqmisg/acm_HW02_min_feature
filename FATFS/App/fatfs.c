@@ -62,7 +62,12 @@ return	((DWORD)c_date.Year << 25 | (DWORD)c_date.Month << 21 | (DWORD)c_date.Dat
 }
 
 /* USER CODE BEGIN Application */
-
+void MX_FATFS_DeInit(void)
+{
+	FATFS_UnLinkDriver(SDPath);
+	FATFS_UnLinkDriver(USBHPath);
+	BSP_SD_DeInit();
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -32,6 +32,7 @@
 #include "stm32f4xx_hal.h"
 
 /* USER CODE BEGIN INCLUDE */
+ void MX_USB_HOST_DeInit(void);
 
 /* USER CODE END INCLUDE */
 

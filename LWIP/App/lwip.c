@@ -47,7 +47,10 @@ uint8_t NETMASK_ADDRESS[4];
 uint8_t GATEWAY_ADDRESS[4];
 
 /* USER CODE BEGIN 2 */
+void MX_LWIP_DeInit()
+{
 
+}
 /* USER CODE END 2 */
 
 /**

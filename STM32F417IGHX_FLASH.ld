@@ -164,7 +164,10 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM
-
+  .newsection (NOLOAD) :
+  {
+  	KEEP(*(.newsection));
+  } > CCMRAM 
   /* Remove information from the compiler libraries */
   /DISCARD/ :
   {

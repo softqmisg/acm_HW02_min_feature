@@ -303,6 +303,42 @@ __weak uint8_t BSP_SD_IsDetected(void)
 
 /* USER CODE BEGIN AdditionalCode */
 /* user code can be inserted here */
+uint8_t BSP_SD_DeInit(void)
+{
+    /* HAL SD de-initialization */
+    HAL_SD_DeInit(&hsd);
+
+    /* Msp SD de-initialization */
+    HAL_SD_MspDeInit(&hsd);
+
+    /* SDMMC Reset */
+    __HAL_RCC_SDIO_FORCE_RESET();
+    __HAL_RCC_SDIO_RELEASE_RESET();
+
+    /* Misc */
+    hsd.State               = HAL_SD_STATE_RESET;
+    hsd.Context             = 0;
+    hsd.ErrorCode           = 0;
+    hsd.SdCard.CardType     = 0;
+    hsd.SdCard.CardVersion  = 0;
+    hsd.SdCard.Class        = 0;
+    hsd.SdCard.RelCardAdd   = 0;
+    hsd.SdCard.BlockNbr     = 0;
+    hsd.SdCard.BlockSize    = 0;
+    hsd.SdCard.LogBlockNbr  = 0;
+    hsd.SdCard.LogBlockSize = 0;
+    hsd.CSD[0]              = 0;
+    hsd.CSD[1]              = 0;
+    hsd.CSD[2]              = 0;
+    hsd.CSD[3]              = 0;
+    hsd.CID[0]              = 0;
+    hsd.CID[1]              = 0;
+    hsd.CID[2]              = 0;
+    hsd.CID[3]              = 0;
+
+    return MSD_OK;
+}
+
 /* USER CODE END AdditionalCode */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
