@@ -1,0 +1,150 @@
+garbage_codes
+ Created on: Mar 3, 2021
+     Author: Administrator
+//	///////////////////////Check SD_CARD size & log folder/////////////////////////////////
+//		while (!USBH_MSC_IsReady(&hUsbHostHS)) {
+//			printf("wait for usb detection\n\r");
+//			MX_USB_HOST_Process();
+//		}
+//	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+//	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+//	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,+25.1,-32.1,-28.1,-4.9,+51.5,-48.1,+11.1,-21.9\n",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+//			cur_time.Seconds);
+//	if(Log_file(USB_DRIVE, TEMPERATURE_FILE, tmp_str)!=FR_OK)
+//		printf("writing log error\n\r");
+////	MX_USB_HOST_Process();
+//
+//	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+//			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+//			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+//			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+//			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+//	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+//		printf("writing log error\n\r");
+////	MX_USB_HOST_Process();
+//
+//	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+//	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+//
+//	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,+00.0,-32.1,-28.1,-4.9,+51.5,-48.1,+11.1,-21.9\n",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+//			cur_time.Seconds);
+//	if(Log_file(USB_DRIVE, TEMPERATURE_FILE, tmp_str)!=FR_OK)
+//		printf("writing log error\n\r");
+////	MX_USB_HOST_Process();
+//
+//	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+//			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+//			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+//			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+//			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+//	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+//		printf("writing log error\n\r");
+//
+//	sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+//			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+//			cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
+//			LAT_Value.deg,LAT_Value.min,LAT_Value.second/100.0,LAT_Value.direction,
+//			LONG_Value.deg,LONG_Value.min,LONG_Value.second/100.0,LONG_Value.direction);
+//	if(Log_file(USB_DRIVE, POSITIONPARAMETER_FILE, tmp_str)!=FR_OK)
+//		printf("writing log error\n\r");
+//
+////	MX_USB_HOST_Process();
+//
+////    DWORD fre_clust, fre_sect, tot_sect;
+////	FILINFO fno;
+////	FATFS *fs;
+////	while (!USBH_MSC_IsReady(&hUsbHostHS)) {
+////		printf("wait for usb detection\n\r");
+////		MX_USB_HOST_Process();
+////	}
+////	fr = f_stat("1:/log2", &fno);
+////	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+////		printf("error mount USBH\n\r");
+////	} else {
+////        if((fr=f_getfree("1:", &fre_clust, &fs))!=HAL_OK)
+////        {
+////        	printf("error f_getfree USBH\n\r");
+////        }
+////        tot_sect = (fs->n_fatent - 2) * fs->csize;
+////        fre_sect = fre_clust * fs->csize;
+////        printf("%10lu KiB total drive space.\n\r%10lu KiB available.\n\r", tot_sect / 2, fre_sect / 2);
+//////        f_mount(&USBHFatFS, "", 1);
+//////        f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1);
+////	    fr = f_stat("1:/log2", &fno);
+////	    switch (fr) {
+////
+////	    case FR_OK:
+////	        printf("Size: %lu\n", fno.fsize);
+////	        printf("Timestamp: %u/%02u/%02u, %02u:%02u\n",
+////	               (fno.fdate >> 9) + 2000, fno.fdate >> 5 & 15, fno.fdate & 31,
+////	               fno.ftime >> 11, fno.ftime >> 5 & 63);
+////	        printf("Attributes: %c%c%c%c%c\n",
+////	               (fno.fattrib & AM_DIR) ? 'D' : '-',
+////	               (fno.fattrib & AM_RDO) ? 'R' : '-',
+////	               (fno.fattrib & AM_HID) ? 'H' : '-',
+////	               (fno.fattrib & AM_SYS) ? 'S' : '-',
+////	               (fno.fattrib & AM_ARC) ? 'A' : '-');
+////	        break;
+////
+////	    case FR_NO_FILE:
+////
+////	        printf("It is not exist.\n\r");
+////	        if(f_chdrive("1:")!=HAL_OK)
+////	        {
+////	        	printf("error f_mkdir USBH (%d)\n\r",fr);
+////	        }
+////	        if((fr=f_mkdir("1:log2"))!=HAL_OK)
+////	        {
+////	        	printf("error f_mkdir USBH (%d)\n\r",fr);
+////	        }
+////	        if((fr=file_write_USB("1:/log2/test1.txt","create\n"))!=HAL_OK)
+////	        {
+////	        	printf("error file_write_USB USBH\n\r");
+////	        }
+////
+////	        if(file_write_USB("1:/log2/test1.txt","write\n")!=HAL_OK)
+////	        {
+////	        	printf("error file_write_USB1 USBH\n\r");
+////	        }
+////	        if( f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)!=HAL_OK)
+////	        {
+////	        	printf("error f_mount USBH\n\r");
+////	        }
+////	        if(f_getfree("1:", &fre_clust, &fs)!=HAL_OK)
+////	        {
+////	        	printf("error f_getfree USBH\n\r");
+////	        }
+////	        tot_sect = (fs->n_fatent - 2) * fs->csize;
+////	        fre_sect = fre_clust * fs->csize;
+////	        printf("%10lu KiB total drive space.\n\r%10lu KiB available.\n\r", tot_sect / 2, fre_sect / 2);
+//////	        f_mount(&USBHFatFS, "", 1);
+//////	        f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1);
+////	        fr = f_stat("1:/log2/test1.txt", &fno);
+////		    switch (fr) {
+////
+////		    case FR_OK:
+////		        printf("Size: %lu\n", fno.fsize);
+////		        printf("Timestamp: %u/%02u/%02u, %02u:%02u\n",
+////		               (fno.fdate >> 9) + 2000, fno.fdate >> 5 & 15, fno.fdate & 31,
+////		               fno.ftime >> 11, fno.ftime >> 5 & 63);
+////		        printf("Attributes: %c%c%c%c%c\n",
+////		               (fno.fattrib & AM_DIR) ? 'D' : '-',
+////		               (fno.fattrib & AM_RDO) ? 'R' : '-',
+////		               (fno.fattrib & AM_HID) ? 'H' : '-',
+////		               (fno.fattrib & AM_SYS) ? 'S' : '-',
+////		               (fno.fattrib & AM_ARC) ? 'A' : '-');
+////		        break;
+////		    }
+////	        break;
+////
+////	    default:
+////	        printf("An error occured. (%d)\n", fr);
+////	    }
+////	}
+////	fr = f_stat("1:/log2", &fno);
+////	f_mount(&USBHFatFS, "", 1);
+////	 f_mount(&SDFatFS, (TCHAR const*) SDPath, 1);
+////	 fr = f_stat("0:/log2", &fno);
+////	 f_mount(&SDFatFS, "", 1);
+//
+//	//////////////////////////////////////////////////////////////////////////////////
