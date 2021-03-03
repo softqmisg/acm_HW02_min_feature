@@ -313,7 +313,7 @@ void create_form1(uint8_t clear, int16_t *temperature) {
 
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form2(uint8_t clear,double *voltage,double *current) {
+void create_form2(uint8_t clear, double *voltage, double *current) {
 	HAL_StatusTypeDef result;
 	char tmp_str[40];
 	bounding_box_t pos_[4];
@@ -328,48 +328,48 @@ void create_form2(uint8_t clear,double *voltage,double *current) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH1,7V	//////////////////////////////////////////////////////////
 
-	if(voltage[0]>0.0)
+	if (voltage[0] > 0.0)
 		sprintf(tmp_str, "V=%3.1fv", voltage[0]);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if(voltage[0]>0.0)
+	if (voltage[0] > 0.0)
 		sprintf(tmp_str, "%s     C=%4.2fA", tmp_str, current[0]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH2,12V	//////////////////////////////////////////////////////////
-	if(voltage[1]>0.0)
+	if (voltage[1] > 0.0)
 		sprintf(tmp_str, "V=%3.1fv", voltage[1]);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if(voltage[1]>0.0)
+	if (voltage[1] > 0.0)
 		sprintf(tmp_str, "%s     C=%4.2fA", tmp_str, current);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////CH3,3.3V	//////////////////////////////////////////////////////////
-	if(voltage[2]>0.0)
+	if (voltage[2] > 0.0)
 		sprintf(tmp_str, "V=%3.1fv", voltage[2]);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if(voltage[2]>0.0)
+	if (voltage[2] > 0.0)
 		sprintf(tmp_str, "%s     C=%4.3fA", tmp_str, current[2]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////TEC,12V	//////////////////////////////////////////////////////////
-	if(voltage[3]>0.0)
+	if (voltage[3] > 0.0)
 		sprintf(tmp_str, "V=%3.1fv", voltage[3]);
 	else
 		sprintf(tmp_str, "V=---");
 
-	if(voltage[3]>0.0)
+	if (voltage[3] > 0.0)
 		sprintf(tmp_str, "%s     C=%4.1fA", tmp_str, current[3]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
@@ -529,7 +529,7 @@ void create_form5(uint8_t clear) {
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_form6(uint8_t clear,uint16_t inside_light,uint16_t outside_light) {
+void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) {
 	char tmp_str[40];
 	bounding_box_t pos_[4];
 
@@ -541,7 +541,7 @@ void create_form6(uint8_t clear,uint16_t inside_light,uint16_t outside_light) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128 - 0, 64 - pos_[0].y2 + pos_[0].y1, 4, 1, 1,
 			pos_);
-	if(inside_light!=0xffff)
+	if (inside_light != 0xffff)
 		sprintf(tmp_str, "%05d", inside_light);
 	else
 		sprintf(tmp_str, "----");
@@ -551,7 +551,7 @@ void create_form6(uint8_t clear,uint16_t inside_light,uint16_t outside_light) {
 	pos_[0].x2 = 70;
 	text_cell(pos_, 0, "Inside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	if(outside_light!=0xffff)
+	if (outside_light != 0xffff)
 		sprintf(tmp_str, "%05d", outside_light);
 	else
 		sprintf(tmp_str, "-----");
@@ -576,7 +576,7 @@ void create_form6(uint8_t clear,uint16_t inside_light,uint16_t outside_light) {
 	pos_[2].x1 = 1;
 	pos_[2].x2 = 65;
 	text_cell(pos_, 2, "Sd Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
-	f_mount(&SDFatFS, "", 1);
+	f_mount(&SDFatFS, "0:", 1);
 	//////
 	if ((res = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
 		sprintf(tmp_str, "--/--");
@@ -586,7 +586,7 @@ void create_form6(uint8_t clear,uint16_t inside_light,uint16_t outside_light) {
 		fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
 		sprintf(tmp_str, "%5lu/%5lu", fre_sect / 2048, tot_sect / 2048);
 	}
-	f_mount(&USBHFatFS, "", 1);
+	f_mount(&USBHFatFS, "1:", 1);
 	pos_[3].x1 = 67;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[3].x1 = 1;
@@ -607,44 +607,39 @@ void create_form7(uint8_t clear, FRESULT rlog1, FRESULT rlog2, FRESULT rlog3,
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, pos_[0].y2-pos_[0].y1 , 1, 1, 1,
-			pos_);
-	text_cell(pos_,0,"LOG status",Tahoma8,CENTER_ALIGN,1,1);
+	create_cell(0, pos_[0].y2, 128, pos_[0].y2 - pos_[0].y1, 1, 1, 1, pos_);
+	text_cell(pos_, 0, "LOG status", Tahoma8, CENTER_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2 , 3, 2, 1,
-			pos_);
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 3, 2, 1, pos_);
 
-	if(rlog1!=FR_OK)
-		sprintf(tmp_str,"Temp Err");
+	if (rlog1 != FR_OK)
+		sprintf(tmp_str, "Temp Err");
 	else
-		sprintf(tmp_str,"Temp Ok");
+		sprintf(tmp_str, "Temp Ok");
 	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	if(rlog2!=FR_OK)
-		sprintf(tmp_str,"Volt Err");
+	if (rlog2 != FR_OK)
+		sprintf(tmp_str, "Volt Err");
 	else
-		sprintf(tmp_str,"Volt Ok");
+		sprintf(tmp_str, "Volt Ok");
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-
-	if(rlog3!=FR_OK)
-		sprintf(tmp_str,"Door Err");
+	if (rlog3 != FR_OK)
+		sprintf(tmp_str, "Door Err");
 	else
-		sprintf(tmp_str,"Door Ok");
+		sprintf(tmp_str, "Door Ok");
 	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-
-	if(rlog4!=FR_OK)
-		sprintf(tmp_str,"Llight Err");
+	if (rlog4 != FR_OK)
+		sprintf(tmp_str, "Llight Err");
 	else
-		sprintf(tmp_str,"Light Ok");
+		sprintf(tmp_str, "Light Ok");
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-
-	if(rlog5!=FR_OK)
-		sprintf(tmp_str,"Param Err");
+	if (rlog5 != FR_OK)
+		sprintf(tmp_str, "Param Err");
 	else
-		sprintf(tmp_str,"Param Ok");
+		sprintf(tmp_str, "Param Ok");
 	text_cell(pos_, 4, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1303,18 +1298,19 @@ int app_main(void) {
 	MX_USART2_UART_Init();
 	MX_USART3_UART_Init();
 	MX_USB_HOST_Init();
-#if (__LWIP__)
+#if __LWIP__
 	MX_LWIP_Init();
 #endif
 #if !(__DEBUG__)
+
   MX_IWDG_Init();
 #endif
 	/* USER CODE BEGIN 2 */
 	/////////////////////////
-	uint8_t flag_change_form=0;
+	uint8_t flag_change_form = 0;
 	uint8_t counter_change_form = 0;
-	uint8_t flag_log_data=0;
-	uint8_t counter_log_data=0;
+	uint8_t flag_log_data = 0;
+	uint8_t counter_log_data = 0;
 
 	bounding_box_t pos_[10];
 	char tmp_str[100], tmp_str1[100];
@@ -1340,16 +1336,20 @@ int app_main(void) {
 			r_logdoor = FR_OK, r_logparam = FR_OK;
 
 	uint8_t pre_daylightsaving = 0, cur_daylightsaving = 0;
-	Time_t cur_time_t,cur_sunrise, cur_sunset, cur_noon;
+	Time_t cur_time_t, cur_sunrise, cur_sunset, cur_noon;
 	Date_t cur_date_t;
 	RTC_TimeTypeDef cur_time;
 	RTC_DateTypeDef cur_Date;
 	int16_t cur_temperature[8];
-	double cur_voltage[4],cur_current[4];
-	uint16_t cur_insidelight,cur_outsidelight;
-	uint8_t cur_doorstate=1,prev_doorstate=1;
+	double cur_voltage[4], cur_current[4];
+	uint16_t cur_insidelight, cur_outsidelight;
+	uint8_t cur_doorstate = 1, prev_doorstate = 1;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
+	/////////////////////Turn power off & on USB flash///////////////
+	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_SET); //disable
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_RESET); //enable
 	//////////////////////init LCD//////////
 	glcd_init(128, 64);
 	glcd_flip_screen(XLR_YTB);
@@ -1367,7 +1367,7 @@ int app_main(void) {
 					img.img_pixels, 1);
 		else
 			printf("bmp file error\n\r");
-		f_mount(&SDFatFS, "", 1);
+		f_mount(&SDFatFS, "0:", 1);
 		bmp_img_free(&img);
 		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
 		glcd_refresh();
@@ -1588,128 +1588,120 @@ int app_main(void) {
 	joystick_init(Key_ALL, Both_press);
 	flag_rtc_1s = 1;
 	flag_change_form = 1;
-	flag_rtc_1s_general=1;
-	flag_log_data=1;
+	flag_rtc_1s_general = 1;
+	flag_log_data = 1;
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
-			/////////////////////Read Sensors//////////////////////////////////
+		/////////////////////Read time//////////////////////////////////
 		if (flag_rtc_1s_general) {
 			flag_rtc_1s_general = 0;
 			counter_log_data++;
-			if(counter_log_data>LOG_DATA_DELAY)
-			{
-				counter_log_data=0;
-				flag_log_data=1;
+			if (counter_log_data > LOG_DATA_DELAY) {
+				counter_log_data = 0;
+				flag_log_data = 1;
 			}
 			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 			HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+
+		}
+		/////////////////////Read & Log Sensors//////////////////////////////////
+		if (flag_log_data) {
+			flag_log_data = 0;
+
 			for (uint8_t i = 0; i < 8; i++)
 				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 					cur_temperature[i] = (int16_t) 0x8fff;
 				}
 
-			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0]) != HAL_OK)
-			{
-				cur_voltage[0]=-1.0;
+			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
+					!= HAL_OK) {
+				cur_voltage[0] = -1.0;
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0]) != HAL_OK)
-			{
-				cur_voltage[0]=-1.0;
+			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+					!= HAL_OK) {
+				cur_voltage[0] = -1.0;
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1]) != HAL_OK)
-			{
-				cur_voltage[1]=-1.0;
+			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+					!= HAL_OK) {
+				cur_voltage[1] = -1.0;
 
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1]) != HAL_OK)
-			{
-				cur_voltage[1]=-1.0;
+			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+					!= HAL_OK) {
+				cur_voltage[1] = -1.0;
 
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2]) != HAL_OK)
-			{
-				cur_voltage[2]=-1.0;
+			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+					!= HAL_OK) {
+				cur_voltage[2] = -1.0;
 
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2]) !=HAL_OK)
-			{
-				cur_voltage[2]=-1.0;
+			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+					!= HAL_OK) {
+				cur_voltage[2] = -1.0;
 
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3]) != HAL_OK)
-			{
-				cur_voltage[3]=-1.0;
+			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+					!= HAL_OK) {
+				cur_voltage[3] = -1.0;
 
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3]) != HAL_OK)
-			{
-				cur_voltage[3]=-1.0;
+			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+					!= HAL_OK) {
+				cur_voltage[3] = -1.0;
 
 			}
-			if (vcnl4200_als(&cur_insidelight) != HAL_OK)
-			{
-				cur_insidelight=0xffff;
+			if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+				cur_insidelight = 0xffff;
 			}
-			if (veml6030_als(&cur_outsidelight) != HAL_OK)
-			{
-				cur_outsidelight=0xffff;
+			if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+				cur_outsidelight = 0xffff;
 			}
-
-		}
-			/////////////////////Log Sensors//////////////////////////////////
-		if(flag_log_data)
-		{
-			flag_log_data=0;
-			sprintf(tmp_str,
-					"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours,	cur_time.Minutes, cur_time.Seconds,
-					cur_temperature[0]/10.0,cur_temperature[1]/10.0,
-					cur_temperature[2]/10.0,cur_temperature[3]/10.0,
-					cur_temperature[4]/10.0,cur_temperature[5]/10.0,
-					cur_temperature[6]/10.0,cur_temperature[7]/10.0);
-			r_logtemp=Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
 
 			sprintf(tmp_str,
 					"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours,	cur_time.Minutes, cur_time.Seconds,
-					cur_voltage[0],cur_current[0],
-					cur_voltage[1],cur_current[1],
-					cur_voltage[2],cur_current[2],
-					cur_voltage[3],cur_current[3]);
-			r_logvolt=Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
+					cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
+					cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
+					cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
+			r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
 
 			sprintf(tmp_str,
-					"%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+					"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours,	cur_time.Minutes, cur_time.Seconds,
-					cur_insidelight,cur_outsidelight);
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					cur_voltage[0], cur_current[0], cur_voltage[1],
+					cur_current[1], cur_voltage[2], cur_current[2],
+					cur_voltage[3], cur_current[3]);
+			r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
 
-			r_loglight=Log_file(SDCARD_DRIVE,LIGHT_FILE, tmp_str);
+			sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					cur_insidelight, cur_outsidelight);
+
+			r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
-		if(cur_insidelight>DOOR_Value)
-			cur_doorstate=1;
+		if (cur_insidelight > DOOR_Value)
+			cur_doorstate = 1;
 		else
-			cur_doorstate=0;
-		if(cur_doorstate!=prev_doorstate)
-		{
-			if(cur_doorstate)
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,Opened\n",
+			cur_doorstate = 0;
+		if (cur_doorstate != prev_doorstate) {
+			if (cur_doorstate)
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Opened\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-						cur_time.Hours,	cur_time.Minutes, cur_time.Seconds);
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			else
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,Closed\n",
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Closed\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-						cur_time.Hours,	cur_time.Minutes, cur_time.Seconds);
-			r_logdoor=Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str);
-			prev_doorstate=cur_doorstate;
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str);
+			prev_doorstate = cur_doorstate;
 		}
 		/////////////////////Temperature Control Algorithm//////////////////////////////////
-
 
 		/////////////////////////////////////State Machine///////////////////////////////////////////////////////////
 		switch (MENU_state) {
@@ -1790,7 +1782,7 @@ int app_main(void) {
 					create_form1(0, cur_temperature);
 					break;
 				case DISP_FORM2:
-					create_form2(0,cur_voltage,cur_current);
+					create_form2(0, cur_voltage, cur_current);
 					break;
 				case DISP_FORM3:
 					create_form3(0);
@@ -1802,7 +1794,7 @@ int app_main(void) {
 					create_form5(0);
 					break;
 				case DISP_FORM6:
-					create_form6(0,cur_insidelight,cur_outsidelight);
+					create_form6(0, cur_insidelight, cur_outsidelight);
 					break;
 				case DISP_FORM7:
 					create_form7(0, r_logtemp, r_logvolt, r_logdoor, r_loglight,
@@ -1823,7 +1815,7 @@ int app_main(void) {
 					DISP_state = DISP_FORM1;
 					break;
 				case DISP_FORM1:
-					create_form2(1,cur_voltage,cur_current);
+					create_form2(1, cur_voltage, cur_current);
 					DISP_state = DISP_FORM2;
 					break;
 				case DISP_FORM2:
@@ -1839,7 +1831,7 @@ int app_main(void) {
 					DISP_state = DISP_FORM5;
 					break;
 				case DISP_FORM5:
-					create_form6(1,cur_insidelight,cur_outsidelight);
+					create_form6(1, cur_insidelight, cur_outsidelight);
 					DISP_state = DISP_FORM6;
 					break;
 				case DISP_FORM6:
@@ -2223,7 +2215,7 @@ int app_main(void) {
 //					MENU_state = MAIN_MENU;
 //					DISP_state = DISP_IDLE;
 //					flag_change_form = 1;
-					MENU_state=EXIT_MENU;
+					MENU_state = EXIT_MENU;
 					break;
 				}
 			}
@@ -5259,15 +5251,19 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					if(RELAY1_Value.active[0])
-					sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
-							RELAY1_Value.Edge[0],RELAY1_Value.Temperature[0]);
+					if (RELAY1_Value.active[0])
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, RELAY1_Value.Edge[0],
+								RELAY1_Value.Temperature[0]);
 					else
-					sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes,cur_time.Seconds);
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
 					if (RELAY1_Value.active[1])
 						sprintf(tmp_str, "%s,%c%f\n", tmp_str,
 								RELAY1_Value.Edge[1],
@@ -5277,15 +5273,19 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					if(RELAY2_Value.active[0])
-					sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes,cur_time.Seconds,
-							RELAY2_Value.Edge[0],RELAY2_Value.Temperature[0]);
+					if (RELAY2_Value.active[0])
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, RELAY2_Value.Edge[0],
+								RELAY2_Value.Temperature[0]);
 					else
-					sprintf(tmp_str,"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes,cur_time.Seconds);
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
 					if (RELAY2_Value.active[1])
 						sprintf(tmp_str, "%s,%c%f\n", tmp_str,
 								RELAY2_Value.Edge[1],
@@ -5913,6 +5913,14 @@ int app_main(void) {
 #if __LWIP__
 		MX_LWIP_Process();
 #endif
+		if (HAL_GPIO_ReadPin(USB_OVRCUR_GPIO_Port, USB_OVRCUR_Pin)) //no fault
+			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
+					GPIO_PIN_RESET);
+		else
+			//fault
+			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
+					GPIO_PIN_SET);
+
 		MX_USB_HOST_Process();
 #if !(__DEBUG__)
 	HAL_IWDG_Refresh(&hiwdg);

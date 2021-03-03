@@ -72,7 +72,7 @@ void Error_Handler(void);
 #define DISP_SCK_Pin GPIO_PIN_5
 #define DISP_SCK_GPIO_Port GPIOB
 #define BTN2_Pin GPIO_PIN_4
-#define BTN2_GPIO_Port GPIOB //enter
+#define BTN2_GPIO_Port GPIOB
 #define BTN1_Pin GPIO_PIN_3
 #define BTN1_GPIO_Port GPIOB
 #define ALERT3_TMP275_Pin GPIO_PIN_4
@@ -103,6 +103,8 @@ void Error_Handler(void);
 #define USB_PWR_EN_GPIO_Port GPIOE
 #define INT_VCNL4200_Pin GPIO_PIN_14
 #define INT_VCNL4200_GPIO_Port GPIOE
+#define USB_OVRCUR_Pin GPIO_PIN_12
+#define USB_OVRCUR_GPIO_Port GPIOE
 #define RESET_MB_Pin GPIO_PIN_15
 #define RESET_MB_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
