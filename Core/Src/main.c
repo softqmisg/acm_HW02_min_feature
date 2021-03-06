@@ -158,7 +158,7 @@ enum {
 } MENU_state = MAIN_MENU;
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Exit" };
-
+char *menu_upgrade[]={"Upgrade from SD","Upgrade from USB","Force upgrade from SD","Force upgrade from  USB"};
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
 LED_t S1_LED_Value, S2_LED_Value;
 RELAY_t RELAY1_Value, RELAY2_Value;
@@ -233,9 +233,7 @@ bounding_box_t text_cell(bounding_box_t *pos, uint8_t index, char *str,
 	else
 		draw_fill(pos[index].x1 + 1, pos[index].y1 + 1, pos[index].x2 - 1,
 				pos[index].y2 - 1, box_inv);
-
 	draw_text(str, x, y, font, 1, text_inv);
-	//glcd_refresh();
 
 	bounding_box_t box = { .x1 = pos[index].x1, .x2 = pos[index].x2, .y1 =
 			pos[index].y1, .y2 = pos[index].y2 };
@@ -252,8 +250,8 @@ void create_menu(uint8_t selected, uint8_t clear, bounding_box_t *text_pos) {
 
 	if (clear)
 		glcd_blank();
-	bounding_box_t *pos_ = (bounding_box_t*) malloc(
-			sizeof(bounding_box_t) * 1 * 2);
+	bounding_box_t pos_[2];
+
 	create_cell(0, 0, 128, 64, 1, 2, 1, pos_);
 	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
 		draw_text(menu[op], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
@@ -267,7 +265,6 @@ void create_menu(uint8_t selected, uint8_t clear, bounding_box_t *text_pos) {
 	if (selected < MENU_ITEMS)
 		draw_text(menu[selected], (selected / 5) * 66 + 2,
 				(selected % 5) * 12 + 1, Tahoma8, 1, 1);
-	free(pos_);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1258,6 +1255,39 @@ void create_formChangepass(uint8_t clear, bounding_box_t *text_pos,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_formUpgrade(uint8_t clear, bounding_box_t *text_pos) {
+	char tmp_str[40];
+	bounding_box_t pos_[4];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "Upgrade", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+//	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 1, 1, pos_);//menu_upgrade[op]
+	for(uint8_t op=0;op<4;op++)
+	{
+		pos_[0].y2 = pos_[0].y1 + text_height( menu_upgrade[op], Tahoma8);
+		text_pos[op+2]=text_cell(pos_, 0, menu_upgrade[op], Tahoma8, CENTER_ALIGN, 0, 0);
+		pos_[0].y1 = pos_[0].y2+1;
+
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Peripherials_DeInit(void) {
 	MX_FATFS_DeInit();
 
@@ -1667,6 +1697,86 @@ int app_main(void) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
+				/////////////////////Read & Log Sensors//////////////////////////////////
+				if (flag_log_data) {
+					flag_log_data = 0;
+					counter_log_data = 0;
+					for (uint8_t i = 0; i < 8; i++)
+						if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
+							cur_temperature[i] = (int16_t) 0x8fff;
+						}
+
+					if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
+							!= HAL_OK) {
+						cur_voltage[0] = -1.0;
+					}
+					if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+							!= HAL_OK) {
+						cur_voltage[0] = -1.0;
+					}
+					if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+							!= HAL_OK) {
+						cur_voltage[1] = -1.0;
+
+					}
+					if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+							!= HAL_OK) {
+						cur_voltage[1] = -1.0;
+
+					}
+					if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+							!= HAL_OK) {
+						cur_voltage[2] = -1.0;
+
+					}
+					if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+							!= HAL_OK) {
+						cur_voltage[2] = -1.0;
+
+					}
+					if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+							!= HAL_OK) {
+						cur_voltage[3] = -1.0;
+
+					}
+					if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+							!= HAL_OK) {
+						cur_voltage[3] = -1.0;
+
+					}
+					if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+						cur_insidelight = 0xffff;
+					}
+					if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+						cur_outsidelight = 0xffff;
+					}
+
+					sprintf(tmp_str,
+							"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
+							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+							cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
+							cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
+							cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
+							cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
+					r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
+
+					sprintf(tmp_str,
+							"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
+							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+							cur_voltage[0], cur_current[0], cur_voltage[1],
+							cur_current[1], cur_voltage[2], cur_current[2],
+							cur_voltage[3], cur_current[3]);
+					r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
+
+					sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+							cur_insidelight, cur_outsidelight);
+
+					r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
+				}
 
 				////////////////////////////RTC//////////////////////////////////
 				cur_date_t.day = cur_Date.Date;
@@ -1757,6 +1867,7 @@ int app_main(void) {
 			}
 			if (flag_change_form) {
 				flag_change_form = 0;
+				counter_change_form = 0;
 				switch (DISP_state) {
 				case DISP_IDLE:
 					tmp_dlat = POS2double(LAT_Value);
@@ -1797,86 +1908,6 @@ int app_main(void) {
 					DISP_state = DISP_FORM1;
 					break;
 				}
-			}
-			/////////////////////Read & Log Sensors//////////////////////////////////
-			if (flag_log_data) {
-				flag_log_data = 0;
-
-				for (uint8_t i = 0; i < 8; i++)
-					if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
-						cur_temperature[i] = (int16_t) 0x8fff;
-					}
-
-				if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-						!= HAL_OK) {
-					cur_voltage[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-						!= HAL_OK) {
-					cur_voltage[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-						!= HAL_OK) {
-					cur_voltage[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-						!= HAL_OK) {
-					cur_voltage[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-						!= HAL_OK) {
-					cur_voltage[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-						!= HAL_OK) {
-					cur_voltage[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-						!= HAL_OK) {
-					cur_voltage[3] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-						!= HAL_OK) {
-					cur_voltage[3] = -1.0;
-
-				}
-				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
-					cur_insidelight = 0xffff;
-				}
-				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-					cur_outsidelight = 0xffff;
-				}
-
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
-						cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
-						cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
-						cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
-				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
-
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						cur_voltage[0], cur_current[0], cur_voltage[1],
-						cur_current[1], cur_voltage[2], cur_current[2],
-						cur_voltage[3], cur_current[3]);
-				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
-
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
-						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						cur_insidelight, cur_outsidelight);
-
-				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 			}
 			//////////////////////////////////////////////////////////////////////////////
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
@@ -2243,12 +2274,14 @@ int app_main(void) {
 				case COPY_MENU:
 					break;
 				case UPGRADE_MENU:
+					create_formUpgrade(1, text_pos);
+					index_option=2;
+					sprintf(tmp_str,"%s",menu_upgrade[index_option-2]);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8, CENTER_ALIGN, 1, 0);
+					glcd_refresh();
 					MENU_state=UPGRADE_MENU;
 					break;
 				case EXIT_MENU:
-//					MENU_state = MAIN_MENU;
-//					DISP_state = DISP_IDLE;
-//					flag_change_form = 1;
 					MENU_state = EXIT_MENU;
 					break;
 				}
@@ -5935,12 +5968,110 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
 		case UPGRADE_MENU:
-			sharedmem = FORCE_WRITE_FROM_USB;
-			Peripherials_DeInit();
-			HAL_Delay(100);
-			SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
-			while (1)
-				;
+
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+					draw_fill(text_pos[index_option].x1+1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				if(index_option==1) index_option=6;
+				index_option--;
+				switch (index_option) {
+//				case 0:	//OK
+//					sprintf(tmp_str,"OK");
+//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+//							CENTER_ALIGN, 1, 1);
+//					break;
+				case 1:	//CANCEL
+					sprintf(tmp_str,"CANCEL");
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 1);
+					break;
+				default:
+					sprintf(tmp_str, "%s", menu_upgrade[index_option-2]);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+					break;
+				}
+
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				draw_fill(text_pos[index_option].x1+1,
+						text_pos[index_option].y1 + 1,
+						text_pos[index_option].x2 - 1,
+						text_pos[index_option].y2 - 1, 0);
+				text_cell(text_pos, index_option, tmp_str, Tahoma8,
+						CENTER_ALIGN, 0, 0);
+				index_option++;
+				if(index_option>5) index_option=1;
+				switch (index_option) {
+//				case 0:	//OK
+//					sprintf(tmp_str,"OK");
+//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+//							CENTER_ALIGN, 1, 1);
+//					break;
+				case 1:	//CANCEL
+					sprintf(tmp_str,"CANCEL");
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 1);
+					break;
+				default:
+					sprintf(tmp_str, "%s", menu_upgrade[index_option-2]);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+					break;
+				}
+
+				glcd_refresh();
+			}
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+
+				switch (index_option) {
+//				case 0:	//OK
+//					sprintf(tmp_str,"OK");
+//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+//							CENTER_ALIGN, 1, 1);
+//					break;
+				case 1:	//CANCEL
+					create_menu(0, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+					sharedmem = WRITE_FROM_SD;
+					break;
+				case 3:
+					sharedmem = WRITE_FROM_USB;
+					break;
+				case 4:
+					sharedmem = FORCE_WRITE_FROM_SD;
+					break;
+				case 5:
+					sharedmem = FORCE_WRITE_FROM_USB;
+					break;
+
+				}
+				if(index_option>1)
+				{
+					Peripherials_DeInit();
+					HAL_Delay(100);
+					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
+					while (1)
+						;
+				}
+				glcd_refresh();
+			}
+
+
 			break;
 			/////////////////////////////////////EXIT_MENU/////////////////////////////////////////////////
 		case EXIT_MENU:
