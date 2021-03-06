@@ -1627,94 +1627,9 @@ int app_main(void) {
 		/////////////////////Read time//////////////////////////////////
 		if (flag_rtc_1s_general) {
 			flag_rtc_1s_general = 0;
-			counter_log_data++;
-			if (counter_log_data > LOG_DATA_DELAY) {
-				counter_log_data = 0;
-				flag_log_data = 1;
-			}
 			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 			HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 
-		}
-		/////////////////////Read & Log Sensors//////////////////////////////////
-		if (flag_log_data) {
-			flag_log_data = 0;
-
-			for (uint8_t i = 0; i < 8; i++)
-				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
-					cur_temperature[i] = (int16_t) 0x8fff;
-				}
-
-			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-					!= HAL_OK) {
-				cur_voltage[0] = -1.0;
-			}
-			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-					!= HAL_OK) {
-				cur_voltage[0] = -1.0;
-			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-					!= HAL_OK) {
-				cur_voltage[1] = -1.0;
-
-			}
-			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-					!= HAL_OK) {
-				cur_voltage[1] = -1.0;
-
-			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-					!= HAL_OK) {
-				cur_voltage[2] = -1.0;
-
-			}
-			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-					!= HAL_OK) {
-				cur_voltage[2] = -1.0;
-
-			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-					!= HAL_OK) {
-				cur_voltage[3] = -1.0;
-
-			}
-			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-					!= HAL_OK) {
-				cur_voltage[3] = -1.0;
-
-			}
-			if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
-				cur_insidelight = 0xffff;
-			}
-			if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-				cur_outsidelight = 0xffff;
-			}
-
-			sprintf(tmp_str,
-					"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-					cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
-					cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
-					cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
-					cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
-			r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
-
-			sprintf(tmp_str,
-					"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-					cur_voltage[0], cur_current[0], cur_voltage[1],
-					cur_current[1], cur_voltage[2], cur_current[2],
-					cur_voltage[3], cur_current[3]);
-			r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
-
-			sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
-					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-					cur_insidelight, cur_outsidelight);
-
-			r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
@@ -1747,6 +1662,12 @@ int app_main(void) {
 					counter_change_form = 0;
 					flag_change_form = 1;
 				}
+				counter_log_data++;
+				if (counter_log_data > LOG_DATA_DELAY) {
+					counter_log_data = 0;
+					flag_log_data = 1;
+				}
+
 				////////////////////////////RTC//////////////////////////////////
 				cur_date_t.day = cur_Date.Date;
 				cur_date_t.month = cur_Date.Month;
@@ -1876,6 +1797,86 @@ int app_main(void) {
 					DISP_state = DISP_FORM1;
 					break;
 				}
+			}
+			/////////////////////Read & Log Sensors//////////////////////////////////
+			if (flag_log_data) {
+				flag_log_data = 0;
+
+				for (uint8_t i = 0; i < 8; i++)
+					if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
+						cur_temperature[i] = (int16_t) 0x8fff;
+					}
+
+				if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
+						!= HAL_OK) {
+					cur_voltage[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+						!= HAL_OK) {
+					cur_voltage[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+						!= HAL_OK) {
+					cur_voltage[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+						!= HAL_OK) {
+					cur_voltage[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+						!= HAL_OK) {
+					cur_voltage[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+						!= HAL_OK) {
+					cur_voltage[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+						!= HAL_OK) {
+					cur_voltage[3] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+						!= HAL_OK) {
+					cur_voltage[3] = -1.0;
+
+				}
+				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+					cur_insidelight = 0xffff;
+				}
+				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+					cur_outsidelight = 0xffff;
+				}
+
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
+						cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
+						cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
+						cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
+				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
+
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						cur_voltage[0], cur_current[0], cur_voltage[1],
+						cur_current[1], cur_voltage[2], cur_current[2],
+						cur_voltage[3], cur_current[3]);
+				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
+
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						cur_insidelight, cur_outsidelight);
+
+				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 			}
 			//////////////////////////////////////////////////////////////////////////////
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
