@@ -573,7 +573,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	pos_[2].x1 = 1;
 	pos_[2].x2 = 65;
 	text_cell(pos_, 2, "Sd Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
-	f_mount(NULL, "0:", 1);
+	f_mount(NULL, "0:", 0);
 	//////
 	if ((res = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
 		sprintf(tmp_str, "--/--");
@@ -583,7 +583,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 		fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
 		sprintf(tmp_str, "%5lu/%5lu", fre_sect / 2048, tot_sect / 2048);
 	}
-	f_mount(NULL, "1:", 1);
+	f_mount(NULL, "1:", 0);
 	pos_[3].x1 = 67;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[3].x1 = 1;
@@ -1300,8 +1300,8 @@ void Peripherials_DeInit(void) {
 	HAL_I2C_DeInit(&hi2c3);
 	HAL_I2C_MspDeInit(&hi2c3);
 
-	HAL_RTC_DeInit(&hrtc);
-	HAL_RTC_MspDeInit(&hrtc);
+	//HAL_RTC_DeInit(&hrtc);
+	//HAL_RTC_MspDeInit(&hrtc);
 
 	HAL_SD_DeInit(&hsd);
 	HAL_SD_MspDeInit(&hsd);
@@ -1429,7 +1429,7 @@ int app_main(void) {
 					img.img_pixels, 1);
 		else
 			printf("bmp file error\n\r");
-		f_mount(NULL, "0:", 1);
+		f_mount(NULL, "0:", 0);
 		bmp_img_free(&img);
 		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
 		glcd_refresh();
@@ -1701,6 +1701,7 @@ int app_main(void) {
 				if (flag_log_data) {
 					flag_log_data = 0;
 					counter_log_data = 0;
+					/////////////////////read sensors//////////////////////////
 					for (uint8_t i = 0; i < 8; i++)
 						if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 							cur_temperature[i] = (int16_t) 0x8fff;
@@ -1750,7 +1751,7 @@ int app_main(void) {
 					if (veml6030_als(&cur_outsidelight) != HAL_OK) {
 						cur_outsidelight = 0xffff;
 					}
-
+					/////////////////////log sensors//////////////////////////
 					sprintf(tmp_str,
 							"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
@@ -1777,7 +1778,6 @@ int app_main(void) {
 
 					r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 				}
-
 				////////////////////////////RTC//////////////////////////////////
 				cur_date_t.day = cur_Date.Date;
 				cur_date_t.month = cur_Date.Month;
@@ -1801,6 +1801,7 @@ int app_main(void) {
 						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
 						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
 					}
+					pre_daylightsaving = cur_daylightsaving;
 				}
 				cur_time_t.hr = cur_time.Hours;
 				cur_time_t.min = cur_time.Minutes;
@@ -1911,7 +1912,45 @@ int app_main(void) {
 			}
 			//////////////////////////////////////////////////////////////////////////////
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
-					Both_press);
+					Long_press);
+			if(joystick_read(Key_TOP, Short_press)|| joystick_read(Key_RIGHT, Short_press))
+			{
+				joystick_init(Key_TOP,Short_press);
+				joystick_init(Key_RIGHT, Short_press);
+				flag_change_form = 1;
+				counter_change_form = 0;
+			}
+			if(joystick_read(Key_DOWN, Short_press)|| joystick_read(Key_LEFT, Short_press))
+			{
+				joystick_init(Key_DOWN,Short_press);
+				joystick_init(Key_LEFT, Short_press);
+				flag_change_form = 1;
+				counter_change_form = 0;
+				switch (DISP_state) {
+				case DISP_FORM1:
+					DISP_state=DISP_FORM6;
+					break;
+				case DISP_FORM2:
+					DISP_state=DISP_FORM7;
+					break;
+				case DISP_FORM3:
+					DISP_state=DISP_FORM1;
+					break;
+				case DISP_FORM4:
+					DISP_state=DISP_FORM2;
+					break;
+				case DISP_FORM5:
+					DISP_state=DISP_FORM3;
+					break;
+				case DISP_FORM6:
+					DISP_state=DISP_FORM4;
+					break;
+				case DISP_FORM7:
+					DISP_state=DISP_FORM5;
+					break;
+
+				}
+			}
 			if (joystick_read(Key_ENTER, Long_press)
 					|| joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Both_press);
@@ -2272,6 +2311,7 @@ int app_main(void) {
 					MENU_state = CHANGEPASS_MENU;
 					break;
 				case COPY_MENU:
+					MENU_state=COPY_MENU;
 					break;
 				case UPGRADE_MENU:
 					create_formUpgrade(1, text_pos);
@@ -3224,9 +3264,12 @@ int app_main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
+					tmp_time.DayLightSaving=RTC_DAYLIGHTSAVING_NONE;
+					tmp_time.StoreOperation=RTC_STOREOPERATION_RESET;
 					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
+					HAL_Delay(100);
 					HAL_RTC_SetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
-
+					HAL_Delay(100);
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -5965,6 +6008,10 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
+			Copy2USB();
+			create_menu(0, 1, text_pos);
+			index_option = 0;
+			MENU_state = OPTION_MENU;
 			break;
 			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
 		case UPGRADE_MENU:

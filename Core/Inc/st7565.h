@@ -133,6 +133,8 @@
 			 must be sent for the GLCD to exit volume mode. */
 #define GLCD_CMD_VOLUME_MODE		0b10000001
 
+#define GLCD_CMD_BOOSTER_LEVEL		0b11111000
+
 #define GLCD_CMD_DISPLAY_START		0b01000000
 
 /** Command: set the least significant 4 bits of the column address. */

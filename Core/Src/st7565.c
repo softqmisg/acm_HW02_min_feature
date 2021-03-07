@@ -38,13 +38,13 @@ void glcd_data(uint8_t data) {
 
 	while (bits) {
 		ST7567_SCLK_RESET;
-//		st7567_usdelay(1);
+		//st7567_usdelay(1);
 		if (data & bits)
 			ST7567_SID_SET;
 		else
 			ST7567_SID_RESET;
 		ST7567_SCLK_SET;
-		//	st7567_usdelay(1);
+		//st7567_usdelay(1);
 		bits >>= 1;
 	}
 	ST7567_CS_SET;
@@ -67,7 +67,7 @@ void glcd_command(uint8_t command) {
 		else
 			ST7567_SID_RESET;
 		ST7567_SCLK_SET;
-		//	st7567_usdelay(1);
+//		st7567_usdelay(1);
 		bits >>= 1;
 	}
 	ST7567_CS_SET;
@@ -228,12 +228,18 @@ void glcd_init(uint16_t width, uint16_t height) {
 
 	// Power control setting (datasheet step 7)
 	// Note: Skipping straight to 0x7 works with my hardware.
-	glcd_command(GLCD_CMD_POWER_CONTROL | 0x4);
+	glcd_command(GLCD_CMD_POWER_CONTROL | 0x04);
 	//	DelayMs(50);
-	glcd_command(GLCD_CMD_POWER_CONTROL | 0x6);
+	HAL_Delay(50);
+	glcd_command(GLCD_CMD_POWER_CONTROL | 0x06);
 	//	DelayMs(50);
-	glcd_command(GLCD_CMD_POWER_CONTROL | 0x7);
+	HAL_Delay(50);
+	glcd_command(GLCD_CMD_POWER_CONTROL | 0x07);
 	//	DelayMs(10);
+	HAL_Delay(50);
+
+	glcd_command(GLCD_CMD_BOOSTER_LEVEL);
+	glcd_command(0x00);
 
 	// Volume set (brightness control).  A middle value is used here
 	// also.
@@ -250,7 +256,7 @@ void glcd_init(uint16_t width, uint16_t height) {
 	ST7567_CS_SET;
 	glcd_blank();
 	glcd_backlight(50);
-	glcd_contrast(4, 16);
+	glcd_contrast(4, 30);
 }
 
 /*
