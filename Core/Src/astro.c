@@ -7,199 +7,247 @@
 #include "astro.h"
 #include "astro_n.h"
 #include "rtc.h"
+#include "time.h"
+
+unsigned char gDaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30,
+		31 };
+unsigned char gDaysInMonthLeap[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31,
+		30, 31 };
 ////////////////////////////////////////////////////////////////////////////////////////
-double POS2double(POS_t pos)
-{
-	double r=(double)pos.deg+(double)pos.min/60.0+(double)pos.second/100.00/3600.0;
-	if(pos.direction=='S' || pos.direction=='W')
-		r=-r;
+double POS2double(POS_t pos) {
+	double r = (double) pos.deg + (double) pos.min / 60.0
+			+ (double) pos.second / 100.00 / 3600.0;
+	if (pos.direction == 'S' || pos.direction == 'W')
+		r = -r;
 	return r;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-POS_t latdouble2POS(double lat)
-{
+POS_t latdouble2POS(double lat) {
 	POS_t pos;
 	double tmp;
-	if(lat<0) { pos.direction='S'; lat=-lat;}
-	else pos.direction='N';
-	pos.deg=(uint8_t)lat;
-	tmp=(double)(lat-(double)pos.deg)*3600.0;
-	pos.min=(uint8_t)((double)tmp/60.0);
-	pos.second=(uint16_t)(((double)tmp-(double)pos.min*60)*100);
+	if (lat < 0) {
+		pos.direction = 'S';
+		lat = -lat;
+	} else
+		pos.direction = 'N';
+	pos.deg = (uint8_t) lat;
+	tmp = (double) (lat - (double) pos.deg) * 3600.0;
+	pos.min = (uint8_t) ((double) tmp / 60.0);
+	pos.second = (uint16_t) (((double) tmp - (double) pos.min * 60) * 100);
 	return pos;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-POS_t longdouble2POS(double lon)
-{
+POS_t longdouble2POS(double lon) {
 	POS_t pos;
 	double tmp;
-	if(lon<0) { pos.direction='W'; lon=-lon;}
-	else pos.direction='E';
-	pos.deg=(uint8_t)lon;
-	tmp=(double)(lon-(double)pos.deg)*3600.0;
-	pos.min=(uint8_t)((double)tmp/60.0);
-	pos.second=(uint16_t)(((double)tmp-(double)pos.min*60)*100);
+	if (lon < 0) {
+		pos.direction = 'W';
+		lon = -lon;
+	} else
+		pos.direction = 'E';
+	pos.deg = (uint8_t) lon;
+	tmp = (double) (lon - (double) pos.deg) * 3600.0;
+	pos.min = (uint8_t) ((double) tmp / 60.0);
+	pos.second = (uint16_t) (((double) tmp - (double) pos.min * 60) * 100);
 	return pos;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-uint8_t Astro_daylighsaving(Date_t date)
-{
-	uint8_t r=0;
-	if(date.month>RTC_MONTH_MARCH && date.month<RTC_MONTH_SEPTEMBER) r=1;
-	else if(date.month==RTC_MONTH_MARCH && date.day>=22)	r=1;
-	else if(date.month==RTC_MONTH_SEPTEMBER && date.day<22)	r=1;
+/*
+ *  r=1:summer
+ *  r=0: winter
+ */
+uint8_t Astro_daylighsaving(RTC_DateTypeDef date, RTC_TimeTypeDef time) {
+	uint8_t r = 0;
+	if (date.Month > RTC_MONTH_MARCH && date.Month < RTC_MONTH_SEPTEMBER)
+		r = 1;
+	else if (date.Month == RTC_MONTH_MARCH && date.Date >= 22)
+		r = 1;
+	else if (date.Month == RTC_MONTH_SEPTEMBER && date.Date < 21)
+		r = 1;
+	else if (date.Month == RTC_MONTH_SEPTEMBER && date.Date == 21
+			&& time.Hours < 23)
+		r = 1;
 	return r;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-Time_t addtime(Time_t t1,Time_t t2)
-{
-	Time_t tmp=t1;
-	tmp.sec+=t2.sec;
-	if(tmp.sec>59)
-	{
-		tmp.sec-=60;
+/*
+ *  addsub=1: add if need
+ *  addsub=0: sub if need
+ */
+void change_daylightsaving(RTC_DateTypeDef *date, RTC_TimeTypeDef *time,
+		uint8_t addsub) {
+	struct tm timeinfo;
+	time_t rawtime;
+	uint8_t season = Astro_daylighsaving(*date, *time);
+
+	timeinfo.tm_sec = time->Seconds;
+	timeinfo.tm_min = time->Minutes;
+	timeinfo.tm_hour = time->Hours;
+	timeinfo.tm_mday = date->Date;
+	timeinfo.tm_mon = date->Month - 1;
+	timeinfo.tm_year = date->Year + 100;
+	timeinfo.tm_isdst = 0;
+	rawtime = mktime(&timeinfo);
+
+	if (addsub) {
+		if (season)
+			rawtime += 3600;
+
+	} else {
+		if (season)
+			rawtime -= 3600;
+	}
+	struct tm *timeinfo1 = localtime(&rawtime);
+	time->Seconds = timeinfo1->tm_sec;
+	time->Minutes = timeinfo1->tm_min;
+	time->Hours = timeinfo1->tm_hour;
+	date->Date = timeinfo1->tm_mday;
+	date->Month = timeinfo1->tm_mon + 1;
+	date->Year = timeinfo1->tm_year - 100;
+}
+////////////////////////////////////////////////////////////////////////////////////////
+Time_t addtime(Time_t t1, Time_t t2) {
+	Time_t tmp = t1;
+	tmp.sec += t2.sec;
+	if (tmp.sec > 59) {
+		tmp.sec -= 60;
 		tmp.min++;
-		if(tmp.min>59)
+		if (tmp.min > 59)
 			tmp.hr++;
 	}
-	if(tmp.sec<0)
-	{
-		tmp.sec+=60;
+	if (tmp.sec < 0) {
+		tmp.sec += 60;
 		tmp.min--;
-		if(tmp.min<0)
-			tmp.min+=60;
+		if (tmp.min < 0)
+			tmp.min += 60;
 	}
-	tmp.min+=t2.min;
-	if(tmp.min>59)
-	{
-		tmp.min-=60;
+	tmp.min += t2.min;
+	if (tmp.min > 59) {
+		tmp.min -= 60;
 		tmp.hr++;
 	}
-	if(tmp.min<0)
-	{
-		tmp.min+=60;
+	if (tmp.min < 0) {
+		tmp.min += 60;
 		tmp.hr--;
 
 	}
-	tmp.hr+=t2.hr;
-	if(tmp.hr>=23)
-		tmp.hr=0;
-	if(tmp.hr<0)
-		tmp.hr=0;
+	tmp.hr += t2.hr;
+	if (tmp.hr >= 23)
+		tmp.hr = 0;
+	if (tmp.hr < 0)
+		tmp.hr = 0;
 	return tmp;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
-uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,Time_t sunset_t,double add_sunrise,double add_sunset)
-{
+uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,
+		Time_t sunset_t, double add_sunrise, double add_sunset) {
 
 	Time_t sunrise_addtime;
-	sunrise_addtime.hr=(int8_t) add_sunrise;sunrise_addtime.min=(int8_t)((add_sunrise-(double)sunrise_addtime.hr)*60.0);	sunrise_addtime.sec=0;
+	sunrise_addtime.hr = (int8_t) add_sunrise;
+	sunrise_addtime.min = (int8_t) ((add_sunrise - (double) sunrise_addtime.hr)
+			* 60.0);
+	sunrise_addtime.sec = 0;
 
 	Time_t sunset_addtime;
-	sunset_addtime.hr=(int8_t) add_sunset;sunset_addtime.min=(int8_t)((add_sunset-(double)sunset_addtime.hr)*60.0);	sunset_addtime.sec=0;
+	sunset_addtime.hr = (int8_t) add_sunset;
+	sunset_addtime.min = (int8_t) ((add_sunset - (double) sunset_addtime.hr)
+			* 60.0);
+	sunset_addtime.sec = 0;
 
-	sunrise_t=addtime(sunrise_t,sunrise_addtime);
-	sunset_t=addtime(sunset_t,sunset_addtime);
+	sunrise_t = addtime(sunrise_t, sunrise_addtime);
+	sunset_t = addtime(sunset_t, sunset_addtime);
 
-	uint8_t r=ASTRO_NIGHT;
-	if(cur_time.Hours>sunrise_t.hr && cur_time.Hours<sunset_t.hr) r=ASTRO_DAY;
-	else if(cur_time.Hours==sunrise_t.hr && cur_time.Minutes>=sunrise_t.min) r=ASTRO_DAY;
-	else if(cur_time.Hours==sunset_t.hr && cur_time.Minutes<=sunset_t.min) r=ASTRO_DAY;
+	uint8_t r = ASTRO_NIGHT;
+	if (cur_time.Hours > sunrise_t.hr && cur_time.Hours < sunset_t.hr)
+		r = ASTRO_DAY;
+	else if (cur_time.Hours == sunrise_t.hr
+			&& cur_time.Minutes >= sunrise_t.min)
+		r = ASTRO_DAY;
+	else if (cur_time.Hours == sunset_t.hr && cur_time.Minutes <= sunset_t.min)
+		r = ASTRO_DAY;
 	return r;
 }
 //////////////////////////////////////////
-double wrap(double x)
-{
-	while(x>360.0) x=x-360.0;
+double wrap(double x) {
+	while (x > 360.0)
+		x = x - 360.0;
 	return x;
 }
-Time_t seconds2Time_t(int seconds)
-{
+Time_t seconds2Time_t(int seconds) {
 	Time_t cur_time;
-	cur_time.hr=(int)seconds/3600;
-	cur_time.min=((int)seconds-(cur_time.hr*3600))/60;
-	cur_time.sec=(int)seconds-cur_time.hr*3600-cur_time.min*60;
+	cur_time.hr = (int) seconds / 3600;
+	cur_time.min = ((int) seconds - (cur_time.hr * 3600)) / 60;
+	cur_time.sec = (int) seconds - cur_time.hr * 3600 - cur_time.min * 60;
 	return cur_time;
 }
 ////////////////////////////////////////////////////
-Time_t minute2Time_t(double minute)
-{
+Time_t minute2Time_t(double minute) {
 	Time_t cur_time;
-	cur_time.hr=(int)((double)minute/60.0);
-	cur_time.min=(int)floor((minute-cur_time.hr*60.0)+0.5);//((int)minute-(cur_time.hr*3600))/60;
-	cur_time.sec=0;//(int)((minute-cur_time.hr*60.0-cur_time.min)*60.0);
+	cur_time.hr = (int) ((double) minute / 60.0);
+	cur_time.min = (int) floor((minute - cur_time.hr * 60.0) + 0.5); //((int)minute-(cur_time.hr*3600))/60;
+	cur_time.sec = 0; //(int)((minute-cur_time.hr*60.0-cur_time.min)*60.0);
 	return cur_time;
 }
-unsigned char  gDaysInMonth[12]={31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30,31};
-unsigned char  gDaysInMonthLeap[12]={31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30,31};
-uint8_t leap(int year)
-{
-	return (year %4 == 0 && ((year %100 != 0) || (year % 400 == 0))) ? 1 : 0;
+///////////////////////////////////////////////////////////////////////////////////
+uint8_t leap(int year) {
+	return (year % 4 == 0 && ((year % 100 != 0) || (year % 400 == 0))) ? 1 : 0;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////
-double datenum(Date_t date)
-{
-	int yg=date.year;
-	int mg=date.month;
-	int dg=date.day;
-	double days=0.0;
-	for( int i=0;i<yg;i++)
-		if(leap(i))
-			days += (double)366;
+double datenum(Date_t date) {
+	int yg = date.year;
+	int mg = date.month;
+	int dg = date.day;
+	double days = 0.0;
+	for (int i = 0; i < yg; i++)
+		if (leap(i))
+			days += (double) 366;
 		else
-			days += (double)365;
- 	 for(int i=0;i<(mg-1);i++)
-		if(leap(yg))
-			days+=(double)gDaysInMonthLeap[i];
+			days += (double) 365;
+	for (int i = 0; i < (mg - 1); i++)
+		if (leap(yg))
+			days += (double) gDaysInMonthLeap[i];
 		else
-			days+=(double)gDaysInMonth[i];
-	 days+=(double)dg;
+			days += (double) gDaysInMonth[i];
+	days += (double) dg;
 
-	return (double)days;
+	return (double) days;
 }
 
-double daysact(Date_t startdate,Date_t enddate)
-{
-	double BB=datenum(startdate);//cout<<B<<endl;
-	double AA=datenum(enddate);//cout<<A<<endl;
-	return (double)AA-(double)BB;
+double daysact(Date_t startdate, Date_t enddate) {
+	double BB = datenum(startdate); //cout<<B<<endl;
+	double AA = datenum(enddate); //cout<<A<<endl;
+	return (double) AA - (double) BB;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////
-double  sind(double degree)
-{
-	return (double)sin(DEG2RAD*degree);
+double sind(double degree) {
+	return (double) sin(DEG2RAD * degree);
 }
-double  tand(double degree)
-{
-	return (double)tan(DEG2RAD*degree);
+double tand(double degree) {
+	return (double) tan(DEG2RAD * degree);
 }
-double  cosd(double degree)
-{
-	return (double)cos(DEG2RAD*degree);
+double cosd(double degree) {
+	return (double) cos(DEG2RAD * degree);
 }
-double  asind(double num)
-{
-	return (double)asin(num)/DEG2RAD;
+double asind(double num) {
+	return (double) asin(num) / DEG2RAD ;
 }
-double  acosd(double num)
-{
-	return (double)acos(num)/DEG2RAD;
+double acosd(double num) {
+	return (double) acos(num) / DEG2RAD ;
 }
-double  atand(double num)
-{
-	return (double)atan(num)/DEG2RAD;
+double atand(double num) {
+	return (double) atan(num) / DEG2RAD ;
 }
-double rad2deg(double rad)
-{
-	return (double)rad/DEG2RAD;
+double rad2deg(double rad) {
+	return (double) rad / DEG2RAD ;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///lat:arz
 ///lng:tol
 //year from 2000
-void  Astro_sunRiseSet( double lat, double lng, double UTCoff, Date_t date,Time_t *sunrise_t,Time_t *noon_t,Time_t *sunset_t,uint8_t daylightsave)
-{
+void Astro_sunRiseSet(double lat, double lng, double UTCoff, Date_t date,
+		Time_t *sunrise_t, Time_t *noon_t, Time_t *sunset_t,
+		uint8_t daylightsave) {
 ///*
 //% Reverse engineered from the NOAA Excel:
 //% (https://www.esrl.noaa.gov/gmd/grad/solcalc/calcdetails.html)
@@ -275,24 +323,32 @@ void  Astro_sunRiseSet( double lat, double lng, double UTCoff, Date_t date,Time_
 //	*sunrise_t=seconds2Time_t(min_index_sunrise); sunrise_t->hr=sunrise_t->hr+daylightsaving;
 //	*sunset_t=seconds2Time_t(min_index_sunset);		sunset_t->hr=sunset_t->hr+daylightsaving;
 
+	double JD = calcJD(date.year + 2000.0, date.month, date.day);
+	double minutesunrise = calcSunriseUTC(JD, lat, -lng)
+			+ (double) UTCoff * 60.0;
+	double minutesunset = calcSunsetUTC(JD, lat, -lng) + (double) UTCoff * 60.0;
+	double minutenoon = (minutesunrise + minutesunset) / 2.0;
+	RTC_TimeTypeDef tmp_time;
+	tmp_time.Hours = 0;
+	tmp_time.Minutes = 0;
+	tmp_time.Seconds = 0;
+	RTC_DateTypeDef tmp_date;
+	tmp_date.Date = date.day;
+	tmp_date.Month = date.month;
+	tmp_date.Year = date.year;
+	uint8_t daylightsaving = 0;
+	if (daylightsave)
+		daylightsaving = Astro_daylighsaving(tmp_date, tmp_time);
 
-	  double JD=calcJD(date.year+2000.0,date.month,date.day);
-	  double minutesunrise= calcSunriseUTC( JD,  lat,  -lng)+(double)UTCoff*60.0;
-	  double minutesunset= 	calcSunsetUTC( JD,  lat,  -lng)+(double)UTCoff*60.0;
-	  double minutenoon=(minutesunrise+minutesunset)/2.0;
-
-	  	uint8_t daylightsaving=0;
-	  	if(daylightsave)
-	  		daylightsaving=Astro_daylighsaving(date);
-
-	  *noon_t=minute2Time_t(minutenoon);noon_t->hr=noon_t->hr+daylightsaving;
-	  *sunrise_t=minute2Time_t(minutesunrise);sunrise_t->hr=sunrise_t->hr+daylightsaving;
-	  *sunset_t=minute2Time_t(minutesunset);sunset_t->hr=sunset_t->hr+daylightsaving;
+	*noon_t = minute2Time_t(minutenoon);
+	noon_t->hr = noon_t->hr + daylightsaving;
+	*sunrise_t = minute2Time_t(minutesunrise);
+	sunrise_t->hr = sunrise_t->hr + daylightsaving;
+	*sunset_t = minute2Time_t(minutesunset);
+	sunset_t->hr = sunset_t->hr + daylightsaving;
 }
 ///////////////////////////////////////////////////////////////////////////////////////
-void ShowTime_t(Time_t cur_time,char *str)
-{
-	sprintf(str,"%02d.%02d\n\r",cur_time.hr,cur_time.min);
+void ShowTime_t(Time_t cur_time, char *str) {
+	sprintf(str, "%02d.%02d\n\r", cur_time.hr, cur_time.min);
 }
-
 

@@ -9,6 +9,7 @@
 #include "rtc.h"
 #include "usb_host.h"
 #include <string.h>
+#include "astro.h"
 extern USBH_HandleTypeDef hUsbHostHS;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT file_write(char *path, char *wstr) {
@@ -95,6 +96,8 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	RTC_TimeTypeDef sTime;
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	change_daylightsaving(&sDate,&sTime,1);
+
 	uint8_t create_new = 0;
 	switch (filetype) {
 	case TEMPERATURE_FILE:

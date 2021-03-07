@@ -277,6 +277,8 @@ void clock_cell(bounding_box_t *pos_) {
 	RTC_DateTypeDef sDate;
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	change_daylightsaving(&sDate,&sTime,1);
+
 	sprintf(tmp_str, "  %02d:%02d:%02d", sTime.Hours, sTime.Minutes,
 			sTime.Seconds);
 	draw_text(tmp_str, 2, 1, Tahoma8, 1, 0);
@@ -760,7 +762,7 @@ void create_formposition(uint8_t clear, bounding_box_t *text_pos, POS_t tmp_lat,
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formTime(uint8_t clear, bounding_box_t *text_pos,
-		RTC_TimeTypeDef *tmp_time, RTC_DateTypeDef *tmp_date) {
+		RTC_TimeTypeDef tmp_time, RTC_DateTypeDef tmp_date) {
 	char tmp_str[40];
 	bounding_box_t pos_[2];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -786,12 +788,11 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[1].x2 = 40;
 	text_cell(pos_, 1, "Date:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	HAL_RTC_GetTime(&hrtc, tmp_time, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(&hrtc, tmp_date, RTC_FORMAT_BIN);
+
 
 	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 2, 1, 1, pos_);
 
-	sprintf(tmp_str, "%02d", tmp_time->Hours);
+	sprintf(tmp_str, "%02d", tmp_time.Hours);
 	pos_[0].x1 = 42;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -799,7 +800,7 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[0].x2 = pos_[0].x1 + 3;
 	text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%02d", tmp_time->Minutes);
+	sprintf(tmp_str, "%02d", tmp_time.Minutes);
 	pos_[0].x1 = pos_[0].x2 + 1;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[3] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -807,12 +808,12 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[0].x2 = pos_[0].x1 + 3;
 	text_cell(pos_, 0, ":", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%02d", tmp_time->Seconds);
+	sprintf(tmp_str, "%02d", tmp_time.Seconds);
 	pos_[0].x1 = pos_[0].x2 + 1;
 	pos_[0].x2 = pos_[0].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[4] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%04d", tmp_date->Year + 2000);
+	sprintf(tmp_str, "%04d", tmp_date.Year + 2000);
 	pos_[1].x1 = 42;
 	pos_[1].x2 = pos_[1].x1 + text_width("5555", Tahoma8, 1) + 1;
 	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -820,7 +821,7 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[1].x2 = pos_[1].x1 + 4;
 	text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%02d", tmp_date->Month);
+	sprintf(tmp_str, "%02d", tmp_date.Month);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[6] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -828,7 +829,7 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[1].x2 = pos_[1].x1 + 4;
 	text_cell(pos_, 1, "-", Tahoma8, LEFT_ALIGN, 0, 0);
 
-	sprintf(tmp_str, "%02d", tmp_date->Date);
+	sprintf(tmp_str, "%02d", tmp_date.Date);
 	pos_[1].x1 = pos_[1].x2 + 1;
 	pos_[1].x2 = pos_[1].x1 + text_width("55", Tahoma8, 1) + 1;
 	text_pos[7] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
@@ -1560,6 +1561,8 @@ int app_main(void) {
 	//////////////////////////Saves in logs file///////////////////////////////////////////
 	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+	change_daylightsaving(&cur_Date,&cur_time,1);
+
 	sprintf(tmp_str,
 			"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
 			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
@@ -1659,7 +1662,7 @@ int app_main(void) {
 			flag_rtc_1s_general = 0;
 			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 			HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-
+			change_daylightsaving(&cur_Date,&cur_time,1);
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
@@ -1779,36 +1782,36 @@ int app_main(void) {
 					r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
 				}
 				////////////////////////////RTC//////////////////////////////////
-				cur_date_t.day = cur_Date.Date;
-				cur_date_t.month = cur_Date.Month;
-				cur_date_t.year = cur_Date.Year;
-				cur_daylightsaving = Astro_daylighsaving(cur_date_t);
-				if (cur_daylightsaving && !pre_daylightsaving) {
-					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
-						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-						SET_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
-						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
-						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
-						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-					}
-					pre_daylightsaving = cur_daylightsaving;
-				}
-				if (!cur_daylightsaving && pre_daylightsaving) {
-					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
-						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-						SET_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
-						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
-						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
-						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-					}
-					pre_daylightsaving = cur_daylightsaving;
-				}
-				cur_time_t.hr = cur_time.Hours;
-				cur_time_t.min = cur_time.Minutes;
-				cur_time_t.sec = cur_time.Seconds;
+//				cur_date_t.day = cur_Date.Date;
+//				cur_date_t.month = cur_Date.Month;
+//				cur_date_t.year = cur_Date.Year;
+//				cur_daylightsaving = Astro_daylighsaving(cur_date_t);
+//				if (cur_daylightsaving && !pre_daylightsaving) {
+//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+//					}
+//					pre_daylightsaving = cur_daylightsaving;
+//				}
+//				if (!cur_daylightsaving && pre_daylightsaving) {
+//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+//					}
+//					pre_daylightsaving = cur_daylightsaving;
+//				}
+//				cur_time_t.hr = cur_time.Hours;
+//				cur_time_t.min = cur_time.Minutes;
+//				cur_time_t.sec = cur_time.Seconds;
 				////////////////////////////LED control////////////////////////////////////
-				if (cur_time_t.hr == 0 && cur_time_t.min == 0
-						&& cur_time_t.sec == 0) {
+				if (cur_time.Hours== 0 && cur_time.Minutes == 0
+						&& cur_time.Seconds== 0) {
 					tmp_dlat = POS2double(LAT_Value);
 					tmp_dlong = POS2double(LONG_Value);
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
@@ -2233,8 +2236,11 @@ int app_main(void) {
 					MENU_state = POSITION_MENU;
 					break;
 				case TIME_MENU:
+					HAL_RTC_GetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
+					HAL_RTC_GetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
+					change_daylightsaving(&tmp_Date,&tmp_time,1);
 
-					create_formTime(1, text_pos, &tmp_time, &tmp_Date);
+					create_formTime(1, text_pos, tmp_time, tmp_Date);
 					index_option = 2;
 
 					sprintf(tmp_str, "%02d", tmp_time.Hours);
@@ -3266,6 +3272,8 @@ int app_main(void) {
 						//save in eeprom
 					tmp_time.DayLightSaving=RTC_DAYLIGHTSAVING_NONE;
 					tmp_time.StoreOperation=RTC_STOREOPERATION_RESET;
+					change_daylightsaving(&tmp_Date,&tmp_time,0);
+
 					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
 					HAL_Delay(100);
 					HAL_RTC_SetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);

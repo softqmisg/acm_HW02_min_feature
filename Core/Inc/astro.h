@@ -41,9 +41,9 @@ POS_t latdouble2POS(double lat);
 void  Astro_sunRiseSet( double lat, double lng, double UTCoff, Date_t date,Time_t *sunrise_t,Time_t *noon_t,Time_t *sunset_t,uint8_t daylightsave);
 void ShowTime_t(Time_t cur_time,char *str);
 uint8_t leap(int year);
-uint8_t Astro_daylighsaving(Date_t date);
+uint8_t Astro_daylighsaving(RTC_DateTypeDef date,RTC_TimeTypeDef time);
 uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,Time_t sunset_t,double add_sunrise,double add_sunset);
-
+void change_daylightsaving(RTC_DateTypeDef *date,RTC_TimeTypeDef *time,uint8_t addsub);
 extern unsigned char  gDaysInMonth[12];
 extern unsigned char  gDaysInMonthLeap[12];
 
