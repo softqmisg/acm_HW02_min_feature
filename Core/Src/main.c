@@ -347,7 +347,7 @@ void create_form2(uint8_t clear, double *voltage, double *current) {
 		sprintf(tmp_str, "V=---");
 
 	if (voltage[1] > 0.0)
-		sprintf(tmp_str, "%s     C=%4.2fA", tmp_str, current);
+		sprintf(tmp_str, "%s     C=%4.2fA", tmp_str, current[1]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -1719,6 +1719,50 @@ int app_main(void) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
+						&cur_voltage[0]) != HAL_OK) {
+					cur_voltage[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_7V,
+						&cur_current[0]) != HAL_OK) {
+					cur_current[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
+						&cur_voltage[1]) != HAL_OK) {
+					cur_voltage[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_12V,
+						&cur_current[1]) != HAL_OK) {
+					cur_current[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
+						&cur_voltage[2]) != HAL_OK) {
+					cur_voltage[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
+						&cur_current[2]) != HAL_OK) {
+					cur_current[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
+						&cur_voltage[3]) != HAL_OK) {
+					cur_voltage[3] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
+						&cur_current[3]) != HAL_OK) {
+					cur_current[3] = -1.0;
+
+				}
+				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+					cur_insidelight = 0xffff;
+				}
+				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+					cur_outsidelight = 0xffff;
+				}
 
 				////////////////////////////LED control////////////////////////////////////
 				if (cur_time.Hours == 0 && cur_time.Minutes == 0
@@ -1791,50 +1835,50 @@ int app_main(void) {
 						cur_temperature[i] = (int16_t) 0x8fff;
 					}
 
-				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
-						&cur_voltage[0]) != HAL_OK) {
-					cur_voltage[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_7V,
-						&cur_current[0]) != HAL_OK) {
-					cur_voltage[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
-						&cur_voltage[1]) != HAL_OK) {
-					cur_voltage[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_12V,
-						&cur_current[1]) != HAL_OK) {
-					cur_voltage[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
-						&cur_voltage[2]) != HAL_OK) {
-					cur_voltage[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
-						&cur_current[2]) != HAL_OK) {
-					cur_voltage[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
-						&cur_voltage[3]) != HAL_OK) {
-					cur_voltage[3] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
-						&cur_current[3]) != HAL_OK) {
-					cur_voltage[3] = -1.0;
-
-				}
-				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
-					cur_insidelight = 0xffff;
-				}
-				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-					cur_outsidelight = 0xffff;
-				}
+//				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
+//						&cur_voltage[0]) != HAL_OK) {
+//					cur_voltage[0] = -1.0;
+//				}
+//				if (ina3221_readdouble((uint8_t) CURRENT_7V,
+//						&cur_current[0]) != HAL_OK) {
+//					cur_current[0] = -1.0;
+//				}
+//				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
+//						&cur_voltage[1]) != HAL_OK) {
+//					cur_voltage[1] = -1.0;
+//
+//				}
+//				if (ina3221_readdouble((uint8_t) CURRENT_12V,
+//						&cur_current[1]) != HAL_OK) {
+//					cur_current[1] = -1.0;
+//
+//				}
+//				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
+//						&cur_voltage[2]) != HAL_OK) {
+//					cur_voltage[2] = -1.0;
+//
+//				}
+//				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
+//						&cur_current[2]) != HAL_OK) {
+//					cur_current[2] = -1.0;
+//
+//				}
+//				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
+//						&cur_voltage[3]) != HAL_OK) {
+//					cur_voltage[3] = -1.0;
+//
+//				}
+//				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
+//						&cur_current[3]) != HAL_OK) {
+//					cur_current[3] = -1.0;
+//
+//				}
+//				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+//					cur_insidelight = 0xffff;
+//				}
+//				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+//					cur_outsidelight = 0xffff;
+//				}
 				/////////////////////log sensors//////////////////////////
 
 				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,",
@@ -3330,7 +3374,7 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////LEDS1_MENU/////////////////////////////////////////////////
 		case LEDS1_MENU:
-			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			joystick_init(Key_TOP|Key_DOWN|Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
@@ -4010,7 +4054,7 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////LEDIR_MENU/////////////////////////////////////////////////
 		case LEDS2_MENU:
-			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			joystick_init(Key_TOP|Key_DOWN|Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
