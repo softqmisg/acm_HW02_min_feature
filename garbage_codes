@@ -148,3 +148,31 @@ garbage_codes
 ////	 f_mount(&SDFatFS, "", 1);
 //
 //	//////////////////////////////////////////////////////////////////////////////////
+				////////////////////////////RTC//////////////////////////////////
+//				cur_date_t.day = cur_Date.Date;
+//				cur_date_t.month = cur_Date.Month;
+//				cur_date_t.year = cur_Date.Year;
+//				cur_daylightsaving = Astro_daylighsaving(cur_date_t);
+//				if (cur_daylightsaving && !pre_daylightsaving) {
+//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+//					}
+//					pre_daylightsaving = cur_daylightsaving;
+//				}
+//				if (!cur_daylightsaving && pre_daylightsaving) {
+//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
+//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
+//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
+//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
+//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+//					}
+//					pre_daylightsaving = cur_daylightsaving;
+//				}
+//				cur_time_t.hr = cur_time.Hours;
+//				cur_time_t.min = cur_time.Minutes;
+//				cur_time_t.sec = cur_time.Seconds;

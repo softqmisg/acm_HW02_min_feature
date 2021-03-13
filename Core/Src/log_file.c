@@ -54,20 +54,37 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	char str_drive[3];
 	char str_tmp[100];
 	char filename_tmp[50];
+//	////////////for test//////////////////
+//	if(drv==SDCARD_DRIVE)
+//		drv=USB_DRIVE;
+//	else
+//		drv=SDCARD_DRIVE;
 	//////////////////////mounting drive//////////////////////////////////
 	switch (drv) {
 	case SDCARD_DRIVE:
-		if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-			printf("mounting sdcard error=%d\n\r", fr);
+		if(SDFatFS.fs_type==0)
+		{
+			printf("sdcard not mount=%d\n\r", fr);
 			return fr;
 		}
+//		if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+//			printf("mounting sdcard error=%d\n\r", fr);
+//			f_mount(NULL, "0:", 0);
+//			return fr;
+//		}
 		sprintf(str_drive, "0:");
 		break;
 	case USB_DRIVE:
-		if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
-			printf("mounting usbh error=%d\n\r", fr);
+		if(USBHFatFS.fs_type==0)
+		{
+			printf("USB not mount=%d\n\r", fr);
 			return fr;
 		}
+//		if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+//			printf("mounting usbh error=%d\n\r", fr);
+//			f_mount(NULL, "0:", 0);
+//			return fr;
+//		}
 		sprintf(str_drive, "1:");
 		break;
 	}
@@ -78,17 +95,20 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	case FR_OK:
 		if (fno.fattrib & AM_RDO) {
 			printf("directory is read only\n\r");
+//			f_mount(NULL, "0:", 0);
 			return FR_LOCKED;
 		}
 		break;
 	case FR_NO_FILE:
 		if ((fr = f_mkdir(str_tmp)) != HAL_OK) {
 			printf("f_mkdir error (%d)\n\r", fr);
+//			f_mount(NULL, "0:", 0);
 			return fr;
 		}
 		break;
 	default:
 		printf("f_stat(%s) error=%d\n\r", str_tmp, fr);
+//		f_mount(NULL, "0:", 0);
 		return fr;
 	}
 	/////////////////////////////check file exist or large or need generate ///////////////////////////////////////////
@@ -128,10 +148,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			sprintf(str_tmp, "Date,Time,T1,T2,T3,T4,T5,T6,T7,T8\n");
 			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			break;
@@ -144,10 +166,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 
 			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			break;
@@ -158,10 +182,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			sprintf(str_tmp, "Date,Time,Inside ,Outside\n");
 			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
+//				f_mount(NULL, "0:", 0);
 				return fr;
 			}
 			break;
@@ -179,24 +205,26 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 
 	} else if (fr != FR_OK) {
 		printf("f_stat(%s) error=%d\n\r", filename_tmp, fr);
+//		f_mount(NULL, "0:", 0);
 		return fr;
 	}
 	///////////////////////save data in the file///////////////////////////////
 	if ((fr = file_write(filename_tmp, str_write)) != FR_OK) {
 		printf("writing file error(%d)\n\r", fr);
+//		f_mount(NULL, "0:", 0);
 		return fr;
 	}
 	if ((fr = file_write(filename_tmp, "")) != FR_OK) {
 		printf("writing file error(%d)\n\r", fr);
+//		f_mount(NULL, "0:", 0);
 		return fr;
 	}
 	//////////////////////unmounting drive//////////////////////////////////
 	switch (drv) {
 	case SDCARD_DRIVE:
-		f_mount(NULL, "0:", 0);
+//		f_mount(NULL, "0:", 0);
 		break;
 	case USB_DRIVE:
-		f_mount(NULL, "1:", 0);
 		break;
 	}
 	return fr;
@@ -245,19 +273,17 @@ FRESULT Copy2USB() {
 		return FR_DISK_ERR;
 	//find all files in log folder of "0:" and copy all to log folder of "1:"
 	///////////////////////mount USB///////////////////////////////////////////////////
-	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
-		printf("mounting usbh error=%d\n\r", fr);
-		f_mount(NULL, "1:", 0);
-		f_mount(NULL, "0:", 0);
-		return fr;
-	}
+//	if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+//		printf("mounting usbh error=%d\n\r", fr);
+//		f_mount(NULL, "0:", 0);
+//		return fr;
+//	}
 	///////////////////////mount SD///////////////////////////////////////////////////
-	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-		printf("mounting sdcard error=%d\n\r", fr);
-		f_mount(NULL, "1:", 0);
-		f_mount(NULL, "0:", 0);
-		return fr;
-	}
+//	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+//		printf("mounting sdcard error=%d\n\r", fr);
+//		f_mount(NULL, "0:", 0);
+//		return fr;
+//	}
 	//////////////////////check log folder exist on USBH//////////////////////////////////
 	fr = f_stat("1:/log", &fno);
 	switch (fr) {
@@ -270,15 +296,13 @@ FRESULT Copy2USB() {
 	case FR_NO_FILE:
 		if ((fr = f_mkdir("1:/log")) != HAL_OK) {
 			printf("f_mkdir error (%d)\n\r", fr);
-			f_mount(NULL, "1:", 0);
-			f_mount(NULL, "0:", 0);
+//			f_mount(NULL, "0:", 0);
 			return fr;
 		}
 		break;
 	default:
 		printf("f_stat(%s) error=%d\n\r", str_tmp, fr);
-		f_mount(NULL, "1:", 0);
-		f_mount(NULL, "0:", 0);
+//		f_mount(NULL, "0:", 0);
 		return fr;
 	}
 	//////////////////////////open 0:/log folder///////////////////////////////////////
@@ -291,13 +315,14 @@ FRESULT Copy2USB() {
 			{
 				sprintf(filesrc,"0:/log/%s",fno.fname);
 				sprintf(filedes,"1:/log/%s",fno.fname);
-				if((fr==Copy_file(filesrc, filedes))!=FR_OK)
+				if((fr=Copy_file(filesrc, filedes))!=FR_OK)
 						break;
+//				f_unlink(filesrc);
 			}
 		}
+		f_closedir(&dir);
 	}
 	//////////////////////////////////////////////////////////////////////////////////
-	f_mount(NULL, "1:", 0);
-	f_mount(NULL, "0:", 0);
+//	f_mount(NULL, "0:", 0);
 	return fr;
 }

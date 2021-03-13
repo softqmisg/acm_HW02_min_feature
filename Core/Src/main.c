@@ -62,7 +62,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define FORM_DELAY_SHOW	6	//second
+#define FORM_DELAY_SHOW	15	//second
 #define LOG_DATA_DELAY	10 //second
 ////////////////send  code to  bootloader////////////////////////////////
 #define WRITE_FROM_SD				1// write from SD with never downgrade
@@ -158,7 +158,8 @@ enum {
 } MENU_state = MAIN_MENU;
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Exit" };
-char *menu_upgrade[]={"Upgrade from SD","Upgrade from USB","Force upgrade from SD","Force upgrade from  USB"};
+char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
+		"Force upgrade from SD", "Force upgrade from  USB" };
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
 LED_t S1_LED_Value, S2_LED_Value;
 RELAY_t RELAY1_Value, RELAY2_Value;
@@ -277,7 +278,7 @@ void clock_cell(bounding_box_t *pos_) {
 	RTC_DateTypeDef sDate;
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	change_daylightsaving(&sDate,&sTime,1);
+	change_daylightsaving(&sDate, &sTime, 1);
 
 	sprintf(tmp_str, "  %02d:%02d:%02d", sTime.Hours, sTime.Minutes,
 			sTime.Seconds);
@@ -305,7 +306,8 @@ void create_form1(uint8_t clear, int16_t *temperature) {
 			sprintf(tmp_str, "T(%d)=%+4.1f", i + 1, temperature[i] / 10.0);
 		} else
 			sprintf(tmp_str, "T(%d)=---", i + 1);
-		text_cell(pos_, i, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+		pos_[i].x1++;
+		text_cell(pos_, i, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
@@ -563,7 +565,9 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	DWORD fre_clust, fre_sect, tot_sect;
 	FRESULT res;
 
-	if ((res = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+//	if ((res = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+
+	if(SDFatFS.fs_type==0 ||BSP_SD_IsDetected()==SD_NOT_PRESENT){
 		sprintf(tmp_str, "--/--");
 	} else {
 		tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
@@ -575,9 +579,11 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	pos_[2].x1 = 1;
 	pos_[2].x2 = 65;
 	text_cell(pos_, 2, "Sd Free|MB", Tahoma8, LEFT_ALIGN, 1, 1);
-	f_mount(NULL, "0:", 0);
+//	f_mount(NULL, "0:", 0);
 	//////
-	if ((res = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+//	if ((res = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
+	if (USBHFatFS.fs_type == 0) {
+
 		sprintf(tmp_str, "--/--");
 
 	} else {
@@ -585,7 +591,6 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 		fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
 		sprintf(tmp_str, "%5lu/%5lu", fre_sect / 2048, tot_sect / 2048);
 	}
-	f_mount(NULL, "1:", 0);
 	pos_[3].x1 = 67;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[3].x1 = 1;
@@ -788,7 +793,6 @@ void create_formTime(uint8_t clear, bounding_box_t *text_pos,
 	pos_[1].x2 = 40;
 	text_cell(pos_, 1, "Date:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 2, 1, 1, pos_);
 
@@ -1277,11 +1281,11 @@ void create_formUpgrade(uint8_t clear, bounding_box_t *text_pos) {
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 1, 1, pos_);//menu_upgrade[op]
-	for(uint8_t op=0;op<4;op++)
-	{
-		pos_[0].y2 = pos_[0].y1 + text_height( menu_upgrade[op], Tahoma8);
-		text_pos[op+2]=text_cell(pos_, 0, menu_upgrade[op], Tahoma8, CENTER_ALIGN, 0, 0);
-		pos_[0].y1 = pos_[0].y2+1;
+	for (uint8_t op = 0; op < 4; op++) {
+		pos_[0].y2 = pos_[0].y1 + text_height(menu_upgrade[op], Tahoma8);
+		text_pos[op + 2] = text_cell(pos_, 0, menu_upgrade[op], Tahoma8,
+				CENTER_ALIGN, 0, 0);
+		pos_[0].y1 = pos_[0].y2 + 1;
 
 	}
 
@@ -1314,11 +1318,11 @@ void Peripherials_DeInit(void) {
 
 	MX_USB_HOST_DeInit();
 
-	 __HAL_RCC_DMA2_CLK_DISABLE();
+	__HAL_RCC_DMA2_CLK_DISABLE();
 
-	 MX_GPIO_DeInit();
+	MX_GPIO_DeInit();
 
-	 __HAL_IWDG_RELOAD_COUNTER(&hiwdg);
+	__HAL_IWDG_RELOAD_COUNTER(&hiwdg);
 	HAL_FLASH_Lock();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1365,7 +1369,6 @@ int app_main(void) {
 	MX_LWIP_Init();
 #endif
 #if !(__DEBUG__)
-
   MX_IWDG_Init();
 #endif
 	/* USER CODE BEGIN 2 */
@@ -1426,12 +1429,15 @@ int app_main(void) {
 	} else {
 		bmp_img img;
 		if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
+		{
 			draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
 					img.img_pixels, 1);
+			bmp_img_free(&img);
+		}
 		else
 			printf("bmp file error\n\r");
-		f_mount(NULL, "0:", 0);
-		bmp_img_free(&img);
+//		f_mount(NULL, "0:", 0);
+
 		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
 		glcd_refresh();
 		HAL_Delay(1000);
@@ -1558,96 +1564,6 @@ int app_main(void) {
 
 	}
 	update_values();
-	//////////////////////////Saves in logs file///////////////////////////////////////////
-	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
-	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-	change_daylightsaving(&cur_Date,&cur_time,1);
-
-	sprintf(tmp_str,
-			"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
-			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
-			cur_time.Minutes, cur_time.Seconds, LAT_Value.deg, LAT_Value.min,
-			LAT_Value.second / 100.0, LAT_Value.direction, LONG_Value.deg,
-			LONG_Value.min, LONG_Value.second / 100.0, LONG_Value.direction);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	sprintf(tmp_str,
-			"%04d-%02d-%02d,%02d:%02d:%02d,LED SET1,%s,%d,%f,%f,%d,%f,%f\n",
-			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
-			cur_time.Minutes, cur_time.Seconds,
-			(S1_LED_Value.TYPE_Value == IR_LED) ? "IR" : "WHITE",
-			S1_LED_Value.DAY_BRIGHTNESS_Value,
-			S1_LED_Value.DAY_BLINK_Value / 10.0,
-			S1_LED_Value.ADD_SUNRISE_Value / 10.0,
-			S1_LED_Value.NIGHT_BRIGHTNESS_Value,
-			S1_LED_Value.NIGHT_BLINK_Value / 10.0,
-			S1_LED_Value.ADD_SUNSET_Value / 10.0);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	sprintf(tmp_str,
-			"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
-			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
-			cur_time.Minutes, cur_time.Seconds,
-			(S2_LED_Value.TYPE_Value == IR_LED) ? "IR" : "WHITE",
-			S2_LED_Value.DAY_BRIGHTNESS_Value,
-			S2_LED_Value.DAY_BLINK_Value / 10.0,
-			S2_LED_Value.ADD_SUNRISE_Value / 10.0,
-			S2_LED_Value.NIGHT_BRIGHTNESS_Value,
-			S2_LED_Value.NIGHT_BLINK_Value / 10.0,
-			S2_LED_Value.ADD_SUNSET_Value / 10.0);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	if (TEC_STATE_Value)
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-	else
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	if (RELAY1_Value.active[0])
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-				RELAY1_Value.Edge[0], RELAY1_Value.Temperature[0]);
-	else
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-	if (RELAY1_Value.active[1])
-		sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
-				RELAY1_Value.Temperature[1]);
-	else
-		sprintf(tmp_str, "%s,--\n", tmp_str);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	if (RELAY2_Value.active[0])
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-				RELAY2_Value.Edge[0], RELAY2_Value.Temperature[0]);
-	else
-		sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
-				cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-				cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-	if (RELAY2_Value.active[1])
-		sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY2_Value.Edge[1],
-				RELAY2_Value.Temperature[1]);
-	else
-		sprintf(tmp_str, "%s,--\n", tmp_str);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d",
-			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
-			cur_time.Minutes, cur_time.Seconds, DOOR_Value);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
-
-	sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,PASSWORD CHANGED",
-			cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date, cur_time.Hours,
-			cur_time.Minutes, cur_time.Seconds);
-	r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	joystick_init(Key_ALL, Both_press);
@@ -1655,6 +1571,9 @@ int app_main(void) {
 	flag_change_form = 1;
 	flag_rtc_1s_general = 1;
 	flag_log_data = 1;
+	MENU_state = MAIN_MENU;
+	DISP_state=DISP_IDLE;
+	uint8_t flag_log_param = 1;
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
 		/////////////////////Read time//////////////////////////////////
@@ -1662,7 +1581,8 @@ int app_main(void) {
 			flag_rtc_1s_general = 0;
 			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 			HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
-			change_daylightsaving(&cur_Date,&cur_time,1);
+			change_daylightsaving(&cur_Date, &cur_time, 1);
+			cur_date_t.day=cur_Date.Date;cur_date_t.month=cur_Date.Month;cur_date_t.year=cur_Date.Year;
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
@@ -1681,7 +1601,102 @@ int app_main(void) {
 			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str);
 			prev_doorstate = cur_doorstate;
 		}
+		//////////////////////////Saves parameters in logs file in SDCARD,just one  time////
+		if (flag_log_param /*&& USBH_MSC_IsReady(&hUsbHostHS)*/) {
+			flag_log_param = 0;
+			sprintf(tmp_str,
+					"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					LAT_Value.deg, LAT_Value.min, LAT_Value.second / 100.0,
+					LAT_Value.direction, LONG_Value.deg, LONG_Value.min,
+					LONG_Value.second / 100.0, LONG_Value.direction);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			sprintf(tmp_str,
+					"%04d-%02d-%02d,%02d:%02d:%02d,LED SET1,%s,%d,%f,%f,%d,%f,%f\n",
+					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					(S1_LED_Value.TYPE_Value == IR_LED) ? "IR" : "WHITE",
+					S1_LED_Value.DAY_BRIGHTNESS_Value,
+					S1_LED_Value.DAY_BLINK_Value / 10.0,
+					S1_LED_Value.ADD_SUNRISE_Value / 10.0,
+					S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+					S1_LED_Value.NIGHT_BLINK_Value / 10.0,
+					S1_LED_Value.ADD_SUNSET_Value / 10.0);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			sprintf(tmp_str,
+					"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
+					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					(S2_LED_Value.TYPE_Value == IR_LED) ? "IR" : "WHITE",
+					S2_LED_Value.DAY_BRIGHTNESS_Value,
+					S2_LED_Value.DAY_BLINK_Value / 10.0,
+					S2_LED_Value.ADD_SUNRISE_Value / 10.0,
+					S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+					S2_LED_Value.NIGHT_BLINK_Value / 10.0,
+					S2_LED_Value.ADD_SUNSET_Value / 10.0);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			if (TEC_STATE_Value)
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			else
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			if (RELAY1_Value.active[0])
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						RELAY1_Value.Edge[0], RELAY1_Value.Temperature[0]/10.0);
+			else
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			if (RELAY1_Value.active[1])
+				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
+						RELAY1_Value.Temperature[1]/10.0);
+			else
+				sprintf(tmp_str, "%s,--\n", tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			if (RELAY2_Value.active[0])
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						RELAY2_Value.Edge[0], RELAY2_Value.Temperature[0]/10.0);
+			else
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			if (RELAY2_Value.active[1])
+				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY2_Value.Edge[1],
+						RELAY2_Value.Temperature[1]/10.0);
+			else
+				sprintf(tmp_str, "%s,--\n", tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d\n",
+					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+					DOOR_Value);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+
+			if (r_logparam != FR_OK)
+				flag_log_param = 1;
+		}
+
 		/////////////////////Temperature Control Algorithm//////////////////////////////////
+
 
 		/////////////////////////////////////State Machine///////////////////////////////////////////////////////////
 		switch (MENU_state) {
@@ -1696,122 +1711,14 @@ int app_main(void) {
 					flag_change_form = 1;
 				}
 				counter_log_data++;
-				if (counter_log_data > LOG_DATA_DELAY) {
+				if (counter_log_data >= LOG_DATA_DELAY) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
-				/////////////////////Read & Log Sensors//////////////////////////////////
-				if (flag_log_data) {
-					flag_log_data = 0;
-					counter_log_data = 0;
-					/////////////////////read sensors//////////////////////////
-					for (uint8_t i = 0; i < 8; i++)
-						if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
-							cur_temperature[i] = (int16_t) 0x8fff;
-						}
 
-					if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-							!= HAL_OK) {
-						cur_voltage[0] = -1.0;
-					}
-					if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-							!= HAL_OK) {
-						cur_voltage[0] = -1.0;
-					}
-					if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-							!= HAL_OK) {
-						cur_voltage[1] = -1.0;
-
-					}
-					if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-							!= HAL_OK) {
-						cur_voltage[1] = -1.0;
-
-					}
-					if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-							!= HAL_OK) {
-						cur_voltage[2] = -1.0;
-
-					}
-					if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-							!= HAL_OK) {
-						cur_voltage[2] = -1.0;
-
-					}
-					if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-							!= HAL_OK) {
-						cur_voltage[3] = -1.0;
-
-					}
-					if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-							!= HAL_OK) {
-						cur_voltage[3] = -1.0;
-
-					}
-					if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
-						cur_insidelight = 0xffff;
-					}
-					if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-						cur_outsidelight = 0xffff;
-					}
-					/////////////////////log sensors//////////////////////////
-					sprintf(tmp_str,
-							"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-							cur_temperature[0] / 10.0, cur_temperature[1] / 10.0,
-							cur_temperature[2] / 10.0, cur_temperature[3] / 10.0,
-							cur_temperature[4] / 10.0, cur_temperature[5] / 10.0,
-							cur_temperature[6] / 10.0, cur_temperature[7] / 10.0);
-					r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
-
-					sprintf(tmp_str,
-							"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-							cur_voltage[0], cur_current[0], cur_voltage[1],
-							cur_current[1], cur_voltage[2], cur_current[2],
-							cur_voltage[3], cur_current[3]);
-					r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
-
-					sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
-							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-							cur_insidelight, cur_outsidelight);
-
-					r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
-				}
-				////////////////////////////RTC//////////////////////////////////
-//				cur_date_t.day = cur_Date.Date;
-//				cur_date_t.month = cur_Date.Month;
-//				cur_date_t.year = cur_Date.Year;
-//				cur_daylightsaving = Astro_daylighsaving(cur_date_t);
-//				if (cur_daylightsaving && !pre_daylightsaving) {
-//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
-//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-//						SET_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
-//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
-//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
-//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-//					}
-//					pre_daylightsaving = cur_daylightsaving;
-//				}
-//				if (!cur_daylightsaving && pre_daylightsaving) {
-//					if (READ_BIT(hrtc.Instance->CR, RTC_CR_BKP) != RTC_CR_BKP) {
-//						__HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-//						SET_BIT(hrtc.Instance->CR, RTC_CR_SUB1H);
-//						SET_BIT(hrtc.Instance->CR, RTC_CR_BKP);
-//						CLEAR_BIT(hrtc.Instance->CR, RTC_CR_ADD1H);
-//						__HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-//					}
-//					pre_daylightsaving = cur_daylightsaving;
-//				}
-//				cur_time_t.hr = cur_time.Hours;
-//				cur_time_t.min = cur_time.Minutes;
-//				cur_time_t.sec = cur_time.Seconds;
 				////////////////////////////LED control////////////////////////////////////
-				if (cur_time.Hours== 0 && cur_time.Minutes == 0
-						&& cur_time.Seconds== 0) {
+				if (cur_time.Hours == 0 && cur_time.Minutes == 0
+						&& cur_time.Seconds == 0) {
 					tmp_dlat = POS2double(LAT_Value);
 					tmp_dlong = POS2double(LONG_Value);
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
@@ -1869,6 +1776,98 @@ int app_main(void) {
 					break;
 				}
 			}
+			/////////////////////Read & Log Sensors//////////////////////////////////
+			if (flag_log_data) {
+				flag_log_data = 0;
+				counter_log_data = 0;
+				/////////////////////read sensors//////////////////////////
+				for (uint8_t i = 0; i < 8; i++)
+					if (tmp275_readTemperature(i, &cur_temperature[i])
+							!= HAL_OK) {
+						cur_temperature[i] = (int16_t) 0x8fff;
+					}
+
+				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
+						&cur_voltage[0]) != HAL_OK) {
+					cur_voltage[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_7V,
+						&cur_current[0]) != HAL_OK) {
+					cur_voltage[0] = -1.0;
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
+						&cur_voltage[1]) != HAL_OK) {
+					cur_voltage[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_12V,
+						&cur_current[1]) != HAL_OK) {
+					cur_voltage[1] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
+						&cur_voltage[2]) != HAL_OK) {
+					cur_voltage[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
+						&cur_current[2]) != HAL_OK) {
+					cur_voltage[2] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
+						&cur_voltage[3]) != HAL_OK) {
+					cur_voltage[3] = -1.0;
+
+				}
+				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
+						&cur_current[3]) != HAL_OK) {
+					cur_voltage[3] = -1.0;
+
+				}
+				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+					cur_insidelight = 0xffff;
+				}
+				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+					cur_outsidelight = 0xffff;
+				}
+				/////////////////////log sensors//////////////////////////
+
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+				for (uint8_t i = 0; i < 8; i++) {
+					if (cur_temperature[i] == (int16_t) 0x8fff) {
+						sprintf(tmp_str, "%s-,", tmp_str);
+					} else {
+						sprintf(tmp_str, "%s%f,", tmp_str,
+								cur_temperature[i] / 10.0);
+					}
+				}
+				sprintf(tmp_str, "%s\n", tmp_str);
+
+				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE,
+						tmp_str);
+
+				sprintf(tmp_str,
+						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						cur_voltage[0], cur_current[0], cur_voltage[1],
+						cur_current[1], cur_voltage[2], cur_current[2],
+						cur_voltage[3], cur_current[3]);
+				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE,
+						tmp_str);
+
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+						cur_insidelight, cur_outsidelight);
+
+				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
+			}
+
+			///////////////////////////change display form////////////////////////////////////////////////
 			if (flag_change_form) {
 				flag_change_form = 0;
 				counter_change_form = 0;
@@ -1916,40 +1915,42 @@ int app_main(void) {
 			//////////////////////////////////////////////////////////////////////////////
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
 					Long_press);
-			if(joystick_read(Key_TOP, Short_press)|| joystick_read(Key_RIGHT, Short_press))
-			{
-				joystick_init(Key_TOP,Short_press);
+			if (joystick_read(Key_TOP, Short_press)
+					|| joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
 				joystick_init(Key_RIGHT, Short_press);
 				flag_change_form = 1;
 				counter_change_form = 0;
 			}
-			if(joystick_read(Key_DOWN, Short_press)|| joystick_read(Key_LEFT, Short_press))
-			{
-				joystick_init(Key_DOWN,Short_press);
+			if (joystick_read(Key_DOWN, Short_press)
+					|| joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
 				joystick_init(Key_LEFT, Short_press);
 				flag_change_form = 1;
 				counter_change_form = 0;
 				switch (DISP_state) {
+				case DISP_IDLE:
+					break;
 				case DISP_FORM1:
-					DISP_state=DISP_FORM6;
+					DISP_state = DISP_FORM6;
 					break;
 				case DISP_FORM2:
-					DISP_state=DISP_FORM7;
+					DISP_state = DISP_FORM7;
 					break;
 				case DISP_FORM3:
-					DISP_state=DISP_FORM1;
+					DISP_state = DISP_FORM1;
 					break;
 				case DISP_FORM4:
-					DISP_state=DISP_FORM2;
+					DISP_state = DISP_FORM2;
 					break;
 				case DISP_FORM5:
-					DISP_state=DISP_FORM3;
+					DISP_state = DISP_FORM3;
 					break;
 				case DISP_FORM6:
-					DISP_state=DISP_FORM4;
+					DISP_state = DISP_FORM4;
 					break;
 				case DISP_FORM7:
-					DISP_state=DISP_FORM5;
+					DISP_state = DISP_FORM5;
 					break;
 
 				}
@@ -2238,7 +2239,7 @@ int app_main(void) {
 				case TIME_MENU:
 					HAL_RTC_GetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
 					HAL_RTC_GetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
-					change_daylightsaving(&tmp_Date,&tmp_time,1);
+					change_daylightsaving(&tmp_Date, &tmp_time, 1);
 
 					create_formTime(1, text_pos, tmp_time, tmp_Date);
 					index_option = 2;
@@ -2317,15 +2318,16 @@ int app_main(void) {
 					MENU_state = CHANGEPASS_MENU;
 					break;
 				case COPY_MENU:
-					MENU_state=COPY_MENU;
+					MENU_state = COPY_MENU;
 					break;
 				case UPGRADE_MENU:
 					create_formUpgrade(1, text_pos);
-					index_option=2;
-					sprintf(tmp_str,"%s",menu_upgrade[index_option-2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8, CENTER_ALIGN, 1, 0);
+					index_option = 2;
+					sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
-					MENU_state=UPGRADE_MENU;
+					MENU_state = UPGRADE_MENU;
 					break;
 				case EXIT_MENU:
 					MENU_state = EXIT_MENU;
@@ -2808,25 +2810,25 @@ int app_main(void) {
 					LONG_Value = tmp_long;
 					UTC_OFF_Value = tmp_utcoff;
 
-					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg],
-							&LAT_Value.deg);
-					EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],
-							&LAT_Value.min);
-					EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
-							&LAT_Value.second);
-					EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
-							&LAT_Value.direction);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg],
+							LAT_Value.deg);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],
+							LAT_Value.min);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
+							LAT_Value.second);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
+							LAT_Value.direction);
 
-					EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
-							&LONG_Value.deg);
-					EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
-							&LONG_Value.min);
-					EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
-							&LONG_Value.second);
-					EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
-							&LONG_Value.direction);
-					EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF],
-							&UTC_OFF_Value);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
+							LONG_Value.deg);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
+							LONG_Value.min);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
+							LONG_Value.second);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
+							LONG_Value.direction);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF],
+							UTC_OFF_Value);
 					sprintf(tmp_str,
 							"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
@@ -3270,9 +3272,9 @@ int app_main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					tmp_time.DayLightSaving=RTC_DAYLIGHTSAVING_NONE;
-					tmp_time.StoreOperation=RTC_STOREOPERATION_RESET;
-					change_daylightsaving(&tmp_Date,&tmp_time,0);
+					tmp_time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+					tmp_time.StoreOperation = RTC_STOREOPERATION_RESET;
+					change_daylightsaving(&tmp_Date, &tmp_time, 0);
 
 					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
 					HAL_Delay(100);
@@ -3873,25 +3875,25 @@ int app_main(void) {
 								S1_LED_Value.DAY_BLINK_Value;
 						S2_LED_Value.NIGHT_BLINK_Value =
 								S1_LED_Value.NIGHT_BLINK_Value;
-						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
 								S2_LED_Value.DAY_BLINK_Value);
-						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
 								S2_LED_Value.NIGHT_BLINK_Value);
 					}
 
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
 							S1_LED_Value.TYPE_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
 							S1_LED_Value.DAY_BRIGHTNESS_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
 							S1_LED_Value.DAY_BLINK_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],
 							S1_LED_Value.NIGHT_BRIGHTNESS_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
 							S1_LED_Value.NIGHT_BLINK_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],
 							S1_LED_Value.ADD_SUNRISE_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
 							S1_LED_Value.ADD_SUNSET_Value);
 
 					sprintf(tmp_str,
@@ -4524,25 +4526,25 @@ int app_main(void) {
 								S2_LED_Value.DAY_BLINK_Value;
 						S1_LED_Value.NIGHT_BLINK_Value =
 								S2_LED_Value.NIGHT_BLINK_Value;
-						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
 								S1_LED_Value.DAY_BLINK_Value);
-						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
 								S1_LED_Value.NIGHT_BLINK_Value);
 					}
 
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
 							S2_LED_Value.TYPE_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],
 							S2_LED_Value.DAY_BRIGHTNESS_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
 							S2_LED_Value.DAY_BLINK_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],
 							S2_LED_Value.NIGHT_BRIGHTNESS_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
 							S2_LED_Value.NIGHT_BLINK_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],
 							S2_LED_Value.ADD_SUNRISE_Value);
-					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
 							S2_LED_Value.ADD_SUNSET_Value);
 
 					sprintf(tmp_str,
@@ -5325,33 +5327,33 @@ int app_main(void) {
 					RELAY1_Value = tmp_Relay1;
 					RELAY2_Value = tmp_Relay2;
 
-					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE],
 							TEC_STATE_Value);
 
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],
 							RELAY1_Value.Temperature[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],
 							RELAY1_Value.Edge[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],
 							RELAY1_Value.active[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],
 							RELAY1_Value.Temperature[1]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],
 							RELAY1_Value.Edge[1]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],
 							RELAY1_Value.active[1]);
 
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],
 							RELAY2_Value.Temperature[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],
 							RELAY2_Value.Edge[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],
 							RELAY2_Value.active[0]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1],
 							RELAY2_Value.Temperature[1]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],
 							RELAY2_Value.Edge[1]);
-					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],
 							RELAY2_Value.active[1]);
 
 					if (TEC_STATE_Value)
@@ -5691,7 +5693,7 @@ int app_main(void) {
 				case 0:	//OK
 						//save in eeprom
 					DOOR_Value = tmp_door;
-					EE_WriteVariable(VirtAddVarTab[ADD_DOOR], DOOR_Value);
+					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_DOOR], DOOR_Value);
 					sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -5962,13 +5964,13 @@ int app_main(void) {
 						glcd_refresh();
 					} else {
 						strncpy(PASSWORD_Value, tmp_pass, 5);
-						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],
 								PASSWORD_Value[0]);
-						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],
 								PASSWORD_Value[1]);
-						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],
 								PASSWORD_Value[2]);
-						EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3],
+						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3],
 								PASSWORD_Value[3]);
 
 						sprintf(tmp_str,
@@ -6016,7 +6018,7 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
-			Copy2USB();
+//			Copy2USB();
 			create_menu(0, 1, text_pos);
 			index_option = 0;
 			MENU_state = OPTION_MENU;
@@ -6028,13 +6030,14 @@ int app_main(void) {
 					Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-					draw_fill(text_pos[index_option].x1+1,
-							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
-							text_pos[index_option].y2 - 1, 0);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 0, 0);
-				if(index_option==1) index_option=6;
+				draw_fill(text_pos[index_option].x1 + 1,
+						text_pos[index_option].y1 + 1,
+						text_pos[index_option].x2 - 1,
+						text_pos[index_option].y2 - 1, 0);
+				text_cell(text_pos, index_option, tmp_str, Tahoma8,
+						CENTER_ALIGN, 0, 0);
+				if (index_option == 1)
+					index_option = 6;
 				index_option--;
 				switch (index_option) {
 //				case 0:	//OK
@@ -6043,12 +6046,12 @@ int app_main(void) {
 //							CENTER_ALIGN, 1, 1);
 //					break;
 				case 1:	//CANCEL
-					sprintf(tmp_str,"CANCEL");
+					sprintf(tmp_str, "CANCEL");
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 1);
 					break;
 				default:
-					sprintf(tmp_str, "%s", menu_upgrade[index_option-2]);
+					sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 					break;
@@ -6059,14 +6062,15 @@ int app_main(void) {
 
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				draw_fill(text_pos[index_option].x1+1,
+				draw_fill(text_pos[index_option].x1 + 1,
 						text_pos[index_option].y1 + 1,
 						text_pos[index_option].x2 - 1,
 						text_pos[index_option].y2 - 1, 0);
 				text_cell(text_pos, index_option, tmp_str, Tahoma8,
 						CENTER_ALIGN, 0, 0);
 				index_option++;
-				if(index_option>5) index_option=1;
+				if (index_option > 5)
+					index_option = 1;
 				switch (index_option) {
 //				case 0:	//OK
 //					sprintf(tmp_str,"OK");
@@ -6074,12 +6078,12 @@ int app_main(void) {
 //							CENTER_ALIGN, 1, 1);
 //					break;
 				case 1:	//CANCEL
-					sprintf(tmp_str,"CANCEL");
+					sprintf(tmp_str, "CANCEL");
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 1);
 					break;
 				default:
-					sprintf(tmp_str, "%s", menu_upgrade[index_option-2]);
+					sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 					break;
@@ -6115,8 +6119,7 @@ int app_main(void) {
 					break;
 
 				}
-				if(index_option>1)
-				{
+				if (index_option > 1) {
 					Peripherials_DeInit();
 					HAL_Delay(100);
 					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
@@ -6125,7 +6128,6 @@ int app_main(void) {
 				}
 				glcd_refresh();
 			}
-
 
 			break;
 			/////////////////////////////////////EXIT_MENU/////////////////////////////////////////////////
@@ -6139,14 +6141,33 @@ int app_main(void) {
 #if __LWIP__
 		MX_LWIP_Process();
 #endif
-		if (HAL_GPIO_ReadPin(USB_OVRCUR_GPIO_Port, USB_OVRCUR_Pin)) //no fault
-			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
-					GPIO_PIN_RESET);
-		else
-			//fault
-			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
-					GPIO_PIN_SET);
+//		if (HAL_GPIO_ReadPin(USB_OVRCUR_GPIO_Port, USB_OVRCUR_Pin)) //no fault
+//			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
+//					GPIO_PIN_RESET);
+//		else
+//			HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,
+//					GPIO_PIN_SET);
+////		if(!USBH_MSC_IsReady(&hUsbHostHS))
+////		{
+////			MX_USB_HOST_Init();
+////		}
+		if(BSP_SD_IsDetected()==SD_PRESENT)
+		{
+			 if(SDFatFS.fs_type==0)
+			 {
+				 HAL_SD_Init(&hsd);
+				 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+					 printf("mounting SD card\n\r");
 
+				 }
+			 }
+		}
+		else
+		{
+			f_mount(NULL, "0:", 0);
+			SDFatFS.fs_type=0;
+			HAL_SD_DeInit(&hsd);
+		}
 		MX_USB_HOST_Process();
 #if !(__DEBUG__)
 	HAL_IWDG_Refresh(&hiwdg);

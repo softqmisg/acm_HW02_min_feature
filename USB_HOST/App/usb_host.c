@@ -26,7 +26,7 @@
 #include "usbh_msc.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "fatfs.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN PV */
@@ -116,10 +116,18 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
 
   case HOST_USER_DISCONNECTION:
   Appli_state = APPLICATION_DISCONNECT;
+  f_mount(NULL, (TCHAR const*)"1:", 0);
+  USBHFatFS.fs_type=0;
+  printf("demount USB host\n\r");
   break;
 
   case HOST_USER_CLASS_ACTIVE:
   Appli_state = APPLICATION_READY;
+  if (f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1) != FR_OK) {
+	  printf("mounting USB host ERROR\n\r");
+  }
+  else
+	  printf("mounting USB host OK\n\r");
   break;
 
   case HOST_USER_CONNECTION:
