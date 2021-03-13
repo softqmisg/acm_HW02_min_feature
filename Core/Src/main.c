@@ -1574,6 +1574,10 @@ int app_main(void) {
 	MENU_state = MAIN_MENU;
 	DISP_state=DISP_IDLE;
 	uint8_t flag_log_param = 1;
+//	pca9632_setbrighnessblinking(LEDS1,80,0);
+//	pca9632_setbrighnessblinking(LEDS2,0,1.0);
+//
+//	while(1);
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
 		/////////////////////Read time//////////////////////////////////
@@ -3916,6 +3920,39 @@ int app_main(void) {
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
+					////////////////////////////LED control////////////////////////////////////
+					if (cur_time.Hours == 0 && cur_time.Minutes == 0
+							&& cur_time.Seconds == 0) {
+						tmp_dlat = POS2double(LAT_Value);
+						tmp_dlong = POS2double(LONG_Value);
+						Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
+								cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
+								1);
+					}
+					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
+							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
+							S1_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+						pca9632_setbrighnessblinking(LEDS1,
+								S1_LED_Value.DAY_BRIGHTNESS_Value,
+								S1_LED_Value.DAY_BLINK_Value / 10.0);
+					} else {
+						pca9632_setbrighnessblinking(LEDS1,
+								S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+								S1_LED_Value.NIGHT_BLINK_Value / 10.0);
+					}
+					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
+							S2_LED_Value.ADD_SUNRISE_Value / 10.0,
+							S2_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+						pca9632_setbrighnessblinking(LEDS2,
+								S2_LED_Value.DAY_BRIGHTNESS_Value,
+								S2_LED_Value.DAY_BLINK_Value / 10.0);
+					} else {
+						pca9632_setbrighnessblinking(LEDS2,
+								S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+								S2_LED_Value.NIGHT_BLINK_Value / 10.0);
+
+					}
+					////////////////////////////////////////////////////////////////////////
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -4567,6 +4604,39 @@ int app_main(void) {
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
+					////////////////////////////LED control////////////////////////////////////
+					if (cur_time.Hours == 0 && cur_time.Minutes == 0
+							&& cur_time.Seconds == 0) {
+						tmp_dlat = POS2double(LAT_Value);
+						tmp_dlong = POS2double(LONG_Value);
+						Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
+								cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
+								1);
+					}
+					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
+							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
+							S1_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+						pca9632_setbrighnessblinking(LEDS1,
+								S1_LED_Value.DAY_BRIGHTNESS_Value,
+								S1_LED_Value.DAY_BLINK_Value / 10.0);
+					} else {
+						pca9632_setbrighnessblinking(LEDS1,
+								S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+								S1_LED_Value.NIGHT_BLINK_Value / 10.0);
+					}
+					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
+							S2_LED_Value.ADD_SUNRISE_Value / 10.0,
+							S2_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+						pca9632_setbrighnessblinking(LEDS2,
+								S2_LED_Value.DAY_BRIGHTNESS_Value,
+								S2_LED_Value.DAY_BLINK_Value / 10.0);
+					} else {
+						pca9632_setbrighnessblinking(LEDS2,
+								S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+								S2_LED_Value.NIGHT_BLINK_Value / 10.0);
+
+					}
+
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;

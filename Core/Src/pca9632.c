@@ -7,7 +7,7 @@ HAL_StatusTypeDef pca9632_init(void) {
 	MX_I2C3_Init();
 	uint8_t buffer[5];
 	buffer[0] = PCA9632_CMD_MODE1;
-	buffer[1] = 0x01; //00000001//normal & accept all call
+	buffer[1] = 0x00; //00000001//normal & accept all call
 	if (HAL_I2C_Master_Transmit(&hi2c3, PCA9632_BASEADDRESS << 1, buffer, 2,
 			500) != PCA9632_OK)
 		return PCA9632_ERROR;
@@ -36,7 +36,10 @@ HAL_StatusTypeDef pca9632_setouttype(uint8_t leds, uint8_t type) {
 	uint8_t buffer[2];
 	//read current LED type
 	if (pca9632_getouttype(&buffer[1]) != PCA9632_OK)
+	{
+		printf("read type pca932 error\n\r");
 		return PCA9632_ERROR;
+	}
 
 	if (leds & 0x01) {
 		buffer[1] &= 0xFC; //LED0
@@ -74,6 +77,25 @@ HAL_StatusTypeDef pca9632_getouttype(uint8_t *type) {
 	HAL_Delay(20);
 	return HAL_OK;
 }
+///////////////////////////////////////////////////////////////////
+HAL_StatusTypeDef pca9632_getbrightness(uint8_t leds,uint8_t *bright) {
+	uint8_t buffer[2];
+	//read current LED type
+	if (leds & 0x01)
+		buffer[0] = PCA9632_CMD_PWM0;
+	if (leds & 0x02)
+		buffer[0] = PCA9632_CMD_PWM1;
+	if (leds & 0x04)
+		buffer[0] = PCA9632_CMD_PWM2;
+	if (leds & 0x08)
+		buffer[0] = PCA9632_CMD_PWM3;
+	if (HAL_I2C_Mem_Read(&hi2c3, PCA9632_BASEADDRESS << 1, buffer[0],
+			I2C_MEMADD_SIZE_8BIT, bright, 1, 500) != PCA9632_OK)
+		return PCA9632_ERROR;
+	HAL_Delay(20);
+	return HAL_OK;
+}
+
 ///////////////////////////////////////////////////////////////////////
 HAL_StatusTypeDef pca9632_setbrighness(uint8_t leds, uint8_t percent_brightness) {
 	uint8_t buffer[2];
@@ -127,7 +149,7 @@ HAL_StatusTypeDef pca9632_setgroupblink(double blink_second) {
 			500) != PCA9632_OK)
 		return PCA9632_ERROR;
 	HAL_Delay(20);
-
+	return PCA9632_OK;
 
 }
 ///////////////////////////////////////////////////////////////////////
@@ -139,11 +161,11 @@ HAL_StatusTypeDef pca9632_setbrighnessblinking(uint8_t leds,
 	if (percent_brightness == 0) {
 		if (pca9632_setouttype(leds, LEDTYPE_OFF) != PCA9632_OK)
 			return PCA9632_ERROR;
-	} else if (second == 0.0 && percent_brightness == 100) {
+	} else if (second < 0.1 && percent_brightness == 100) {
 		if (pca9632_setouttype(leds, LEDTYPE_ON) != PCA9632_OK)
 			return PCA9632_ERROR;
 	} else {
-		if (second == 0.0) {
+		if (second < 0.1) {
 			if (pca9632_setouttype(leds, LEDTYPE_BRIGHTNESS) != PCA9632_OK)
 				return PCA9632_ERROR;
 		} else {
@@ -155,6 +177,8 @@ HAL_StatusTypeDef pca9632_setbrighnessblinking(uint8_t leds,
 		if(pca9632_setbrighness(leds, percent_brightness)!=PCA9632_OK)
 			return PCA9632_ERROR;
 	}
+	if(pca9632_getbrightness( leds,&buffer[1])!=PCA9632_OK)
+		return PCA9632_ERROR;
 	return PCA9632_OK;
 }
 //////////////////////////////////////////////////////////////////

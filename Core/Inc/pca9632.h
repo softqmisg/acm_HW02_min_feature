@@ -38,7 +38,7 @@
 	HAL_StatusTypeDef pca9632_setgroupblink(double blink_second);
 	HAL_StatusTypeDef pca9632_setbrighnessblinking(uint8_t leds,
 			uint8_t percent_brightness, double second);
-	
+	HAL_StatusTypeDef pca9632_getbrightness(uint8_t leds,uint8_t *bright);
 
 	
 #endif
