@@ -37,7 +37,7 @@ HAL_StatusTypeDef pca9632_setouttype(uint8_t leds, uint8_t type) {
 	//read current LED type
 	if (pca9632_getouttype(&buffer[1]) != PCA9632_OK)
 	{
-		printf("read type pca932 error\n\r");
+//		printf("read type pca932 error\n\r");
 		return PCA9632_ERROR;
 	}
 

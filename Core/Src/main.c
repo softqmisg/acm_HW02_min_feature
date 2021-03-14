@@ -1723,6 +1723,12 @@ int app_main(void) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
+				/////////////////////read sensors//////////////////////////
+				for (uint8_t i = 0; i < 8; i++)
+					if (tmp275_readTemperature(i, &cur_temperature[i])
+							!= HAL_OK) {
+						cur_temperature[i] = (int16_t) 0x8fff;
+					}
 				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
 						&cur_voltage[0]) != HAL_OK) {
 					cur_voltage[0] = -1.0;
@@ -1832,12 +1838,12 @@ int app_main(void) {
 			if (flag_log_data) {
 				flag_log_data = 0;
 				counter_log_data = 0;
-				/////////////////////read sensors//////////////////////////
-				for (uint8_t i = 0; i < 8; i++)
-					if (tmp275_readTemperature(i, &cur_temperature[i])
-							!= HAL_OK) {
-						cur_temperature[i] = (int16_t) 0x8fff;
-					}
+//				/////////////////////read sensors//////////////////////////
+//				for (uint8_t i = 0; i < 8; i++)
+//					if (tmp275_readTemperature(i, &cur_temperature[i])
+//							!= HAL_OK) {
+//						cur_temperature[i] = (int16_t) 0x8fff;
+//					}
 
 //				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
 //						&cur_voltage[0]) != HAL_OK) {
