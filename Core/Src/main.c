@@ -1194,7 +1194,7 @@ void create_formDoor(uint8_t clear, bounding_box_t *text_pos, uint16_t tmp_door)
 	create_cell(60, pos_[0].y1, 128 - 60, 64 - pos_[0].y1, 2, 1, 1, pos_);
 
 	uint16_t vcnl_als;
-	if (vcnl4200_als(&vcnl_als) == HAL_OK)
+	if (vcnl4200_ps(&vcnl_als) == HAL_OK)
 		sprintf(tmp_str, "%04d", vcnl_als);
 	else
 		sprintf(tmp_str, "-----");
@@ -1494,7 +1494,7 @@ int app_main(void) {
 
 	} else {
 		printf("veml6030 sensor OK\n\r");
-		sprintf(tmp_str1, "vcnl OK");
+		sprintf(tmp_str1, "veml OK");
 		inv = 0;
 	}
 	text_cell(pos_, 1, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
@@ -1510,7 +1510,7 @@ int app_main(void) {
 		inv = 0;
 	}
 	text_cell(pos_, 2, tmp_str1, Tahoma8, CENTER_ALIGN, inv, inv);
-	status = ina3221_init(INA3221_LED_BASEADDRESS);
+	//status = ina3221_init(INA3221_LED_BASEADDRESS);
 
 	if ((status = ina3221_init(INA3221_LED_BASEADDRESS)) != HAL_OK) {
 		printf("ina3221 LED sensor error\n\r");
@@ -1577,7 +1577,11 @@ int app_main(void) {
 //	pca9632_setbrighnessblinking(LEDS1,80,0);
 //	pca9632_setbrighnessblinking(LEDS2,0,1.0);
 //
-//	while(1);
+//	while(1)
+//	{
+//		MX_USB_HOST_Process();
+//	}
+	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
 		/////////////////////Read time//////////////////////////////////
@@ -1757,7 +1761,7 @@ int app_main(void) {
 					cur_current[3] = -1.0;
 
 				}
-				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+				if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 					cur_insidelight = 0xffff;
 				}
 				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
@@ -1873,7 +1877,7 @@ int app_main(void) {
 //					cur_current[3] = -1.0;
 //
 //				}
-//				if (vcnl4200_als(&cur_insidelight) != HAL_OK) {
+//				if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 //					cur_insidelight = 0xffff;
 //				}
 //				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
@@ -5615,7 +5619,7 @@ int app_main(void) {
 				draw_fill(text_pos[2].x1 - 1, text_pos[2].y1 + 1,
 						text_pos[2].x2 - 1, text_pos[2].y2 - 1, 0);
 
-				if (vcnl4200_als(&cur_insidelight) == HAL_OK)
+				if (vcnl4200_ps(&cur_insidelight) == HAL_OK)
 					sprintf(tmp_str1, "%05d", cur_insidelight);
 				else
 					sprintf(tmp_str1, "----");
