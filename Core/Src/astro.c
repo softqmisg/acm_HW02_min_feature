@@ -164,7 +164,7 @@ uint8_t Astro_CheckDayNight(RTC_TimeTypeDef cur_time, Time_t sunrise_t,
 	else if (cur_time.Hours == sunrise_t.hr
 			&& cur_time.Minutes >= sunrise_t.min)
 		r = ASTRO_DAY;
-	else if (cur_time.Hours == sunset_t.hr && cur_time.Minutes <= sunset_t.min)
+	else if (cur_time.Hours == sunset_t.hr && cur_time.Minutes < sunset_t.min)
 		r = ASTRO_DAY;
 	return r;
 }

@@ -40,6 +40,7 @@ void generate_filename(RTC_DateTypeDef date, RTC_TimeTypeDef time,
 	sprintf(filename, "%s %04d_%02d_%02d %02d-%02d-%02d.CSV", filename,
 			date.Year + 2000, date.Month, date.Date, time.Hours, time.Minutes,
 			time.Seconds);
+	printf("new file:%s\n\r",filename);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 char filename_temperature[50] = { 0 };
@@ -231,34 +232,49 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT Copy_file(char *src, char *dest) {
-	uint32_t byteswritten = 0, byteraden = 0;
+	uint32_t byteswritten = 0, bytereaden = 0;
 	FIL input, output;
-	FRESULT fr;
-	char buf[512];
-	if ((fr = f_open(&input, (const TCHAR*) src, FA_READ)) != FR_OK) {
+	FRESULT fr,fw;
+	BYTE  buf[4096];
+	if ((fr = f_open(&input, (const TCHAR*) src, FA_READ|FA_OPEN_EXISTING)) != FR_OK) {
 		return fr;
 	}
 
-	if ((fr = f_open(&output, (const TCHAR*) dest, FA_WRITE | FA_CREATE_NEW))
+	if ((fw = f_open(&output, (const TCHAR*) dest, FA_WRITE | FA_CREATE_ALWAYS))
 			!= FR_OK) {
-		return fr;
+		f_close(&input);
+		return fw;
 	}
-	while (!f_eof(&input) && (fr == HAL_OK) && (byteswritten = byteraden)) {
-		if ((fr = f_read(&input, buf, 512, (UINT*) &byteraden)) != FR_OK) {
+	while (!f_eof(&input)) {
+//		if ((fr = f_read(&input, buf, 512, (UINT*) &bytereaden)) != FR_OK) {
+//			f_close(&input);
+//			f_close(&output);
+//			return fr;
+//		}
+		if(f_gets(buf, 500, &input)==NULL)
+		{
 			f_close(&input);
 			f_close(&output);
-			return fr;
+			return FR_DISK_ERR;
 		}
 
-		if ((fr = f_write(&output, buf, 512, (UINT*) &byteswritten)) != FR_OK) {
+//		if ((fw = f_write(&output, buf, 512, (UINT*) &byteswritten)) != FR_OK) {
+//			f_close(&input);
+//			f_close(&output);
+//			return fw;
+//		}
+		if(f_puts(buf,&output)<0)
+		{
 			f_close(&input);
 			f_close(&output);
-			return fr;
+			return FR_DISK_ERR;
 		}
+		HAL_Delay(10);
 	}
 	f_close(&input);
 	f_close(&output);
-	return fr;
+
+	return FR_OK;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT Copy2USB() {
@@ -301,7 +317,7 @@ FRESULT Copy2USB() {
 		}
 		break;
 	default:
-		printf("f_stat(%s) error=%d\n\r", str_tmp, fr);
+		printf("f_stat(1:/) error=%d\n\r",  fr);
 //		f_mount(NULL, "0:", 0);
 		return fr;
 	}
@@ -310,17 +326,30 @@ FRESULT Copy2USB() {
 		for(;;)
 		{
 			fr=f_readdir(&dir, &fno);
-			if (fr != FR_OK || fno.fname[0] == 0) break;
+			if (fr != FR_OK || fno.fname[0] == 0)
+			{
+				printf("end of 0:/log directory\n\r");
+				break;
+			}
 			if(!(fno.fattrib & AM_DIR)) //it is file so copy
 			{
 				sprintf(filesrc,"0:/log/%s",fno.fname);
 				sprintf(filedes,"1:/log/%s",fno.fname);
+				printf("COPY USB:%s\n\r",fno.fname);
 				if((fr=Copy_file(filesrc, filedes))!=FR_OK)
+				{
+					printf("USB copy error %s\n\r",fno.fname);
 						break;
+				}
 //				f_unlink(filesrc);
 			}
+			MX_USB_HOST_Process();
+			HAL_Delay(10);
+
 		}
+
 		f_closedir(&dir);
+
 	}
 	//////////////////////////////////////////////////////////////////////////////////
 //	f_mount(NULL, "0:", 0);

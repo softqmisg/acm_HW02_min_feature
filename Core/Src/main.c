@@ -463,9 +463,8 @@ void create_form4(uint8_t clear, Time_t cur_sunrise, Time_t cur_sunset) {
 	pos_[1].x2 = 50;
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunrise.hr,
-			cur_sunrise.min, S1_LED_Value.ADD_SUNRISE_Value / 10.0,
-			S2_LED_Value.ADD_SUNRISE_Value / 10.0);
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", cur_sunrise.hr,
+			cur_sunrise.min, S1_LED_Value.ADD_SUNRISE_Value / 10.0);
 	pos_[2].x1 = 42;
 	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -473,9 +472,8 @@ void create_form4(uint8_t clear, Time_t cur_sunrise, Time_t cur_sunset) {
 	pos_[2].x2 = 40;
 	text_cell(pos_, 2, "sunrise:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	sprintf(tmp_str, "%02d:%02d(%+3.1f/%+3.1f)", cur_sunset.hr, cur_sunset.min,
-			S1_LED_Value.ADD_SUNSET_Value / 10.0,
-			S2_LED_Value.ADD_SUNSET_Value / 10.0);
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", cur_sunset.hr, cur_sunset.min,
+			S1_LED_Value.ADD_SUNSET_Value / 10.0);
 	pos_[3].x1 = 42;
 	text_cell(pos_, 3, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -1574,11 +1572,116 @@ int app_main(void) {
 	MENU_state = MAIN_MENU;
 	DISP_state=DISP_IDLE;
 	uint8_t flag_log_param = 1;
+	uint8_t Delay_Astro_calculation=0,CalcAstro=0;
 //	pca9632_setbrighnessblinking(LEDS1,80,0);
 //	pca9632_setbrighnessblinking(LEDS2,0,1.0);
 //
+//	/////////////////////////////////////////////////////////
+//	uint8_t readdir=1;
+//	FILINFO fno;
+//	DIR dir;
+//	FIL input, output;
+//	BYTE  buf[1024];
+//	 UINT br, bw;
+//	char filesrc[50],filedes[50];
+//
 //	while(1)
 //	{
+//		if(USBHFatFS.fs_type!=0  && readdir)
+//		{
+//			readdir=0;
+//			for(uint8_t counter=0;counter<50;counter++)
+//			{
+//				sprintf(filedes,"1:log/Temperature %d.txt",counter+1);counter++;
+//				printf("%s\n\r",filedes);
+//				if ((fr = f_open(&output, (const TCHAR*) filedes, FA_WRITE | FA_CREATE_ALWAYS))
+//						!= FR_OK) {
+//					printf("open error\n\r");
+//					break;
+//				}
+//				for(uint8_t i=0;i<100;i++)
+//				{
+//					sprintf(buf,"Hello world  in %d\n",i);
+//					if(f_write(&output, buf, sizeof(buf), &bw)!=FR_OK)
+//					{
+//						printf("write in line %d error\n\r",i);
+//						break;
+//					}
+//				}
+//				f_close(&output);
+//				MX_USB_HOST_Process();
+//			}
+////			if ((fr = f_opendir(&dir, "0:/log")) == FR_OK) {
+////				for(;;)
+////				{
+////					fr=f_readdir(&dir, &fno);
+////					if (fr != FR_OK || fno.fname[0] == 0)
+////					{
+////						printf("end of 0:/log directory\n\r");
+////						break;
+////					}
+////					if(!(fno.fattrib & AM_DIR)) //it is file so copy
+////					{
+////						printf("%s\n\r",fno.fname);
+////						sprintf(filesrc,"0:/log/%s",fno.fname);
+////						sprintf(filedes,"1:/log/%s",fno.fname);
+////						if ((fr = f_open(&input, (const TCHAR*) filesrc, FA_READ)) != FR_OK) {
+////							readdir=1;
+////							break;
+////						}
+////
+////						if ((fr = f_open(&output, (const TCHAR*) filedes, FA_WRITE | FA_CREATE_ALWAYS))
+////								!= FR_OK) {
+////							f_close(&input);
+////							readdir=1;
+////							break;
+////						}
+////						while (!f_eof(&input)) {
+//////							if(f_gets(buf, 500, &input)==NULL)
+//////							{
+//////								f_close(&input);
+//////								f_close(&output);
+//////								return FR_DISK_ERR;
+//////							}
+//////
+//////							if(f_puts(buf,&output)<0)
+//////							{
+//////								f_close(&input);
+//////								f_close(&output);
+//////								return FR_DISK_ERR;
+//////							}
+////							if(f_read(&input, buf, sizeof(buf), &br)!=FR_OK)
+////							{
+////								readdir=1;
+////								break;
+////							}
+////							if(br==0)
+////							{
+////								break;
+////							}
+////							if(f_write(&output, buf, br, &bw)!=FR_OK)
+////							{
+////								readdir=1;
+////								break;
+////							}
+////							if(bw<br)
+////							{
+////								break;
+////							}
+////							HAL_Delay(10);
+////						}
+////						f_close(&input);
+////						f_close(&output);
+////
+////		//				f_unlink(filesrc);
+////
+////					}
+////					MX_USB_HOST_Process();
+////					HAL_Delay(100);
+////				}
+////				f_closedir(&dir);
+////			}
+//		}
 //		MX_USB_HOST_Process();
 //	}
 	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
@@ -1723,6 +1826,12 @@ int app_main(void) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
+				if(Delay_Astro_calculation)
+				{
+					Delay_Astro_calculation--;
+					if(Delay_Astro_calculation==0)
+						CalcAstro=1;
+				}
 				/////////////////////read sensors//////////////////////////
 				for (uint8_t i = 0; i < 8; i++)
 					if (tmp275_readTemperature(i, &cur_temperature[i])
@@ -1775,8 +1884,9 @@ int app_main(void) {
 				}
 
 				////////////////////////////LED control////////////////////////////////////
-				if (cur_time.Hours == 0 && cur_time.Minutes == 0
-						&& cur_time.Seconds == 0) {
+				if( (cur_time.Hours == 0 && cur_time.Minutes == 0
+						&& cur_time.Seconds == 0)||(CalcAstro)) {
+					CalcAstro=0;
 					tmp_dlat = POS2double(LAT_Value);
 					tmp_dlong = POS2double(LONG_Value);
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
@@ -3334,10 +3444,13 @@ int app_main(void) {
 					tmp_time.StoreOperation = RTC_STOREOPERATION_RESET;
 					change_daylightsaving(&tmp_Date, &tmp_time, 0);
 
-					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
-					HAL_Delay(100);
 					HAL_RTC_SetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
 					HAL_Delay(100);
+
+					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
+					HAL_Delay(100);
+					Delay_Astro_calculation=3;
+					flag_rtc_1s_general=1;
 					create_menu(0, 1, text_pos);
 					index_option = 0;
 					MENU_state = OPTION_MENU;
@@ -3939,6 +4052,8 @@ int app_main(void) {
 								S2_LED_Value.NIGHT_BLINK_Value);
 					}
 
+					S2_LED_Value.ADD_SUNRISE_Value=S1_LED_Value.ADD_SUNRISE_Value;
+					S2_LED_Value.ADD_SUNSET_Value=S1_LED_Value.ADD_SUNSET_Value;
 					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
 							S1_LED_Value.TYPE_Value);
 					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
@@ -4622,6 +4737,8 @@ int app_main(void) {
 						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
 								S1_LED_Value.NIGHT_BLINK_Value);
 					}
+					S1_LED_Value.ADD_SUNRISE_Value=S2_LED_Value.ADD_SUNRISE_Value;
+					S1_LED_Value.ADD_SUNSET_Value=S2_LED_Value.ADD_SUNSET_Value;
 
 					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
 							S2_LED_Value.TYPE_Value);
@@ -6142,7 +6259,7 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
-//			Copy2USB();
+			Copy2USB();
 			create_menu(0, 1, text_pos);
 			index_option = 0;
 			MENU_state = OPTION_MENU;
@@ -6277,14 +6394,27 @@ int app_main(void) {
 ////		}
 		if(BSP_SD_IsDetected()==SD_PRESENT)
 		{
-			 if(SDFatFS.fs_type==0)
-			 {
-				 HAL_SD_Init(&hsd);
-				 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
-					 printf("mounting SD card\n\r");
-
+			HAL_Delay(50);
+			if(BSP_SD_IsDetected()==SD_PRESENT)
+			{
+				 if(SDFatFS.fs_type==0)
+				 {
+					 HAL_SD_Init(&hsd);
+					 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+						 printf("mounting SD card\n\r");
+						 flag_log_param=1;
+						 filename_temperature[0]='\0';
+						 filename_volampere[0]='\0';
+						 filename_light[0]='\0' ;
+						 filename_doorstate[0]='\0' ;
+						 filename_parameter[0]='\0';
+					 }
+					 else
+					 {
+						 printf("mounting SD card ERROR\n\r");
+					 }
 				 }
-			 }
+			}
 		}
 		else
 		{

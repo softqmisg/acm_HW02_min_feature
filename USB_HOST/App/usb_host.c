@@ -119,21 +119,38 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
   f_mount(NULL, (TCHAR const*)"1:", 0);
   USBHFatFS.fs_type=0;
   printf("demount USB host\n\r");
+//  HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,GPIO_PIN_SET);
   break;
 
   case HOST_USER_CLASS_ACTIVE:
   Appli_state = APPLICATION_READY;
-  if (f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1) != FR_OK) {
-	  printf("mounting USB host ERROR\n\r");
+  if(USBHFatFS.fs_type==0)
+  {
+	    if (f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1) != FR_OK) {
+	  	  printf("mounting USB host ERROR\n\r");
+	    }
+	    else
+	  	  printf("mounting USB host OK\n\r");
   }
-  else
-	  printf("mounting USB host OK\n\r");
   break;
 
   case HOST_USER_CONNECTION:
   Appli_state = APPLICATION_START;
+//  //  HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin,GPIO_PIN_RESET);
+//    if (f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1) != FR_OK) {
+//  	  printf("mounting USB host ERROR\n\r");
+//    }
+//    else
+//  	  printf("mounting USB host OK\n\r");
   break;
-
+  case HOST_USER_CLASS_SELECTED:
+	  Appli_state = APPLICATION_START;
+//	      if (f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1) != FR_OK) {
+//	    	  printf("mounting USB host ERROR\n\r");
+//	      }
+//	      else
+//	    	  printf("mounting USB host OK\n\r");
+  break;
   default:
   break;
   }

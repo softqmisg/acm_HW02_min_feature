@@ -24,5 +24,9 @@
 #define USB_DRIVE			1
 FRESULT Log_file(uint8_t drv,uint8_t filetype,char *str);
 
-
+char filename_temperature[50];
+char filename_volampere[50];
+char filename_light[50] ;
+char filename_doorstate[50] ;
+char filename_parameter[50];
 #endif /* INC_LOG_FILE_H_ */
