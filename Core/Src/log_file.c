@@ -29,6 +29,7 @@ FRESULT file_write(char *path, char *wstr) {
 	}
 	if ((fr = f_write(&myfile, wstr, (UINT) strlen(wstr), (UINT*) &byteswritten))
 			!= FR_OK) {
+		f_close(&myfile);
 		return fr;
 	}
 	f_close(&myfile);
@@ -65,8 +66,8 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	case SDCARD_DRIVE:
 		if(SDFatFS.fs_type==0)
 		{
-			printf("sdcard not mount=%d\n\r", fr);
-			return fr;
+			printf("sdcard not mount\n\r");
+			return FR_DISK_ERR;
 		}
 //		if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
 //			printf("mounting sdcard error=%d\n\r", fr);
@@ -78,8 +79,8 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	case USB_DRIVE:
 		if(USBHFatFS.fs_type==0)
 		{
-			printf("USB not mount=%d\n\r", fr);
-			return fr;
+			printf("USB not mount\n\r");
+			return FR_DISK_ERR;
 		}
 //		if ((fr = f_mount(&USBHFatFS, (TCHAR const*) USBHPath, 1)) != FR_OK) {
 //			printf("mounting usbh error=%d\n\r", fr);
@@ -119,7 +120,6 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	change_daylightsaving(&sDate,&sTime,1);
 
-	uint8_t create_new = 0;
 	switch (filetype) {
 	case TEMPERATURE_FILE:
 		strcpy(filename_tmp, filename_temperature);
@@ -140,7 +140,6 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 	fr = f_stat(filename_tmp, &fno);
 	if ((fr == FR_NO_FILE) || (fno.fsize > (FSIZE_t) MAX_FILE_SIZE)
 			|| strlen(filename_tmp) == 0) {
-		create_new = 1;
 		switch (filetype) {
 		case TEMPERATURE_FILE:
 			sprintf(filename_temperature, "%s/log/Temperature", str_drive);
@@ -150,6 +149,7 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
+
 				return fr;
 			}
 			if ((fr = file_write(filename_tmp, "")) != FR_OK) {

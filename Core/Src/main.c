@@ -1422,24 +1422,69 @@ int app_main(void) {
 #if !(__DEBUG__)
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
-	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-		printf("error mount SD\n\r");
-	} else {
-		bmp_img img;
-		if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
-		{
-			draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
-					img.img_pixels, 1);
-			bmp_img_free(&img);
-		}
-		else
-			printf("bmp file error\n\r");
-//		f_mount(NULL, "0:", 0);
 
-		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-		glcd_refresh();
-		HAL_Delay(1000);
+	if(BSP_SD_IsDetected()==SD_PRESENT)
+	{
+		HAL_Delay(100);
+		if(BSP_SD_IsDetected()==SD_PRESENT)
+		{
+			 if(SDFatFS.fs_type==0)
+			 {
+				 HAL_SD_Init(&hsd);
+				 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+					 printf("mounting SD card\n\r");
+						bmp_img img;
+						if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
+						{
+							draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
+									img.img_pixels, 1);
+							bmp_img_free(&img);
+						}
+						else
+							printf("bmp file error\n\r");
+
+						create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+						glcd_refresh();
+						HAL_Delay(1000);
+
+				 }
+				 else
+				 {
+						SDFatFS.fs_type=0;
+						HAL_SD_DeInit(&hsd);
+					 printf("mounting SD card ERROR\n\r");
+				 }
+			 }
+		}
 	}
+	else
+	{
+		f_mount(NULL, "0:", 0);
+		SDFatFS.fs_type=0;
+		HAL_SD_DeInit(&hsd);
+	}
+
+//	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
+//		printf("error mount SD\n\r");
+//		f_mount(NULL, "0:", 1);
+//		SDFatFS.fs_type=0;
+//		HAL_SD_DeInit(&hsd);
+//	} else {
+//		bmp_img img;
+//		if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
+//		{
+//			draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
+//					img.img_pixels, 1);
+//			bmp_img_free(&img);
+//		}
+//		else
+//			printf("bmp file error\n\r");
+////		f_mount(NULL, "0:", 0);
+//
+//		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+//		glcd_refresh();
+//		HAL_Delay(1000);
+//	}
 	glcd_blank();
 /////////////////////////transceiver PC<->ESP32/////////////////////////////
 	HAL_UART_Transmit(&huart3, (uint8_t*) "\033[0;0H", strlen("\033[0;0H"),
@@ -1802,8 +1847,6 @@ int app_main(void) {
 					DOOR_Value);
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
 
-			if (r_logparam != FR_OK)
-				flag_log_param = 1;
 		}
 
 		/////////////////////Temperature Control Algorithm//////////////////////////////////
@@ -6394,7 +6437,7 @@ int app_main(void) {
 ////		}
 		if(BSP_SD_IsDetected()==SD_PRESENT)
 		{
-			HAL_Delay(50);
+			HAL_Delay(100);
 			if(BSP_SD_IsDetected()==SD_PRESENT)
 			{
 				 if(SDFatFS.fs_type==0)
@@ -6411,6 +6454,8 @@ int app_main(void) {
 					 }
 					 else
 					 {
+							SDFatFS.fs_type=0;
+							HAL_SD_DeInit(&hsd);
 						 printf("mounting SD card ERROR\n\r");
 					 }
 				 }
