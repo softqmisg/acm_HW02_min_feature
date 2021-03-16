@@ -139,8 +139,6 @@ enum {
 	DISP_FORM6,
 	DISP_FORM7
 } DISP_state = DISP_IDLE;
-
-#define MENU_ITEMS	10
 enum {
 	MAIN_MENU = 0,
 	PASS_MENU,
@@ -154,10 +152,22 @@ enum {
 	COPY_MENU,
 	UPGRADE_MENU,
 	CHANGEPASS_MENU,
+	NEXT_MENU,
+	PREV_MENU,
+	WIFI_MENU,
+	ADMIN_MENU,
+	TEST1_MENU,
+	TEST2_MENU,
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
+
+#define MENU_TOTAL_ITEMS	16
+#define MENU_ITEMS_IN_PAGE	10
+#define MENU_TOTAL_PAGES	2
+
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
-		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Exit" };
+		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Next->","<-Prev","SET WIFI","Admin","test1","test2","Exit" };
+
 char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
 		"Force upgrade from SD", "Force upgrade from  USB" };
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
@@ -247,24 +257,25 @@ bounding_box_t create_button(bounding_box_t box, char *str, uint8_t text_inv,
 	return text_cell(&box, 0, str, Tahoma8, CENTER_ALIGN, text_inv, box_inv);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_menu(uint8_t selected, uint8_t clear, bounding_box_t *text_pos) {
+void create_menu(uint8_t selected,uint8_t page,uint8_t clear, bounding_box_t *text_pos) {
 
 	if (clear)
 		glcd_blank();
 	bounding_box_t pos_[2];
 
 	create_cell(0, 0, 128, 64, 1, 2, 1, pos_);
-	for (uint8_t op = 0; op < MENU_ITEMS; op++) {
-		draw_text(menu[op], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
+	for (uint8_t op = 0; op < MENU_ITEMS_IN_PAGE &&(op+MENU_ITEMS_IN_PAGE*page)<MENU_TOTAL_ITEMS ; op++) {
+
+		draw_text(menu[op+MENU_ITEMS_IN_PAGE*page], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
 				0);
 		text_pos[op].x1 = (op / 5) * 66 + 2;
 		text_pos[op].y1 = (op % 5) * 12 + 1;
-		text_pos[op].x2 = text_pos[op].x1 + text_width(menu[op], Tahoma8, 1);
-		text_pos[op].y2 = text_pos[op].y1 + text_height(menu[op], Tahoma8);
-
+		text_pos[op].x2 = text_pos[op].x1 + text_width(menu[op+MENU_ITEMS_IN_PAGE*page], Tahoma8, 1);
+		text_pos[op].y2 = text_pos[op].y1 + text_height(menu[op+MENU_ITEMS_IN_PAGE*page], Tahoma8);
+		glcd_refresh();
 	}
-	if (selected < MENU_ITEMS)
-		draw_text(menu[selected], (selected / 5) * 66 + 2,
+	if (selected < MENU_ITEMS_IN_PAGE)
+		draw_text(menu[selected+MENU_ITEMS_IN_PAGE*page], (selected / 5) * 66 + 2,
 				(selected % 5) * 12 + 1, Tahoma8, 1, 1);
 	glcd_refresh();
 }
@@ -1408,6 +1419,7 @@ int app_main(void) {
 	double cur_voltage[4], cur_current[4];
 	uint16_t cur_insidelight, cur_outsidelight;
 	uint8_t cur_doorstate = 1, prev_doorstate = 1;
+	uint8_t menu_page=0;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	/////////////////////Turn power off & on USB flash///////////////
@@ -2347,7 +2359,8 @@ int app_main(void) {
 						DISP_state = DISP_IDLE;
 						flag_change_form = 1;
 					} else {
-						create_menu(0, 1, text_pos);
+						menu_page=0;
+						create_menu(0,menu_page, 1, text_pos);
 						index_option = 0;
 						MENU_state = OPTION_MENU;
 					}
@@ -2383,55 +2396,69 @@ int app_main(void) {
 					Long_press);
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				index_option++;
-				if (index_option >= MENU_ITEMS)
-					index_option = 0;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				if(menu_page==(MENU_TOTAL_PAGES-1))
+				{
+					if (index_option >= (MENU_TOTAL_ITEMS%MENU_ITEMS_IN_PAGE))
+						index_option = 0;
+				}
+				else
+				{
+					if (index_option >= MENU_ITEMS_IN_PAGE)
+						index_option = 0;
+
+				}
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				if (index_option == 0)
-					index_option = MENU_ITEMS;
+				{
+					if(menu_page==(MENU_TOTAL_PAGES-1))
+						index_option = MENU_TOTAL_ITEMS%MENU_ITEMS_IN_PAGE;
+					else
+						index_option=MENU_ITEMS_IN_PAGE;
+				}
 				index_option--;
 
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				if (index_option < 5) {
 					index_option += 5;
-					if (index_option >= MENU_ITEMS)
+					if (index_option >= MENU_ITEMS_IN_PAGE)
 						index_option = index_option % 5;
 				} else
 					index_option -= 5;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				index_option += 5;
-				if (index_option >= MENU_ITEMS)
+				if (index_option >= MENU_ITEMS_IN_PAGE)
 					index_option = index_option % 5;
-				draw_text(menu[index_option], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				index_option += (uint8_t) POSITION_MENU;
+				index_option = index_option+(uint8_t) POSITION_MENU+MENU_ITEMS_IN_PAGE*menu_page;
 				switch (index_option) {
 				case POSITION_MENU:
 					tmp_lat = LAT_Value;
@@ -2539,6 +2566,30 @@ int app_main(void) {
 							CENTER_ALIGN, 1, 0);
 					glcd_refresh();
 					MENU_state = UPGRADE_MENU;
+					break;
+				case NEXT_MENU:
+					menu_page=1;
+					create_menu(0,menu_page, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case PREV_MENU:
+					menu_page=0;
+					create_menu(0,menu_page, 1, text_pos);
+					index_option = 0;
+					MENU_state = OPTION_MENU;
+					break;
+				case WIFI_MENU:
+					MENU_state=WIFI_MENU;
+					break;
+				case ADMIN_MENU:
+					MENU_state=ADMIN_MENU;
+					break;
+				case TEST1_MENU:
+					MENU_state=TEST1_MENU;
+					break;
+				case TEST2_MENU:
+					MENU_state=TEST2_MENU;
 					break;
 				case EXIT_MENU:
 					MENU_state = EXIT_MENU;
@@ -3050,13 +3101,12 @@ int app_main(void) {
 							LONG_Value.second / 100.0, LONG_Value.direction);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;
+					create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -3096,7 +3146,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1&& MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -3494,13 +3544,11 @@ int app_main(void) {
 					HAL_Delay(100);
 					Delay_Astro_calculation=3;
 					flag_rtc_1s_general=1;
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -3530,7 +3578,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1&& MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -4127,8 +4175,7 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
@@ -4165,8 +4212,7 @@ int app_main(void) {
 
 					}
 					////////////////////////////////////////////////////////////////////////
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -4212,7 +4258,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1&& MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -4813,8 +4859,7 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
@@ -4851,8 +4896,7 @@ int app_main(void) {
 
 					}
 
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -4898,7 +4942,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1&& MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -5699,13 +5743,11 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -5771,7 +5813,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -5985,13 +6027,11 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 3:
@@ -5999,7 +6039,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -6265,14 +6305,12 @@ int app_main(void) {
 						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 								tmp_str);
 
-						create_menu(0, 1, text_pos);
-						index_option = 0;
+						index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 						MENU_state = OPTION_MENU;
 					}
 					break;
 				case 1:					//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -6293,7 +6331,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1)
+				if (index_option > 1&& MENU_state != OPTION_MENU)
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				glcd_refresh();
@@ -6303,8 +6341,7 @@ int app_main(void) {
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
 			Copy2USB();
-			create_menu(0, 1, text_pos);
-			index_option = 0;
+			index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 			MENU_state = OPTION_MENU;
 			break;
 			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
@@ -6385,8 +6422,7 @@ int app_main(void) {
 //							CENTER_ALIGN, 1, 1);
 //					break;
 				case 1:	//CANCEL
-					create_menu(0, 1, text_pos);
-					index_option = 0;
+					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -6403,7 +6439,7 @@ int app_main(void) {
 					break;
 
 				}
-				if (index_option > 1) {
+				if (index_option > 1&& MENU_state != OPTION_MENU) {
 					Peripherials_DeInit();
 					HAL_Delay(100);
 					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
