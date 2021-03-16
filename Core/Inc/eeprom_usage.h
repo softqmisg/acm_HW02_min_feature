@@ -52,13 +52,19 @@
 #define 	ADD_RELAY2_active1				34
 
 
-#define 	ADD_PASSWORD_0					35
-#define 	ADD_PASSWORD_1					36
-#define 	ADD_PASSWORD_2					37
-#define 	ADD_PASSWORD_3					38
+#define 	ADD_PASSWORD_ADMIN_0			35
+#define 	ADD_PASSWORD_ADMIN_1			36
+#define 	ADD_PASSWORD_ADMIN_2			37
+#define 	ADD_PASSWORD_ADMIN_3			38
 
 #define 	ADD_DOOR						39
 #define 	ADD_UTC_OFF						40
+
+#define 	ADD_PASSWORD_USER_0				41
+#define 	ADD_PASSWORD_USER_1				42
+#define 	ADD_PASSWORD_USER_2				43
+#define 	ADD_PASSWORD_USER_3				44
+
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
 #define		DEFAULT_LAT_min						42
@@ -103,10 +109,15 @@
 #define 	DEFAULT_RELAY2_active1				1
 
 
-#define 	DEFAULT_PASSWORD_0					'0'
-#define 	DEFAULT_PASSWORD_1					'0'
-#define 	DEFAULT_PASSWORD_2					'0'
-#define 	DEFAULT_PASSWORD_3					'0'
+#define 	DEFAULT_PASSWORD_ADMIN_0			'A'
+#define 	DEFAULT_PASSWORD_ADMIN_1			'C'
+#define 	DEFAULT_PASSWORD_ADMIN_2			'A'
+#define 	DEFAULT_PASSWORD_ADMIN_3			'M'
+
+#define 	DEFAULT_PASSWORD_USER_0				'0'
+#define 	DEFAULT_PASSWORD_USER_1				'0'
+#define 	DEFAULT_PASSWORD_USER_2				'0'
+#define 	DEFAULT_PASSWORD_USER_3				'0'
 
 #define 	DEFAULT_DOOR						1200
 ///////////////////////////////////////////////////////////////////////////////////

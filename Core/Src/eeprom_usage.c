@@ -12,7 +12,8 @@ extern RELAY_t RELAY1_Value,RELAY2_Value;
 extern uint8_t TEC_STATE_Value;
 extern POS_t LAT_Value;
 extern POS_t LONG_Value;
-extern char PASSWORD_Value[5];
+extern char PASSWORD_ADMIN_Value[5];
+extern char PASSWORD_USER_Value[5];
 extern uint16_t DOOR_Value;
 extern int8_t UTC_OFF_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
@@ -98,14 +99,24 @@ void update_values(void) {
 	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active1],&tmp);RELAY2_Value.active[1]=(uint8_t)tmp;
 	HAL_Delay(100);
 
-	PASSWORD_Value[4] = 0;
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_0],&tmp);PASSWORD_Value[0]=(char)tmp;
+	PASSWORD_ADMIN_Value[4] = 0;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_0],&tmp);PASSWORD_ADMIN_Value[0]=(char)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_1],&tmp);PASSWORD_Value[1]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_1],&tmp);PASSWORD_ADMIN_Value[1]=(char)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_2],&tmp);PASSWORD_Value[2]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_2],&tmp);PASSWORD_ADMIN_Value[2]=(char)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_3], &tmp);PASSWORD_Value[3]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_3], &tmp);PASSWORD_ADMIN_Value[3]=(char)tmp;
+	HAL_Delay(100);
+
+	PASSWORD_USER_Value[4] = 0;
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_USER_0],&tmp);PASSWORD_USER_Value[0]=(char)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_USER_1],&tmp);PASSWORD_USER_Value[1]=(char)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_USER_2],&tmp);PASSWORD_USER_Value[2]=(char)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_USER_3], &tmp);PASSWORD_USER_Value[3]=(char)tmp;
 	HAL_Delay(100);
 
 	EE_ReadVariable(VirtAddVarTab[ADD_DOOR],&tmp);DOOR_Value=(uint16_t)tmp;
@@ -158,10 +169,15 @@ void Write_defaults(void)
 	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],DEFAULT_RELAY2_Edge1);HAL_Delay(100);
 	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],DEFAULT_RELAY2_active1);HAL_Delay(100);
 
-	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],DEFAULT_PASSWORD_0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],DEFAULT_PASSWORD_1);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],DEFAULT_PASSWORD_2);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3], DEFAULT_PASSWORD_3);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_0],DEFAULT_PASSWORD_ADMIN_0);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_1],DEFAULT_PASSWORD_ADMIN_1);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_2],DEFAULT_PASSWORD_ADMIN_2);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_3], DEFAULT_PASSWORD_ADMIN_3);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_0],DEFAULT_PASSWORD_USER_0);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_1],DEFAULT_PASSWORD_USER_1);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_2],DEFAULT_PASSWORD_USER_2);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_3], DEFAULT_PASSWORD_USER_3);HAL_Delay(100);
 
 	EE_WriteVariable(VirtAddVarTab[ADD_DOOR],DEFAULT_DOOR);HAL_Delay(100);
 

@@ -166,17 +166,25 @@ enum {
 #define MENU_TOTAL_PAGES	2
 
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
-		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Next->","<-Prev","SET WIFI","Admin","test1","test2","Exit" };
+		"SET Relay", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Next->",
+		"<-Prev", "SET WIFI", "General", "test1", "test2", "Exit" };
 
 char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
 		"Force upgrade from SD", "Force upgrade from  USB" };
+
+uint8_t profile_active[][MENU_TOTAL_ITEMS] = { { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1 }, { 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1 } };
+
+#define ADMIN_PROFILE	0
+#define USER_PROFILE	1
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
 LED_t S1_LED_Value, S2_LED_Value;
 RELAY_t RELAY1_Value, RELAY2_Value;
 uint8_t TEC_STATE_Value;
 POS_t LAT_Value;
 POS_t LONG_Value;
-char PASSWORD_Value[5];
+char PASSWORD_ADMIN_Value[5];
+char PASSWORD_USER_Value[5];
 uint16_t DOOR_Value;
 int8_t UTC_OFF_Value;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,26 +265,33 @@ bounding_box_t create_button(bounding_box_t box, char *str, uint8_t text_inv,
 	return text_cell(&box, 0, str, Tahoma8, CENTER_ALIGN, text_inv, box_inv);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_menu(uint8_t selected,uint8_t page,uint8_t clear, bounding_box_t *text_pos) {
+void create_menu(uint8_t selected, uint8_t page, uint8_t clear,
+		bounding_box_t *text_pos) {
 
 	if (clear)
 		glcd_blank();
 	bounding_box_t pos_[2];
 
 	create_cell(0, 0, 128, 64, 1, 2, 1, pos_);
-	for (uint8_t op = 0; op < MENU_ITEMS_IN_PAGE &&(op+MENU_ITEMS_IN_PAGE*page)<MENU_TOTAL_ITEMS ; op++) {
+	for (uint8_t op = 0;
+			op < MENU_ITEMS_IN_PAGE
+					&& (op + MENU_ITEMS_IN_PAGE * page) < MENU_TOTAL_ITEMS;
+			op++) {
 
-		draw_text(menu[op+MENU_ITEMS_IN_PAGE*page], (op / 5) * 66 + 2, (op % 5) * 12 + 1, Tahoma8, 1,
-				0);
+		draw_text(menu[op + MENU_ITEMS_IN_PAGE * page], (op / 5) * 66 + 2,
+				(op % 5) * 12 + 1, Tahoma8, 1, 0);
 		text_pos[op].x1 = (op / 5) * 66 + 2;
 		text_pos[op].y1 = (op % 5) * 12 + 1;
-		text_pos[op].x2 = text_pos[op].x1 + text_width(menu[op+MENU_ITEMS_IN_PAGE*page], Tahoma8, 1);
-		text_pos[op].y2 = text_pos[op].y1 + text_height(menu[op+MENU_ITEMS_IN_PAGE*page], Tahoma8);
+		text_pos[op].x2 = text_pos[op].x1
+				+ text_width(menu[op + MENU_ITEMS_IN_PAGE * page], Tahoma8, 1);
+		text_pos[op].y2 = text_pos[op].y1
+				+ text_height(menu[op + MENU_ITEMS_IN_PAGE * page], Tahoma8);
 		glcd_refresh();
 	}
 	if (selected < MENU_ITEMS_IN_PAGE)
-		draw_text(menu[selected+MENU_ITEMS_IN_PAGE*page], (selected / 5) * 66 + 2,
-				(selected % 5) * 12 + 1, Tahoma8, 1, 1);
+		draw_text(menu[selected + MENU_ITEMS_IN_PAGE * page],
+				(selected / 5) * 66 + 2, (selected % 5) * 12 + 1, Tahoma8, 1,
+				1);
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -474,8 +489,8 @@ void create_form4(uint8_t clear, Time_t cur_sunrise, Time_t cur_sunset) {
 	pos_[1].x2 = 50;
 	text_cell(pos_, 1, "Longitude:", Tahoma8, LEFT_ALIGN, 1, 1);
 
-	sprintf(tmp_str, "%02d:%02d(%+3.1f)", cur_sunrise.hr,
-			cur_sunrise.min, S1_LED_Value.ADD_SUNRISE_Value / 10.0);
+	sprintf(tmp_str, "%02d:%02d(%+3.1f)", cur_sunrise.hr, cur_sunrise.min,
+			S1_LED_Value.ADD_SUNRISE_Value / 10.0);
 	pos_[2].x1 = 42;
 	text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 
@@ -576,7 +591,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 
 //	if ((res = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
 
-	if(SDFatFS.fs_type==0 ||BSP_SD_IsDetected()==SD_NOT_PRESENT){
+	if (SDFatFS.fs_type == 0 || BSP_SD_IsDetected() == SD_NOT_PRESENT) {
 		sprintf(tmp_str, "--/--");
 	} else {
 		tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
@@ -659,32 +674,73 @@ void create_form7(uint8_t clear, FRESULT rlog1, FRESULT rlog2, FRESULT rlog3,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formpass(uint8_t clear, bounding_box_t *text_pos) {
+void create_formpass(uint8_t clear,uint8_t profile, bounding_box_t *text_pos) {
 	char tmp_str[40];
 	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if (clear)
 		glcd_blank();
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+//	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+//	pos_[0].x2 = 57;
+//	text_cell(pos_, 0, "PASSWORD", Tahoma8, LEFT_ALIGN, 1, 1);
+//	pos_[0].x1 = 65;
+//	pos_[0].x2 = pos_[0].x1 + 20;
+//	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+//	pos_[0].x1 = pos_[0].x2;
+//	pos_[0].x2 = pos_[0].x1 + 42;
+//	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 1, 1, pos_);
+//	for (uint8_t i = 0; i < 4; i++) {
+//		pos_[0].x1 = i * 32;
+//		pos_[0].x2 = (i + 1) * 32 - 1;
+//		text_pos[i + 2] = text_cell(pos_, 0, "*", Tahoma16, CENTER_ALIGN, 0, 0);
+//	}
+//
+//	glcd_refresh();
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
-	pos_[0].x2 = 57;
+
+	pos_[0].x2 = 60;
 	text_cell(pos_, 0, "PASSWORD", Tahoma8, LEFT_ALIGN, 1, 1);
+
 	pos_[0].x1 = 65;
 	pos_[0].x2 = pos_[0].x1 + 20;
 	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
 	pos_[0].x1 = pos_[0].x2;
 	pos_[0].x2 = pos_[0].x1 + 42;
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 1, 1, 1, pos_);
-	for (uint8_t i = 0; i < 4; i++) {
-		pos_[0].x1 = i * 32;
-		pos_[0].x2 = (i + 1) * 32 - 1;
-		text_pos[i + 2] = text_cell(pos_, 0, "*", Tahoma16, CENTER_ALIGN, 0, 0);
-	}
 
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, pos_[0].y2, 40, 64 - pos_[0].y2, 2, 1, 1, pos_);
+	pos_[0].x1 = 0;
+	pos_[0].x2 = 48;
+	text_cell(pos_, 0, "User:", Tahoma8, LEFT_ALIGN, 1, 1);
+	pos_[1].x1 = 0;
+	pos_[1].x2 = 48;
+	text_cell(pos_, 1, "Password:", Tahoma8, LEFT_ALIGN, 1, 1);
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 2, 1, 1, pos_);
 	glcd_refresh();
+	pos_[0].x1 = 52;
+	pos_[0].x2 = pos_[0].x1 + text_width("ADMIN", Tahoma8, 1) + 1;
+	if(profile==USER_PROFILE)
+		sprintf(tmp_str,"USER");
+	else
+		sprintf(tmp_str,"ADMIN");
+	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	pos_[1].x1 = 52;
+	for (uint8_t i = 0; i < 4; i++) {
+		pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) + 1;
+		text_pos[i + 3] = text_cell(pos_, 1, "*", Tahoma8, CENTER_ALIGN, 0, 0);
+		pos_[1].x1 += 15;
+	}
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formposition(uint8_t clear, bounding_box_t *text_pos, POS_t tmp_lat,
@@ -1393,6 +1449,7 @@ int app_main(void) {
 	FRESULT fr;
 
 	uint8_t index_option = 0;
+	char cur_pass[7];
 	char tmp_pass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	char tmp_confirmpass[7] = { '*', '*', '*', '*', '*', '*', 0 };
 	POS_t tmp_lat, tmp_long;
@@ -1419,7 +1476,8 @@ int app_main(void) {
 	double cur_voltage[4], cur_current[4];
 	uint16_t cur_insidelight, cur_outsidelight;
 	uint8_t cur_doorstate = 1, prev_doorstate = 1;
-	uint8_t menu_page=0;
+	uint8_t menu_page = 0;
+	uint8_t cur_profile = ADMIN_PROFILE;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	/////////////////////Turn power off & on USB flash///////////////
@@ -1435,44 +1493,35 @@ int app_main(void) {
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 
-	if(BSP_SD_IsDetected()==SD_PRESENT)
-	{
+	if (BSP_SD_IsDetected() == SD_PRESENT) {
 		HAL_Delay(100);
-		if(BSP_SD_IsDetected()==SD_PRESENT)
-		{
-			 if(SDFatFS.fs_type==0)
-			 {
-				 HAL_SD_Init(&hsd);
-				 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
-					 printf("mounting SD card\n\r");
-						bmp_img img;
-						if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
-						{
-							draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
-									img.img_pixels, 1);
-							bmp_img_free(&img);
-						}
-						else
-							printf("bmp file error\n\r");
+		if (BSP_SD_IsDetected() == SD_PRESENT) {
+			if (SDFatFS.fs_type == 0) {
+				HAL_SD_Init(&hsd);
+				if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+					printf("mounting SD card\n\r");
+					bmp_img img;
+					if (bmp_img_read(&img, "logo.bmp") == BMP_OK) {
+						draw_bmp_h(0, 0, img.img_header.biWidth,
+								img.img_header.biHeight, img.img_pixels, 1);
+						bmp_img_free(&img);
+					} else
+						printf("bmp file error\n\r");
 
-						create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-						glcd_refresh();
-						HAL_Delay(1000);
+					create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+					glcd_refresh();
+					HAL_Delay(1000);
 
-				 }
-				 else
-				 {
-						SDFatFS.fs_type=0;
-						HAL_SD_DeInit(&hsd);
-					 printf("mounting SD card ERROR\n\r");
-				 }
-			 }
+				} else {
+					SDFatFS.fs_type = 0;
+					HAL_SD_DeInit(&hsd);
+					printf("mounting SD card ERROR\n\r");
+				}
+			}
 		}
-	}
-	else
-	{
+	} else {
 		f_mount(NULL, "0:", 0);
-		SDFatFS.fs_type=0;
+		SDFatFS.fs_type = 0;
 		HAL_SD_DeInit(&hsd);
 	}
 
@@ -1627,9 +1676,9 @@ int app_main(void) {
 	flag_rtc_1s_general = 1;
 	flag_log_data = 1;
 	MENU_state = MAIN_MENU;
-	DISP_state=DISP_IDLE;
+	DISP_state = DISP_IDLE;
 	uint8_t flag_log_param = 1;
-	uint8_t Delay_Astro_calculation=0,CalcAstro=0;
+	uint8_t Delay_Astro_calculation = 0, CalcAstro = 0;
 //	pca9632_setbrighnessblinking(LEDS1,80,0);
 //	pca9632_setbrighnessblinking(LEDS2,0,1.0);
 //
@@ -1750,7 +1799,9 @@ int app_main(void) {
 			HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
 			HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
 			change_daylightsaving(&cur_Date, &cur_time, 1);
-			cur_date_t.day=cur_Date.Date;cur_date_t.month=cur_Date.Month;cur_date_t.year=cur_Date.Year;
+			cur_date_t.day = cur_Date.Date;
+			cur_date_t.month = cur_Date.Month;
+			cur_date_t.year = cur_Date.Year;
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
@@ -1808,47 +1859,45 @@ int app_main(void) {
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
 
 			if (TEC_STATE_Value)
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			else
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
 
 			if (RELAY1_Value.active[0])
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						RELAY1_Value.Edge[0], RELAY1_Value.Temperature[0]/10.0);
+						RELAY1_Value.Edge[0],
+						RELAY1_Value.Temperature[0] / 10.0);
 			else
 				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			if (RELAY1_Value.active[1])
 				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
-						RELAY1_Value.Temperature[1]/10.0);
+						RELAY1_Value.Temperature[1] / 10.0);
 			else
 				sprintf(tmp_str, "%s,--\n", tmp_str);
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
 
 			if (RELAY2_Value.active[0])
-				sprintf(tmp_str,
-						"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
+				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						RELAY2_Value.Edge[0], RELAY2_Value.Temperature[0]/10.0);
+						RELAY2_Value.Edge[0],
+						RELAY2_Value.Temperature[0] / 10.0);
 			else
 				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			if (RELAY2_Value.active[1])
 				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY2_Value.Edge[1],
-						RELAY2_Value.Temperature[1]/10.0);
+						RELAY2_Value.Temperature[1] / 10.0);
 			else
 				sprintf(tmp_str, "%s,--\n", tmp_str);
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
@@ -1862,7 +1911,6 @@ int app_main(void) {
 		}
 
 		/////////////////////Temperature Control Algorithm//////////////////////////////////
-
 
 		/////////////////////////////////////State Machine///////////////////////////////////////////////////////////
 		switch (MENU_state) {
@@ -1881,11 +1929,10 @@ int app_main(void) {
 					counter_log_data = 0;
 					flag_log_data = 1;
 				}
-				if(Delay_Astro_calculation)
-				{
+				if (Delay_Astro_calculation) {
 					Delay_Astro_calculation--;
-					if(Delay_Astro_calculation==0)
-						CalcAstro=1;
+					if (Delay_Astro_calculation == 0)
+						CalcAstro = 1;
 				}
 				/////////////////////read sensors//////////////////////////
 				for (uint8_t i = 0; i < 8; i++)
@@ -1893,41 +1940,41 @@ int app_main(void) {
 							!= HAL_OK) {
 						cur_temperature[i] = (int16_t) 0x8fff;
 					}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
-						&cur_voltage[0]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
+						!= HAL_OK) {
 					cur_voltage[0] = -1.0;
 				}
-				if (ina3221_readdouble((uint8_t) CURRENT_7V,
-						&cur_current[0]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+						!= HAL_OK) {
 					cur_current[0] = -1.0;
 				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
-						&cur_voltage[1]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+						!= HAL_OK) {
 					cur_voltage[1] = -1.0;
 
 				}
-				if (ina3221_readdouble((uint8_t) CURRENT_12V,
-						&cur_current[1]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+						!= HAL_OK) {
 					cur_current[1] = -1.0;
 
 				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
-						&cur_voltage[2]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+						!= HAL_OK) {
 					cur_voltage[2] = -1.0;
 
 				}
-				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
-						&cur_current[2]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+						!= HAL_OK) {
 					cur_current[2] = -1.0;
 
 				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
-						&cur_voltage[3]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+						!= HAL_OK) {
 					cur_voltage[3] = -1.0;
 
 				}
-				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
-						&cur_current[3]) != HAL_OK) {
+				if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+						!= HAL_OK) {
 					cur_current[3] = -1.0;
 
 				}
@@ -1939,9 +1986,9 @@ int app_main(void) {
 				}
 
 				////////////////////////////LED control////////////////////////////////////
-				if( (cur_time.Hours == 0 && cur_time.Minutes == 0
-						&& cur_time.Seconds == 0)||(CalcAstro)) {
-					CalcAstro=0;
+				if ((cur_time.Hours == 0 && cur_time.Minutes == 0
+						&& cur_time.Seconds == 0) || (CalcAstro)) {
+					CalcAstro = 0;
 					tmp_dlat = POS2double(LAT_Value);
 					tmp_dlong = POS2double(LONG_Value);
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
@@ -2069,8 +2116,7 @@ int app_main(void) {
 				}
 				sprintf(tmp_str, "%s\n", tmp_str);
 
-				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE,
-						tmp_str);
+				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
 
 				sprintf(tmp_str,
 						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
@@ -2079,8 +2125,7 @@ int app_main(void) {
 						cur_voltage[0], cur_current[0], cur_voltage[1],
 						cur_current[1], cur_voltage[2], cur_current[2],
 						cur_voltage[3], cur_current[3]);
-				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE,
-						tmp_str);
+				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
 
 				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
@@ -2181,19 +2226,19 @@ int app_main(void) {
 			if (joystick_read(Key_ENTER, Long_press)
 					|| joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Both_press);
+
 				sprintf(tmp_pass, "0000");
-				create_formpass(1, text_pos);
+				cur_profile=USER_PROFILE;
+				create_formpass(1,cur_profile,text_pos);
 				index_option = 2;
-//				draw_fill(text_pos[index_option].x1, text_pos[index_option].y1,
-//						text_pos[index_option].x2, text_pos[index_option].y2,
-//						0);
-//				draw_char(tmp_pass[index_option - 2], text_pos[index_option].x1,
-//						text_pos[index_option].y1, Tahoma16, 1);
-				sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-				text_cell(text_pos, index_option, tmp_str, Tahoma16,
+				if(cur_profile==USER_PROFILE)
+					sprintf(tmp_str, "USER");
+				else
+					sprintf(tmp_str, "ADMIN");
+				text_cell(text_pos, index_option, tmp_str, Tahoma8,
 						CENTER_ALIGN, 1, 0);
-				glcd_refresh();
 				MENU_state = PASS_MENU;
+				glcd_refresh();
 
 			}
 			break;
@@ -2205,31 +2250,84 @@ int app_main(void) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
 
-					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
-							- 2] + 1;
-					if (tmp_pass[index_option - 2] > '9'
-							&& tmp_pass[index_option - 2] < 'A')
-						tmp_pass[index_option - 2] = 'A';
-					else if (tmp_pass[index_option - 2] > 'Z'
-							&& tmp_pass[index_option - 2] < 'a')
-						tmp_pass[index_option - 2] = 'a';
-					if (tmp_pass[index_option - 2] > 'z')
-						tmp_pass[index_option - 2] = '0';
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					draw_fill(text_pos[index_option].x1 + 1,
-							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
-							text_pos[index_option].y2 - 1, 0);
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
-							CENTER_ALIGN, 1, 0);
+					if (index_option > 1) {
+						draw_fill(text_pos[index_option].x1 - 1,
+								text_pos[index_option].y1 + 1,
+								text_pos[index_option].x2 - 1,
+								text_pos[index_option].y2 - 1, 0);
+					}
+					switch (index_option) {
+					case 0:	//OK
+						break;
+					case 1:	//CANCEL
+						break;
+					case 2:
+						if(cur_profile==USER_PROFILE)
+						{
+							sprintf(tmp_str,"ADMIN");
+							cur_profile=ADMIN_PROFILE;
+						}
+						else
+						{
+							sprintf(tmp_str,"USER");
+							cur_profile=USER_PROFILE;
+						}
+						break;
+					case 3:
+					case 4:
+					case 5:
+					case 6:
+						tmp_pass[index_option - 2] = (char) tmp_pass[index_option
+								- 2] + 1;
+						if (tmp_pass[index_option - 2] > '9'
+								&& tmp_pass[index_option - 2] < 'A')
+							tmp_pass[index_option - 2] = 'A';
+						else if (tmp_pass[index_option - 2] > 'Z'
+								&& tmp_pass[index_option - 2] < 'a')
+							tmp_pass[index_option - 2] = 'a';
+						if (tmp_pass[index_option - 2] > 'z')
+							tmp_pass[index_option - 2] = '0';
+						sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+						break;
+					}
+					if (index_option > 1)
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
 
 					glcd_refresh();
+
 				}
 
 			}
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
 				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					if(cur_profile==USER_PROFILE)
+					{
+						sprintf(tmp_str,"ADMIN");
+						cur_profile=ADMIN_PROFILE;
+					}
+					else
+					{
+						sprintf(tmp_str,"USER");
+						cur_profile=USER_PROFILE;
+					}
+					break;
+				case 3:
+				case 4:
+				case 5:
+				case 6:
 					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
 							- 2] - 1;
 					if (tmp_pass[index_option - 2] < '0')
@@ -2242,15 +2340,13 @@ int app_main(void) {
 						tmp_pass[index_option - 2] = '9';
 					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
 
-					draw_fill(text_pos[index_option].x1 + 1,
-							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
-							text_pos[index_option].y2 - 1, 0);
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
+					break;
 				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
 
+				glcd_refresh();
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
@@ -2259,8 +2355,7 @@ int app_main(void) {
 							text_pos[index_option].y1 + 1,
 							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
 				}
 				switch (index_option) {
@@ -2274,21 +2369,30 @@ int app_main(void) {
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
 							0);
 					index_option = 2;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					if(cur_profile==USER_PROFILE)
+					{
+						sprintf(tmp_str,"USER");
+					}
+					else
+					{
+						sprintf(tmp_str,"ADMIN");
+					}
 					break;
+				case 2:
+				case 3:
+				case 4:
 				case 5:
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					index_option++;
+					break;
+				case 6:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
-				default:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					break;
 				}
-				if (index_option > 1) {
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
-				}
 				glcd_refresh();
 
 			}
@@ -2299,15 +2403,14 @@ int app_main(void) {
 							text_pos[index_option].y1 + 1,
 							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
 				}
 				switch (index_option) {
 				case 0:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 
-					index_option = 5;
+					index_option = 6;
 					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
 					break;
 				case 1:
@@ -2321,20 +2424,31 @@ int app_main(void) {
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
 							1);
 					break;
-				default:
+				case 3:
+					if(cur_profile==USER_PROFILE)
+					{
+						sprintf(tmp_str,"USER");
+					}
+					else
+					{
+						sprintf(tmp_str,"ADMIN");
+					}
+					index_option = 2;
+					break;
+				case 4:
+				case 5:
+				case 6:
 					index_option--;
 					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
 					break;
 				}
-				if (index_option > 1) {
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
-				}
 
 				glcd_refresh();
 
 			}
-
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
 				if (index_option > 1) {
@@ -2342,13 +2456,16 @@ int app_main(void) {
 							text_pos[index_option].y1 + 1,
 							text_pos[index_option].x2 - 1,
 							text_pos[index_option].y2 - 1, 0);
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
 				}
 				switch (index_option) {
 				case 0:
-					if (strcmp(tmp_pass, PASSWORD_Value)) {
+					if (cur_profile == USER_PROFILE)
+						sprintf(cur_pass, "%s", PASSWORD_USER_Value);
+					else
+						sprintf(cur_pass, "%s", PASSWORD_ADMIN_Value);
+					if (strcmp(tmp_pass, cur_pass)) {
 						bounding_box_t tmp_box = { .x1 = 0, .x2 = 127, .y1 = 51,
 								.y2 = 63 };
 						text_cell(&tmp_box, 0, "Wrong password", Tahoma8,
@@ -2359,8 +2476,8 @@ int app_main(void) {
 						DISP_state = DISP_IDLE;
 						flag_change_form = 1;
 					} else {
-						menu_page=0;
-						create_menu(0,menu_page, 1, text_pos);
+						menu_page = 0;
+						create_menu(0, menu_page, 1, text_pos);
 						index_option = 0;
 						MENU_state = OPTION_MENU;
 					}
@@ -2372,20 +2489,23 @@ int app_main(void) {
 					DISP_state = DISP_IDLE;
 					flag_change_form = 1;
 					break;
+				case 2:
+				case 3:
+				case 4:
 				case 5:
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					index_option++;
+					break;
+
+				case 6:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
-				default:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					break;
 				}
-
-				if (index_option > 1) {
-					text_cell(text_pos, index_option, tmp_str, Tahoma16,
+				glcd_refresh();
+				if (index_option > 1 && MENU_state != OPTION_MENU)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
-				}
 				glcd_refresh();
 
 			}
@@ -2396,44 +2516,45 @@ int app_main(void) {
 					Long_press);
 			if (joystick_read(Key_DOWN, Short_press)) {
 				joystick_init(Key_DOWN, Short_press);
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				index_option++;
-				if(menu_page==(MENU_TOTAL_PAGES-1))
-				{
-					if (index_option >= (MENU_TOTAL_ITEMS%MENU_ITEMS_IN_PAGE))
+				if (menu_page == (MENU_TOTAL_PAGES - 1)) {
+					if (index_option >= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
 						index_option = 0;
-				}
-				else
-				{
+				} else {
 					if (index_option >= MENU_ITEMS_IN_PAGE)
 						index_option = 0;
 
 				}
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
-				if (index_option == 0)
-				{
-					if(menu_page==(MENU_TOTAL_PAGES-1))
-						index_option = MENU_TOTAL_ITEMS%MENU_ITEMS_IN_PAGE;
+				if (index_option == 0) {
+					if (menu_page == (MENU_TOTAL_PAGES - 1))
+						index_option = MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE;
 					else
-						index_option=MENU_ITEMS_IN_PAGE;
+						index_option = MENU_ITEMS_IN_PAGE;
 				}
 				index_option--;
 
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_LEFT, Short_press)) {
 				joystick_init(Key_LEFT, Short_press);
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				if (index_option < 5) {
 					index_option += 5;
@@ -2441,159 +2562,171 @@ int app_main(void) {
 						index_option = index_option % 5;
 				} else
 					index_option -= 5;
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_RIGHT, Short_press)) {
 				joystick_init(Key_RIGHT, Short_press);
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
 				index_option += 5;
 				if (index_option >= MENU_ITEMS_IN_PAGE)
 					index_option = index_option % 5;
-				draw_text(menu[index_option+MENU_ITEMS_IN_PAGE*menu_page], (index_option / 5) * 66 + 2,
+				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
 				glcd_refresh();
 			}
 			if (joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Short_press);
-				index_option = index_option+(uint8_t) POSITION_MENU+MENU_ITEMS_IN_PAGE*menu_page;
-				switch (index_option) {
-				case POSITION_MENU:
-					tmp_lat = LAT_Value;
-					tmp_long = LONG_Value;
-					tmp_utcoff = UTC_OFF_Value;
-					create_formposition(1, text_pos, tmp_lat, tmp_long,
-							tmp_utcoff);
-					index_option = 2;
+				index_option = index_option + (uint8_t) POSITION_MENU
+						+ MENU_ITEMS_IN_PAGE * menu_page;
+				if (profile_active[cur_profile][index_option - POSITION_MENU]) {
+					switch (index_option) {
+					case POSITION_MENU:
 
-					sprintf(tmp_str, "%02d", tmp_lat.deg);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = POSITION_MENU;
-					break;
-				case TIME_MENU:
-					HAL_RTC_GetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
-					HAL_RTC_GetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
-					change_daylightsaving(&tmp_Date, &tmp_time, 1);
+						tmp_lat = LAT_Value;
+						tmp_long = LONG_Value;
+						tmp_utcoff = UTC_OFF_Value;
+						create_formposition(1, text_pos, tmp_lat, tmp_long,
+								tmp_utcoff);
+						index_option = 2;
 
-					create_formTime(1, text_pos, tmp_time, tmp_Date);
-					index_option = 2;
+						sprintf(tmp_str, "%02d", tmp_lat.deg);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = POSITION_MENU;
+						break;
+					case TIME_MENU:
+						HAL_RTC_GetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
+						HAL_RTC_GetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
+						change_daylightsaving(&tmp_Date, &tmp_time, 1);
 
-					sprintf(tmp_str, "%02d", tmp_time.Hours);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = TIME_MENU;
-					break;
-				case LEDS1_MENU:
-					tmp_LED = S1_LED_Value;
-					create_formLEDS1(1, text_pos, &tmp_LED);
-					index_option = 2;
+						create_formTime(1, text_pos, tmp_time, tmp_Date);
+						index_option = 2;
 
-					if (tmp_LED.TYPE_Value == WHITE_LED)
-						sprintf(tmp_str, "WHITE");
-					else
-						sprintf(tmp_str, "IR");
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = LEDS1_MENU;
-					break;
-				case LEDS2_MENU:
-					tmp_LED = S2_LED_Value;
-					create_formLEDS2(1, text_pos, &tmp_LED);
-					index_option = 2;
+						sprintf(tmp_str, "%02d", tmp_time.Hours);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = TIME_MENU;
+						break;
+					case LEDS1_MENU:
+						tmp_LED = S1_LED_Value;
+						create_formLEDS1(1, text_pos, &tmp_LED);
+						index_option = 2;
 
-					if (tmp_LED.TYPE_Value == WHITE_LED)
-						sprintf(tmp_str, "WHITE");
-					else
-						sprintf(tmp_str, "IR");
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = LEDS2_MENU;
-					break;
-				case RELAY_MENU:
-					tmp_Relay1 = RELAY1_Value;
-					tmp_Relay2 = RELAY2_Value;
-					tmp_TEC_STATE = TEC_STATE_Value;
-					create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2,
-							tmp_TEC_STATE);
-					index_option = 2;
+						if (tmp_LED.TYPE_Value == WHITE_LED)
+							sprintf(tmp_str, "WHITE");
+						else
+							sprintf(tmp_str, "IR");
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = LEDS1_MENU;
+						break;
+					case LEDS2_MENU:
+						tmp_LED = S2_LED_Value;
+						create_formLEDS2(1, text_pos, &tmp_LED);
+						index_option = 2;
 
-					if (tmp_TEC_STATE == 1)
-						sprintf(tmp_str, "ENABLE");
-					else
-						sprintf(tmp_str, "DISABLE");
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = RELAY_MENU;
-					break;
-				case DOOR_MENU:
-					tmp_door = DOOR_Value;
-					create_formDoor(1, text_pos, tmp_door);
-					index_option = 3;
-					sprintf(tmp_str, "%05d", tmp_door);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = DOOR_MENU;
-					break;
-				case CHANGEPASS_MENU:
-					sprintf(tmp_pass, "****");
-					sprintf(tmp_confirmpass, "****");
-					create_formChangepass(1, text_pos, tmp_pass,
-							tmp_confirmpass);
-					index_option = 2;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = CHANGEPASS_MENU;
-					break;
-				case COPY_MENU:
-					MENU_state = COPY_MENU;
-					break;
-				case UPGRADE_MENU:
-					create_formUpgrade(1, text_pos);
-					index_option = 2;
-					sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
-					glcd_refresh();
-					MENU_state = UPGRADE_MENU;
-					break;
-				case NEXT_MENU:
-					menu_page=1;
-					create_menu(0,menu_page, 1, text_pos);
-					index_option = 0;
-					MENU_state = OPTION_MENU;
-					break;
-				case PREV_MENU:
-					menu_page=0;
-					create_menu(0,menu_page, 1, text_pos);
-					index_option = 0;
-					MENU_state = OPTION_MENU;
-					break;
-				case WIFI_MENU:
-					MENU_state=WIFI_MENU;
-					break;
-				case ADMIN_MENU:
-					MENU_state=ADMIN_MENU;
-					break;
-				case TEST1_MENU:
-					MENU_state=TEST1_MENU;
-					break;
-				case TEST2_MENU:
-					MENU_state=TEST2_MENU;
-					break;
-				case EXIT_MENU:
-					MENU_state = EXIT_MENU;
-					break;
+						if (tmp_LED.TYPE_Value == WHITE_LED)
+							sprintf(tmp_str, "WHITE");
+						else
+							sprintf(tmp_str, "IR");
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = LEDS2_MENU;
+						break;
+					case RELAY_MENU:
+						tmp_Relay1 = RELAY1_Value;
+						tmp_Relay2 = RELAY2_Value;
+						tmp_TEC_STATE = TEC_STATE_Value;
+						create_formRelay(1, text_pos, tmp_Relay1, tmp_Relay2,
+								tmp_TEC_STATE);
+						index_option = 2;
+
+						if (tmp_TEC_STATE == 1)
+							sprintf(tmp_str, "ENABLE");
+						else
+							sprintf(tmp_str, "DISABLE");
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = RELAY_MENU;
+						break;
+					case DOOR_MENU:
+						tmp_door = DOOR_Value;
+						create_formDoor(1, text_pos, tmp_door);
+						index_option = 3;
+						sprintf(tmp_str, "%05d", tmp_door);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = DOOR_MENU;
+						break;
+					case CHANGEPASS_MENU:
+						sprintf(tmp_pass, "****");
+						sprintf(tmp_confirmpass, "****");
+						create_formChangepass(1, text_pos, tmp_pass,
+								tmp_confirmpass);
+						index_option = 2;
+						sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = CHANGEPASS_MENU;
+						break;
+					case COPY_MENU:
+						MENU_state = COPY_MENU;
+						break;
+					case UPGRADE_MENU:
+						create_formUpgrade(1, text_pos);
+						index_option = 2;
+						sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = UPGRADE_MENU;
+						break;
+					case NEXT_MENU:
+						menu_page = 1;
+						create_menu(0, menu_page, 1, text_pos);
+						index_option = 0;
+						MENU_state = OPTION_MENU;
+						break;
+					case PREV_MENU:
+						menu_page = 0;
+						create_menu(0, menu_page, 1, text_pos);
+						index_option = 0;
+						MENU_state = OPTION_MENU;
+						break;
+					case WIFI_MENU:
+						MENU_state = WIFI_MENU;
+						break;
+					case ADMIN_MENU:
+						MENU_state = ADMIN_MENU;
+						break;
+					case TEST1_MENU:
+						MENU_state = TEST1_MENU;
+						break;
+					case TEST2_MENU:
+						MENU_state = TEST2_MENU;
+						break;
+					case EXIT_MENU:
+						MENU_state = EXIT_MENU;
+						break;
+					}
+				}
+				else
+				{
+					index_option-=((uint8_t) POSITION_MENU
+							+ MENU_ITEMS_IN_PAGE * menu_page);
 				}
 			}
 			break;
@@ -3072,25 +3205,31 @@ int app_main(void) {
 					LONG_Value = tmp_long;
 					UTC_OFF_Value = tmp_utcoff;
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg],
-							LAT_Value.deg);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],
-							LAT_Value.min);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], LAT_Value.deg);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_min], LAT_Value.min);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
 							LAT_Value.second);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
 							LAT_Value.direction);
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
 							LONG_Value.deg);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
 							LONG_Value.min);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
 							LONG_Value.second);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
 							LONG_Value.direction);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF],
-							UTC_OFF_Value);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF], UTC_OFF_Value);
 					sprintf(tmp_str,
 							"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
@@ -3101,12 +3240,13 @@ int app_main(void) {
 							LONG_Value.second / 100.0, LONG_Value.direction);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
-					index_option=MENU_state-POSITION_MENU;
-					create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -3146,7 +3286,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -3542,13 +3682,15 @@ int app_main(void) {
 
 					HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
 					HAL_Delay(100);
-					Delay_Astro_calculation=3;
-					flag_rtc_1s_general=1;
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					Delay_Astro_calculation = 3;
+					flag_rtc_1s_general = 1;
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -3578,7 +3720,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -3588,7 +3730,8 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////LEDS1_MENU/////////////////////////////////////////////////
 		case LEDS1_MENU:
-			joystick_init(Key_TOP|Key_DOWN|Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			joystick_init(Key_TOP | Key_DOWN | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
@@ -4137,27 +4280,38 @@ int app_main(void) {
 								S1_LED_Value.DAY_BLINK_Value;
 						S2_LED_Value.NIGHT_BLINK_Value =
 								S1_LED_Value.NIGHT_BLINK_Value;
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+						HAL_Delay(50);
+						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
 								S2_LED_Value.DAY_BLINK_Value);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+						HAL_Delay(50);
+						EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
 								S2_LED_Value.NIGHT_BLINK_Value);
 					}
 
-					S2_LED_Value.ADD_SUNRISE_Value=S1_LED_Value.ADD_SUNRISE_Value;
-					S2_LED_Value.ADD_SUNSET_Value=S1_LED_Value.ADD_SUNSET_Value;
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
+					S2_LED_Value.ADD_SUNRISE_Value =
+							S1_LED_Value.ADD_SUNRISE_Value;
+					S2_LED_Value.ADD_SUNSET_Value =
+							S1_LED_Value.ADD_SUNSET_Value;
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
 							S1_LED_Value.TYPE_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
 							S1_LED_Value.DAY_BRIGHTNESS_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
 							S1_LED_Value.DAY_BLINK_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],
 							S1_LED_Value.NIGHT_BRIGHTNESS_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
 							S1_LED_Value.NIGHT_BLINK_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],
 							S1_LED_Value.ADD_SUNRISE_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
 							S1_LED_Value.ADD_SUNSET_Value);
 
 					sprintf(tmp_str,
@@ -4175,7 +4329,8 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
@@ -4184,13 +4339,14 @@ int app_main(void) {
 							&& cur_time.Seconds == 0) {
 						tmp_dlat = POS2double(LAT_Value);
 						tmp_dlong = POS2double(LONG_Value);
-						Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
-								cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
-								1);
+						Astro_sunRiseSet(tmp_dlat, tmp_dlong,
+								UTC_OFF_Value / 10.0, cur_date_t, &cur_sunrise,
+								&cur_noon, &cur_sunset, 1);
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
-							S1_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+							S1_LED_Value.ADD_SUNSET_Value / 10.0)
+							== ASTRO_DAY) {
 						pca9632_setbrighnessblinking(LEDS1,
 								S1_LED_Value.DAY_BRIGHTNESS_Value,
 								S1_LED_Value.DAY_BLINK_Value / 10.0);
@@ -4201,7 +4357,8 @@ int app_main(void) {
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S2_LED_Value.ADD_SUNRISE_Value / 10.0,
-							S2_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+							S2_LED_Value.ADD_SUNSET_Value / 10.0)
+							== ASTRO_DAY) {
 						pca9632_setbrighnessblinking(LEDS2,
 								S2_LED_Value.DAY_BRIGHTNESS_Value,
 								S2_LED_Value.DAY_BLINK_Value / 10.0);
@@ -4212,7 +4369,8 @@ int app_main(void) {
 
 					}
 					////////////////////////////////////////////////////////////////////////
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -4258,7 +4416,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -4268,7 +4426,8 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////LEDIR_MENU/////////////////////////////////////////////////
 		case LEDS2_MENU:
-			joystick_init(Key_TOP|Key_DOWN|Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			joystick_init(Key_TOP | Key_DOWN | Key_LEFT | Key_RIGHT | Key_ENTER,
+					Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
@@ -4821,27 +4980,38 @@ int app_main(void) {
 								S2_LED_Value.DAY_BLINK_Value;
 						S1_LED_Value.NIGHT_BLINK_Value =
 								S2_LED_Value.NIGHT_BLINK_Value;
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+						HAL_Delay(50);
+						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
 								S1_LED_Value.DAY_BLINK_Value);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+						HAL_Delay(50);
+						EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
 								S1_LED_Value.NIGHT_BLINK_Value);
 					}
-					S1_LED_Value.ADD_SUNRISE_Value=S2_LED_Value.ADD_SUNRISE_Value;
-					S1_LED_Value.ADD_SUNSET_Value=S2_LED_Value.ADD_SUNSET_Value;
+					S1_LED_Value.ADD_SUNRISE_Value =
+							S2_LED_Value.ADD_SUNRISE_Value;
+					S1_LED_Value.ADD_SUNSET_Value =
+							S2_LED_Value.ADD_SUNSET_Value;
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
 							S2_LED_Value.TYPE_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],
 							S2_LED_Value.DAY_BRIGHTNESS_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
 							S2_LED_Value.DAY_BLINK_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],
 							S2_LED_Value.NIGHT_BRIGHTNESS_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
 							S2_LED_Value.NIGHT_BLINK_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],
 							S2_LED_Value.ADD_SUNRISE_Value);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
 							S2_LED_Value.ADD_SUNSET_Value);
 
 					sprintf(tmp_str,
@@ -4859,7 +5029,8 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
@@ -4868,13 +5039,14 @@ int app_main(void) {
 							&& cur_time.Seconds == 0) {
 						tmp_dlat = POS2double(LAT_Value);
 						tmp_dlong = POS2double(LONG_Value);
-						Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
-								cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
-								1);
+						Astro_sunRiseSet(tmp_dlat, tmp_dlong,
+								UTC_OFF_Value / 10.0, cur_date_t, &cur_sunrise,
+								&cur_noon, &cur_sunset, 1);
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
-							S1_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+							S1_LED_Value.ADD_SUNSET_Value / 10.0)
+							== ASTRO_DAY) {
 						pca9632_setbrighnessblinking(LEDS1,
 								S1_LED_Value.DAY_BRIGHTNESS_Value,
 								S1_LED_Value.DAY_BLINK_Value / 10.0);
@@ -4885,7 +5057,8 @@ int app_main(void) {
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S2_LED_Value.ADD_SUNRISE_Value / 10.0,
-							S2_LED_Value.ADD_SUNSET_Value / 10.0) == ASTRO_DAY) {
+							S2_LED_Value.ADD_SUNSET_Value / 10.0)
+							== ASTRO_DAY) {
 						pca9632_setbrighnessblinking(LEDS2,
 								S2_LED_Value.DAY_BRIGHTNESS_Value,
 								S2_LED_Value.DAY_BLINK_Value / 10.0);
@@ -4896,7 +5069,8 @@ int app_main(void) {
 
 					}
 
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -4942,7 +5116,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				}
@@ -5655,33 +5829,46 @@ int app_main(void) {
 					RELAY1_Value = tmp_Relay1;
 					RELAY2_Value = tmp_Relay2;
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE],
 							TEC_STATE_Value);
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],
 							RELAY1_Value.Temperature[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],
 							RELAY1_Value.Edge[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],
 							RELAY1_Value.active[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],
 							RELAY1_Value.Temperature[1]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],
 							RELAY1_Value.Edge[1]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],
 							RELAY1_Value.active[1]);
 
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],
 							RELAY2_Value.Temperature[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],
 							RELAY2_Value.Edge[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],
 							RELAY2_Value.active[0]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1],
 							RELAY2_Value.Temperature[1]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],
 							RELAY2_Value.Edge[1]);
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],
 							RELAY2_Value.active[1]);
 
 					if (TEC_STATE_Value)
@@ -5743,11 +5930,13 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -6019,7 +6208,8 @@ int app_main(void) {
 				case 0:	//OK
 						//save in eeprom
 					DOOR_Value = tmp_door;
-					HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_DOOR], DOOR_Value);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_DOOR], DOOR_Value);
 					sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -6027,11 +6217,13 @@ int app_main(void) {
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str);
 
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 3:
@@ -6265,7 +6457,6 @@ int app_main(void) {
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
-					glcd_refresh();
 				}
 				switch (index_option) {
 				case 0:	//OK
@@ -6287,30 +6478,62 @@ int app_main(void) {
 								CENTER_ALIGN, 1, 0);
 						glcd_refresh();
 					} else {
-						strncpy(PASSWORD_Value, tmp_pass, 5);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_0],
-								PASSWORD_Value[0]);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_1],
-								PASSWORD_Value[1]);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_2],
-								PASSWORD_Value[2]);
-						HAL_Delay(50);EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_3],
-								PASSWORD_Value[3]);
+						if (cur_profile == USER_PROFILE) {
+							strncpy(PASSWORD_USER_Value, tmp_pass, 5);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_0],
+									PASSWORD_USER_Value[0]);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_1],
+									PASSWORD_USER_Value[1]);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_2],
+									PASSWORD_USER_Value[2]);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_3],
+									PASSWORD_USER_Value[3]);
 
-						sprintf(tmp_str,
-								"%04d-%02d-%02d,%02d:%02d:%02d,PASSWORD CHANGED",
-								cur_Date.Year + 2000, cur_Date.Month,
-								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-								cur_time.Seconds);
+							sprintf(tmp_str,
+									"%04d-%02d-%02d,%02d:%02d:%02d,PASSWORD USER CHANGED",
+									cur_Date.Year + 2000, cur_Date.Month,
+									cur_Date.Date, cur_time.Hours,
+									cur_time.Minutes, cur_time.Seconds);
+						} else {
+							strncpy(PASSWORD_ADMIN_Value, tmp_pass, 5);
+							HAL_Delay(50);
+							EE_WriteVariable(
+									VirtAddVarTab[ADD_PASSWORD_ADMIN_0],
+									PASSWORD_ADMIN_Value[0]);
+							HAL_Delay(50);
+							EE_WriteVariable(
+									VirtAddVarTab[ADD_PASSWORD_ADMIN_1],
+									PASSWORD_ADMIN_Value[1]);
+							HAL_Delay(50);
+							EE_WriteVariable(
+									VirtAddVarTab[ADD_PASSWORD_ADMIN_2],
+									PASSWORD_ADMIN_Value[2]);
+							HAL_Delay(50);
+							EE_WriteVariable(
+									VirtAddVarTab[ADD_PASSWORD_ADMIN_3],
+									PASSWORD_ADMIN_Value[3]);
+
+							sprintf(tmp_str,
+									"%04d-%02d-%02d,%02d:%02d:%02d,PASSWORD ADMIN CHANGED",
+									cur_Date.Year + 2000, cur_Date.Month,
+									cur_Date.Date, cur_time.Hours,
+									cur_time.Minutes, cur_time.Seconds);
+						}
 						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 								tmp_str);
 
-						index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+						index_option = MENU_state - POSITION_MENU;
+						create_menu(index_option, menu_page, 1, text_pos);
 						MENU_state = OPTION_MENU;
 					}
 					break;
 				case 1:					//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -6331,7 +6554,7 @@ int app_main(void) {
 					index_option = 0;
 					break;
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU)
+				if (index_option > 1 && MENU_state != OPTION_MENU)
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 1, 0);
 				glcd_refresh();
@@ -6341,7 +6564,8 @@ int app_main(void) {
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
 			Copy2USB();
-			index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+			index_option = MENU_state - POSITION_MENU;
+			create_menu(index_option, menu_page, 1, text_pos);
 			MENU_state = OPTION_MENU;
 			break;
 			/////////////////////////////////////UPGRADE_MENU/////////////////////////////////////////////////
@@ -6422,7 +6646,8 @@ int app_main(void) {
 //							CENTER_ALIGN, 1, 1);
 //					break;
 				case 1:	//CANCEL
-					index_option=MENU_state-POSITION_MENU;create_menu(index_option,menu_page, 1, text_pos);
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 2:
@@ -6439,7 +6664,7 @@ int app_main(void) {
 					break;
 
 				}
-				if (index_option > 1&& MENU_state != OPTION_MENU) {
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
 					Peripherials_DeInit();
 					HAL_Delay(100);
 					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
@@ -6471,36 +6696,29 @@ int app_main(void) {
 ////		{
 ////			MX_USB_HOST_Init();
 ////		}
-		if(BSP_SD_IsDetected()==SD_PRESENT)
-		{
+		if (BSP_SD_IsDetected() == SD_PRESENT) {
 			HAL_Delay(100);
-			if(BSP_SD_IsDetected()==SD_PRESENT)
-			{
-				 if(SDFatFS.fs_type==0)
-				 {
-					 HAL_SD_Init(&hsd);
-					 if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
-						 printf("mounting SD card\n\r");
-						 flag_log_param=1;
-						 filename_temperature[0]='\0';
-						 filename_volampere[0]='\0';
-						 filename_light[0]='\0' ;
-						 filename_doorstate[0]='\0' ;
-						 filename_parameter[0]='\0';
-					 }
-					 else
-					 {
-							SDFatFS.fs_type=0;
-							HAL_SD_DeInit(&hsd);
-						 printf("mounting SD card ERROR\n\r");
-					 }
-				 }
+			if (BSP_SD_IsDetected() == SD_PRESENT) {
+				if (SDFatFS.fs_type == 0) {
+					HAL_SD_Init(&hsd);
+					if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+						printf("mounting SD card\n\r");
+						flag_log_param = 1;
+						filename_temperature[0] = '\0';
+						filename_volampere[0] = '\0';
+						filename_light[0] = '\0';
+						filename_doorstate[0] = '\0';
+						filename_parameter[0] = '\0';
+					} else {
+						SDFatFS.fs_type = 0;
+						HAL_SD_DeInit(&hsd);
+						printf("mounting SD card ERROR\n\r");
+					}
+				}
 			}
-		}
-		else
-		{
+		} else {
 			f_mount(NULL, "0:", 0);
-			SDFatFS.fs_type=0;
+			SDFatFS.fs_type = 0;
 			HAL_SD_DeInit(&hsd);
 		}
 		MX_USB_HOST_Process();
