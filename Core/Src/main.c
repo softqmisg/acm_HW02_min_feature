@@ -674,7 +674,7 @@ void create_form7(uint8_t clear, FRESULT rlog1, FRESULT rlog2, FRESULT rlog3,
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_formpass(uint8_t clear,uint8_t profile, bounding_box_t *text_pos) {
+void create_formpass(uint8_t clear, uint8_t profile, bounding_box_t *text_pos) {
 	char tmp_str[40];
 	bounding_box_t pos_[4];
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -726,10 +726,10 @@ void create_formpass(uint8_t clear,uint8_t profile, bounding_box_t *text_pos) {
 	glcd_refresh();
 	pos_[0].x1 = 52;
 	pos_[0].x2 = pos_[0].x1 + text_width("ADMIN", Tahoma8, 1) + 1;
-	if(profile==USER_PROFILE)
-		sprintf(tmp_str,"USER");
+	if (profile == USER_PROFILE)
+		sprintf(tmp_str, "USER");
 	else
-		sprintf(tmp_str,"ADMIN");
+		sprintf(tmp_str, "ADMIN");
 	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	pos_[1].x1 = 52;
@@ -2228,10 +2228,10 @@ int app_main(void) {
 				joystick_init(Key_ENTER, Both_press);
 
 				sprintf(tmp_pass, "0000");
-				cur_profile=USER_PROFILE;
-				create_formpass(1,cur_profile,text_pos);
+				cur_profile = USER_PROFILE;
+				create_formpass(1, cur_profile, text_pos);
 				index_option = 2;
-				if(cur_profile==USER_PROFILE)
+				if (cur_profile == USER_PROFILE)
 					sprintf(tmp_str, "USER");
 				else
 					sprintf(tmp_str, "ADMIN");
@@ -2262,32 +2262,29 @@ int app_main(void) {
 					case 1:	//CANCEL
 						break;
 					case 2:
-						if(cur_profile==USER_PROFILE)
-						{
-							sprintf(tmp_str,"ADMIN");
-							cur_profile=ADMIN_PROFILE;
-						}
-						else
-						{
-							sprintf(tmp_str,"USER");
-							cur_profile=USER_PROFILE;
+						if (cur_profile == USER_PROFILE) {
+							sprintf(tmp_str, "ADMIN");
+							cur_profile = ADMIN_PROFILE;
+						} else {
+							sprintf(tmp_str, "USER");
+							cur_profile = USER_PROFILE;
 						}
 						break;
 					case 3:
 					case 4:
 					case 5:
 					case 6:
-						tmp_pass[index_option - 2] = (char) tmp_pass[index_option
-								- 2] + 1;
-						if (tmp_pass[index_option - 2] > '9'
-								&& tmp_pass[index_option - 2] < 'A')
-							tmp_pass[index_option - 2] = 'A';
-						else if (tmp_pass[index_option - 2] > 'Z'
-								&& tmp_pass[index_option - 2] < 'a')
-							tmp_pass[index_option - 2] = 'a';
-						if (tmp_pass[index_option - 2] > 'z')
-							tmp_pass[index_option - 2] = '0';
-						sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+						tmp_pass[index_option - 3] =
+								(char) tmp_pass[index_option - 3] + 1;
+						if (tmp_pass[index_option - 3] > '9'
+								&& tmp_pass[index_option - 3] < 'A')
+							tmp_pass[index_option - 3] = 'A';
+						else if (tmp_pass[index_option - 3] > 'Z'
+								&& tmp_pass[index_option - 3] < 'a')
+							tmp_pass[index_option - 3] = 'a';
+						if (tmp_pass[index_option - 3] > 'z')
+							tmp_pass[index_option - 3] = '0';
+						sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
 						break;
 					}
 					if (index_option > 1)
@@ -2313,32 +2310,29 @@ int app_main(void) {
 				case 1:	//CANCEL
 					break;
 				case 2:
-					if(cur_profile==USER_PROFILE)
-					{
-						sprintf(tmp_str,"ADMIN");
-						cur_profile=ADMIN_PROFILE;
-					}
-					else
-					{
-						sprintf(tmp_str,"USER");
-						cur_profile=USER_PROFILE;
+					if (cur_profile == USER_PROFILE) {
+						sprintf(tmp_str, "ADMIN");
+						cur_profile = ADMIN_PROFILE;
+					} else {
+						sprintf(tmp_str, "USER");
+						cur_profile = USER_PROFILE;
 					}
 					break;
 				case 3:
 				case 4:
 				case 5:
 				case 6:
-					tmp_pass[index_option - 2] = (char) tmp_pass[index_option
-							- 2] - 1;
-					if (tmp_pass[index_option - 2] < '0')
-						tmp_pass[index_option - 2] = 'z';
-					else if (tmp_pass[index_option - 2] < 'a'
-							&& tmp_pass[index_option - 2] > 'Z')
-						tmp_pass[index_option - 2] = 'Z';
-					else if (tmp_pass[index_option - 2] < 'A'
-							&& tmp_pass[index_option - 2] > '9')
-						tmp_pass[index_option - 2] = '9';
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					tmp_pass[index_option - 3] = (char) tmp_pass[index_option
+							- 3] - 1;
+					if (tmp_pass[index_option - 3] < '0')
+						tmp_pass[index_option - 3] = 'z';
+					else if (tmp_pass[index_option - 3] < 'a'
+							&& tmp_pass[index_option - 3] > 'Z')
+						tmp_pass[index_option - 3] = 'Z';
+					else if (tmp_pass[index_option - 3] < 'A'
+							&& tmp_pass[index_option - 3] > '9')
+						tmp_pass[index_option - 3] = '9';
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
 
 					break;
 				}
@@ -2369,21 +2363,19 @@ int app_main(void) {
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
 							0);
 					index_option = 2;
-					if(cur_profile==USER_PROFILE)
-					{
-						sprintf(tmp_str,"USER");
-					}
-					else
-					{
-						sprintf(tmp_str,"ADMIN");
+					if (cur_profile == USER_PROFILE) {
+						sprintf(tmp_str, "USER");
+					} else {
+						sprintf(tmp_str, "ADMIN");
 					}
 					break;
 				case 2:
 				case 3:
 				case 4:
 				case 5:
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
 					index_option++;
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
+
 					break;
 				case 6:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
@@ -2411,7 +2403,7 @@ int app_main(void) {
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 
 					index_option = 6;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
 					break;
 				case 1:
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
@@ -2425,13 +2417,10 @@ int app_main(void) {
 							1);
 					break;
 				case 3:
-					if(cur_profile==USER_PROFILE)
-					{
-						sprintf(tmp_str,"USER");
-					}
-					else
-					{
-						sprintf(tmp_str,"ADMIN");
+					if (cur_profile == USER_PROFILE) {
+						sprintf(tmp_str, "USER");
+					} else {
+						sprintf(tmp_str, "ADMIN");
 					}
 					index_option = 2;
 					break;
@@ -2439,7 +2428,7 @@ int app_main(void) {
 				case 5:
 				case 6:
 					index_option--;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
 					break;
 				}
 				if (index_option > 1)
@@ -2481,8 +2470,6 @@ int app_main(void) {
 						index_option = 0;
 						MENU_state = OPTION_MENU;
 					}
-
-					/////////////////////////////////////////////////////////////////////////
 					break;
 				case 1:
 					MENU_state = MAIN_MENU;
@@ -2493,8 +2480,8 @@ int app_main(void) {
 				case 3:
 				case 4:
 				case 5:
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
 					index_option++;
+					sprintf(tmp_str, "%c", tmp_pass[index_option - 3]);
 					break;
 
 				case 6:
@@ -2519,15 +2506,19 @@ int app_main(void) {
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
-				index_option++;
-				if (menu_page == (MENU_TOTAL_PAGES - 1)) {
-					if (index_option >= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
-						index_option = 0;
-				} else {
-					if (index_option >= MENU_ITEMS_IN_PAGE)
-						index_option = 0;
+				do {
+					index_option++;
+					if (menu_page == (MENU_TOTAL_PAGES - 1)) {
+						if (index_option
+								>= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
+							index_option = 0;
+					} else {
+						if (index_option >= MENU_ITEMS_IN_PAGE)
+							index_option = 0;
 
-				}
+					}
+				} while (!profile_active[cur_profile][index_option
+						+ MENU_ITEMS_IN_PAGE * menu_page]);
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
@@ -2538,14 +2529,17 @@ int app_main(void) {
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
-				if (index_option == 0) {
-					if (menu_page == (MENU_TOTAL_PAGES - 1))
-						index_option = MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE;
-					else
-						index_option = MENU_ITEMS_IN_PAGE;
-				}
-				index_option--;
-
+				do {
+					if (index_option == 0) {
+						if (menu_page == (MENU_TOTAL_PAGES - 1))
+							index_option =
+							MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE;
+						else
+							index_option = MENU_ITEMS_IN_PAGE;
+					}
+					index_option--;
+				} while (!profile_active[cur_profile][index_option
+						+ MENU_ITEMS_IN_PAGE * menu_page]);
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
@@ -2556,12 +2550,26 @@ int app_main(void) {
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
-				if (index_option < 5) {
-					index_option += 5;
-					if (index_option >= MENU_ITEMS_IN_PAGE)
-						index_option = index_option % 5;
-				} else
-					index_option -= 5;
+				do {
+
+					if (index_option <5) {
+						index_option += 5;
+						if (menu_page == (MENU_TOTAL_PAGES - 1))
+						{
+							if (index_option >= MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE)
+								index_option = index_option % 5;
+						}
+						else
+						{
+							if (index_option >= MENU_ITEMS_IN_PAGE)
+								index_option = index_option % 5;
+						}
+					}
+					else
+						index_option -= 5;
+
+				} while (!profile_active[cur_profile][index_option
+				+ MENU_ITEMS_IN_PAGE * menu_page]);
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
@@ -2572,12 +2580,24 @@ int app_main(void) {
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 0);
-				index_option += 5;
-				if (index_option >= MENU_ITEMS_IN_PAGE)
-					index_option = index_option % 5;
-				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
-						(index_option / 5) * 66 + 2,
-						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
+				do {
+					index_option += 5;
+					if (menu_page == (MENU_TOTAL_PAGES - 1)) {
+						if (index_option
+								>= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
+							index_option = index_option % 5;
+					} else {
+						if (index_option >= MENU_ITEMS_IN_PAGE)
+							index_option = index_option % 5;
+
+					}
+				} while (!profile_active[cur_profile][index_option
+						+ MENU_ITEMS_IN_PAGE * menu_page]);
+					draw_text(
+							menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
+							(index_option / 5) * 66 + 2,
+							(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
+
 				glcd_refresh();
 			}
 			if (joystick_read(Key_ENTER, Short_press)) {
@@ -2722,10 +2742,8 @@ int app_main(void) {
 						MENU_state = EXIT_MENU;
 						break;
 					}
-				}
-				else
-				{
-					index_option-=((uint8_t) POSITION_MENU
+				} else {
+					index_option -= ((uint8_t) POSITION_MENU
 							+ MENU_ITEMS_IN_PAGE * menu_page);
 				}
 			}
