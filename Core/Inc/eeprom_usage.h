@@ -88,17 +88,17 @@
 #define 	DEFAULT_S2_LED_ADD_SUNSET			-10
 
 #define 	DEFAULT_TEC_STATE					1
-#define 	DEFAULT_RELAY1_Temperature0			331
+#define 	DEFAULT_RELAY1_Temperature0			400
 #define 	DEFAULT_RELAY1_Edge0				'U'
 #define 	DEFAULT_RELAY1_active0				1
-#define 	DEFAULT_RELAY1_Temperature1			0
+#define 	DEFAULT_RELAY1_Temperature1			400-20
 #define 	DEFAULT_RELAY1_Edge1				'-'
-#define 	DEFAULT_RELAY1_active1				0
+#define 	DEFAULT_RELAY1_active1				1
 
-#define 	DEFAULT_RELAY2_Temperature0			325
-#define 	DEFAULT_RELAY2_Edge0				'D'
+#define 	DEFAULT_RELAY2_Temperature0			100+20
+#define 	DEFAULT_RELAY2_Edge0				'U'
 #define 	DEFAULT_RELAY2_active0				1
-#define 	DEFAULT_RELAY2_Temperature1			358
+#define 	DEFAULT_RELAY2_Temperature1			100
 #define 	DEFAULT_RELAY2_Edge1				'U'
 #define 	DEFAULT_RELAY2_active1				1
 
