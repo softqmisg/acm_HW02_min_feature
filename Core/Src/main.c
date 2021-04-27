@@ -113,18 +113,65 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
-char ESP_data;
+enum {ESP_0XFF_BYTE=0,ESP_0X55_BYTE,ESP_BYTES};
+uint8_t ESP_data;
+uint8_t ESP_buffer[50]={0};
+uint8_t ESP_bufferindex=0;
+volatile uint8_t ESP_validbuffer=0;
+uint8_t ESP_state=0;
+uint8_t ESP_crc=0;
 char PC_data;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
-		USART3->DR = USART2->DR;
+//		USART3->DR = USART2->DR;
 		HAL_UART_Receive_IT(&huart2, &ESP_data, 1);
-	} else if (huart->Instance == USART3) {
-		USART2->DR = USART3->DR;
-		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
+//		USART3->DR = ESP_data;
+		switch(ESP_state)
+		{
+		case 0:
+			if(ESP_data==0xFF)
+			{
+				ESP_buffer[ESP_bufferindex++]=ESP_data;
+				ESP_state=1;
+			}
+			break;
+		case 1:
+			if(ESP_data==0x55)
+			{
+				ESP_buffer[ESP_bufferindex++]=ESP_data;
+				ESP_state=2;
+			}
+			else
+			{
+				ESP_bufferindex=0;ESP_state=0;
+			}
+			break;
+		case 2:
+			ESP_buffer[ESP_bufferindex++]=ESP_data;
+			if(ESP_bufferindex==(ESP_buffer[2]+4))
+			{
+				ESP_crc=0;
+				for(uint8_t i=0;i<(ESP_buffer[2]+3);i++)
+				{
+					ESP_crc+=ESP_buffer[i];
+				}
+				if(ESP_crc==ESP_buffer[ESP_bufferindex-1])
+					ESP_validbuffer=1;
+				ESP_bufferindex=0;ESP_state=0;
+			}
+			if(ESP_bufferindex>49)
+			{
+				ESP_bufferindex=0;ESP_state=0;
+			}
+			break;
+		}
 	}
+//	else if (huart->Instance == USART3) {
+//		USART2->DR = USART3->DR;
+//		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
+//	}
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -1480,6 +1527,23 @@ int app_main(void) {
 	uint8_t cur_profile = ADMIN_PROFILE;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
+//	printf("hello \n\r");
+	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
+	////////////////////////////////////////////////////////////////
+//	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
+//	while(1)
+//	{
+//		if(ESP_validbuffer)
+//		{
+//			ESP_validbuffer=0;
+//			printf("\n\rBuffre_ESP=");
+//			for(uint8_t i=0;i<ESP_buffer[2]+4;i++)
+//				printf("%d,",ESP_buffer[i]);
+//			printf("\n\r");
+//			HAL_UART_Transmit(&huart2, ESP_buffer, ESP_buffer[2]+4, 1000);
+//		}
+//	}
+
 	/////////////////////Turn power off & on USB flash///////////////
 	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_SET); //disable
 	HAL_Delay(500);
