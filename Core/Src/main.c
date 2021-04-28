@@ -506,8 +506,8 @@ void create_form5(uint8_t clear) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 3, 2, 1, pos_);
-	text_cell(pos_, 0, "RELAY1", Tahoma8, CENTER_ALIGN, 1, 1);
-	text_cell(pos_, 1, "RELAY2", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 0, "TEMPH", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 1, "TEMPL", Tahoma8, CENTER_ALIGN, 1, 1);
 	for (uint8_t i = 0; i < 2; i++) {
 		if (RELAY1_Value.active[i]) {
 			sprintf(tmp_str, "%c %+4.1f", RELAY1_Value.Edge[i],
@@ -1073,11 +1073,11 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos,
 
 	pos_[1].x1 = 0;
 	pos_[1].x2 = 39;
-	text_cell(pos_, 1, "RELAY1:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 1, "TEMPH:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[2].x1 = 0;
 	pos_[2].x2 = 39;
-	text_cell(pos_, 2, "RELAY2:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 2, "TEMPL:", Tahoma8, LEFT_ALIGN, 1, 1);
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 3, 1, 1, pos_);
 	if (tmp_tec == 1)
@@ -6479,7 +6479,7 @@ int app_main(void) {
 			} else //if((NTC_Centigrade<NTCTH_Value &&  TEC_overtemp==0)|| (NTC_Centigrade<NTCTL_Value))
 			{
 				//			TEC_overtemp=0;
-				Env_temperature = cur_temperature[0];
+				Env_temperature = cur_temperature[4];
 				Delta_T = Env_temperature - prev_Env_temperature;
 				if (Env_temperature > RELAY1_Value.Temperature[0]) //s1
 						{
@@ -6602,6 +6602,21 @@ int app_main(void) {
 
 			}
 			////////////////////////////////////////////////////////////////////////////////////
+		}
+		else
+		{
+			FAN_OFF();
+			if(algorithm_temp_state!=9)
+			{
+				algorithm_temp_state=9;
+				sprintf(tmp_str2,
+						"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF",
+						cur_Date.Year + 2000, cur_Date.Month,
+						cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+						cur_time.Seconds);
+				r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+						tmp_str2);
+			}
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 #if __LWIP__
