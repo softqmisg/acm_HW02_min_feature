@@ -1742,29 +1742,29 @@ int app_main(void) {
 			cur_doorstate = 0;
 		if (cur_doorstate != prev_doorstate) {
 			if (cur_doorstate)
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Opened\n",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Opened\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			else
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Closed\n",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Closed\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str);
+			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str2);
 			prev_doorstate = cur_doorstate;
 		}
 		//////////////////////////Saves parameters in logs file in SDCARD,just one  time////
 		if (flag_log_param /*&& USBH_MSC_IsReady(&hUsbHostHS)*/) {
 			flag_log_param = 0;
-			sprintf(tmp_str,
+			sprintf(tmp_str2,
 					"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 					LAT_Value.deg, LAT_Value.min, LAT_Value.second / 100.0,
 					LAT_Value.direction, LONG_Value.deg, LONG_Value.min,
 					LONG_Value.second / 100.0, LONG_Value.direction);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
-			sprintf(tmp_str,
+			sprintf(tmp_str2,
 					"%04d-%02d-%02d,%02d:%02d:%02d,LED SET1,%s,%d,%f,%f,%d,%f,%f\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -1775,9 +1775,9 @@ int app_main(void) {
 					S1_LED_Value.NIGHT_BRIGHTNESS_Value,
 					S1_LED_Value.NIGHT_BLINK_Value / 10.0,
 					S1_LED_Value.ADD_SUNSET_Value / 10.0);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
-			sprintf(tmp_str,
+			sprintf(tmp_str2,
 					"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -1788,57 +1788,57 @@ int app_main(void) {
 					S2_LED_Value.NIGHT_BRIGHTNESS_Value,
 					S2_LED_Value.NIGHT_BLINK_Value / 10.0,
 					S2_LED_Value.ADD_SUNSET_Value / 10.0);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
 			if (TEC_STATE_Value)
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			else
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
 			if (RELAY1_Value.active[0])
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 						RELAY1_Value.Edge[0],
 						RELAY1_Value.Temperature[0] / 10.0);
 			else
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			if (RELAY1_Value.active[1])
-				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
+				sprintf(tmp_str2, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
 						RELAY1_Value.Temperature[1] / 10.0);
 			else
-				sprintf(tmp_str, "%s,--\n", tmp_str);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+				sprintf(tmp_str2, "%s,--\n", tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
 			if (RELAY2_Value.active[0])
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 						RELAY2_Value.Edge[0],
 						RELAY2_Value.Temperature[0] / 10.0);
 			else
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			if (RELAY2_Value.active[1])
 				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY2_Value.Edge[1],
 						RELAY2_Value.Temperature[1] / 10.0);
 			else
-				sprintf(tmp_str, "%s,--\n", tmp_str);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+				sprintf(tmp_str2, "%s,--\n", tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
-			sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d\n",
+			sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 					DOOR_Value);
-			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str);
+			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
 		}
 
