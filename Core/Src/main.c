@@ -1594,7 +1594,7 @@ int app_main(void) {
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
 		glcd_blank();
 		create_cell(0, 0, 128, 64, 1, 1, 1, text_pos);
-		text_cell(text_pos, 0, "Loading defaults", Tahoma8, CENTER_ALIGN, 0, 0);
+		text_cell(text_pos, 0, "Loading Defaults", Tahoma8, CENTER_ALIGN, 0, 0);
 		glcd_refresh();
 		Write_defaults();
 

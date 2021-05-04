@@ -61,13 +61,13 @@
 #define 	ADD_UTC_OFF						40
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
-#define		DEFAULT_LAT_min						42
-#define		DEFAULT_LAT_second					0
+#define		DEFAULT_LAT_min						50
+#define		DEFAULT_LAT_second					2400
 #define 	DEFAULT_LAT_direction				'N'
 
-#define 	DEFAULT_LONG_deg					51
-#define 	DEFAULT_LONG_min					23
-#define 	DEFAULT_LONG_second					5316
+#define 	DEFAULT_LONG_deg					50
+#define 	DEFAULT_LONG_min					56
+#define 	DEFAULT_LONG_second					2076
 #define 	DEFAULT_LONG_direction				'E'
 #define 	DEFAULT_UTC_OFF						35
 
@@ -108,7 +108,7 @@
 #define 	DEFAULT_PASSWORD_2					'0'
 #define 	DEFAULT_PASSWORD_3					'0'
 
-#define 	DEFAULT_DOOR						1200
+#define 	DEFAULT_DOOR						50000
 ///////////////////////////////////////////////////////////////////////////////////
 
 uint16_t VirtAddVarTab[NB_OF_VAR];
