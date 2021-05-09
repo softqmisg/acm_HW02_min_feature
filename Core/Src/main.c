@@ -113,58 +113,84 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
-enum {ESP_0XFF_BYTE=0,ESP_0X55_BYTE,ESP_BYTES};
-uint8_t ESP_data;
-uint8_t ESP_buffer[50]={0};
-uint8_t ESP_bufferindex=0;
-volatile uint8_t ESP_validbuffer=0;
-uint8_t ESP_state=0;
-uint8_t ESP_crc=0;
-char PC_data;
+typedef enum{
+  cmd_none=0x80,
+  cmd_submit=0x81,
+  cmd_current=0x82,
+  cmd_default=0x83,
+  cmd_event=0x84,
+  cmd_error=0x85
+} cmd_type_t;
+
+#define MAX_SIZE_FRAME  100
+cmd_type_t recieved_cmd_type=cmd_none;
+uint8_t received_frame[MAX_SIZE_FRAME];
+uint8_t recieved_cmd_code;
+uint8_t received_state=0;
+uint8_t received_index=0;
+uint8_t received_crc=0;
+uint8_t received_valid=0;
+uint8_t received_byte;
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
 //		USART3->DR = USART2->DR;
-		HAL_UART_Receive_IT(&huart2, &ESP_data, 1);
 //		USART3->DR = ESP_data;
-		switch(ESP_state)
-		{
-		case 0:
-			if(ESP_data==0xFF)
-			{
-				ESP_buffer[ESP_bufferindex++]=ESP_data;
-				ESP_state=1;
-			}
-			break;
-		case 1:
-			if(ESP_data==0x55)
-			{
-				ESP_buffer[ESP_bufferindex++]=ESP_data;
-				ESP_state=2;
-			}
-			else
-			{
-				ESP_bufferindex=0;ESP_state=0;
-			}
-			break;
-		case 2:
-			ESP_buffer[ESP_bufferindex++]=ESP_data;
-			if(ESP_bufferindex==(ESP_buffer[2]+4))
-			{
-				ESP_crc=0;
-				for(uint8_t i=0;i<(ESP_buffer[2]+3);i++)
-				{
-					ESP_crc+=ESP_buffer[i];
-				}
-				if(ESP_crc==ESP_buffer[ESP_bufferindex-1])
-					ESP_validbuffer=1;
-				ESP_bufferindex=0;ESP_state=0;
-			}
-			if(ESP_bufferindex>49)
-			{
-				ESP_bufferindex=0;ESP_state=0;
-			}
-			break;
-		}
+	    switch (received_state)
+	    {
+	    case 0:
+	      if(received_byte==0xaa)
+	      {
+	        received_frame[received_index++]=received_byte;
+	        received_state=1;
+	      }
+	      break;
+	    case 1:
+	      if(received_byte==0x55)
+	      {
+	          received_frame[received_index++]=received_byte;
+	          received_state=2;
+	      }
+	      else
+	      {
+	        received_index=0;
+	        received_state=0;
+	        received_valid=0;
+	        recieved_cmd_type=cmd_none;
+	      }
+	    break;
+	    case 2:
+	      received_frame[received_index++]=received_byte;
+	      if(received_index==received_frame[4]+7)
+	      {
+	        received_crc=0;
+	        for(uint8_t i=0;i<received_frame[4]+5;i++)
+	        {
+	          received_crc+=received_frame[i];
+	        }
+	        if(received_crc==received_frame[received_index-1])
+	        {
+	          received_valid=1;
+	          recieved_cmd_type=(cmd_type_t) received_frame[2];
+	          recieved_cmd_code=received_frame[3];
+	        }
+	        else
+	        {
+	          received_valid=0;
+	          recieved_cmd_type=cmd_none;
+	        }
+	        received_index=0;received_state=0;
+	      }
+	      else if(received_index>=MAX_SIZE_FRAME)
+	      {
+	        received_state=0;
+	        received_index=0;
+	        received_valid=0;
+	        recieved_cmd_type=cmd_none;
+	      }
+	    break;
+	    }
+		HAL_UART_Receive_IT(&huart2, &received_byte, 1);
 	}
 //	else if (huart->Instance == USART3) {
 //		USART2->DR = USART3->DR;
@@ -1491,7 +1517,7 @@ int app_main(void) {
 	uint8_t counter_log_data = 0;
 
 	bounding_box_t pos_[10];
-	char tmp_str[100], tmp_str1[100];
+	char tmp_str[100], tmp_str1[100], tmp_str2[100];
 
 	FRESULT fr;
 
@@ -1530,7 +1556,7 @@ int app_main(void) {
 //	printf("hello \n\r");
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
 	////////////////////////////////////////////////////////////////
-//	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
+	HAL_UART_Receive_IT(&huart2, (uint8_t*) &received_byte, 1);
 //	while(1)
 //	{
 //		if(ESP_validbuffer)
@@ -1619,8 +1645,8 @@ int app_main(void) {
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
-	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
-	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
+//	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
+//	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
