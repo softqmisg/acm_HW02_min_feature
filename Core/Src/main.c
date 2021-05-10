@@ -112,7 +112,6 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 	flag_rtc_1s_general = 1;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-uint8_t usart2_datardy = 0, usart3_datardy = 0;
 typedef enum{
   cmd_none=0x80,
   cmd_submit=0x81,
@@ -122,15 +121,41 @@ typedef enum{
   cmd_error=0x85
 } cmd_type_t;
 
+////////////////cmd_code
+#define DashboardEvent        0x90
+#define TemperatureEvent      0xB0
+#define SDCardEvent           0xB1
+#define UsbMemEvent           0xB2
+#define DateEvent             0xB3
+#define TimeEvent             0xB4
+#define ClientsEvent          0xB5
+#define DoorEvent             0xB6
+#define LightoutsideEvent     0xB7
+#define LatitudeEvent         0xB8
+#define LongitudeEvent        0xB9
+#define CVEvent          0xBA
+
+#define readDashboard         0x90
+#define readLEDS1page         0x91
+#define readLEDS2page         0x92
+#define readTimePositionpage  0x93
+#define readTemperaturepage   0x94
+#define readWifipage          0x95
+#define readpassword          0x96
+#define readUseroptionpage    0x97
+
+
 #define MAX_SIZE_FRAME  100
 cmd_type_t recieved_cmd_type=cmd_none;
 uint8_t received_frame[MAX_SIZE_FRAME];
-uint8_t recieved_cmd_code;
+uint8_t received_cmd_code;
 uint8_t received_state=0;
 uint8_t received_index=0;
 uint8_t received_crc=0;
 uint8_t received_valid=0;
 uint8_t received_byte;
+/////////////////////////////////////////////////////////////////////////////
+uint8_t usart2_datardy = 0, usart3_datardy = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
@@ -172,7 +197,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	        {
 	          received_valid=1;
 	          recieved_cmd_type=(cmd_type_t) received_frame[2];
-	          recieved_cmd_code=received_frame[3];
+	          received_cmd_code=received_frame[3];
 	        }
 	        else
 	        {
@@ -198,6 +223,32 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 //	}
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void uart_transmit_frame(char *msg,cmd_type_t cmd_type,uint8_t cmd_code)
+{
+	uint8_t transmit_frame[100];
+	transmit_frame[0]=0xaa;
+	transmit_frame[1]=0x55;
+	transmit_frame[2]=(uint8_t)cmd_type;
+	transmit_frame[3]=cmd_code;
+	transmit_frame[4]=strlen(msg);
+	uint8_t index=0;
+	while(msg[index])
+	{
+		transmit_frame[5+index]=msg[index];index++;
+	}
+
+	uint8_t crc=0;
+	for(uint8_t i=0;i<5+index;i++)
+	{
+		crc+=transmit_frame[i];
+	}
+	transmit_frame[5+index]=crc;index++;
+	transmit_frame[5+index]='\n';
+	HAL_UART_Transmit(&huart2, transmit_frame, 6+index, 1000);
+	printf("send packet to esp32:%s\n\r",msg);
+}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -1464,6 +1515,7 @@ void Peripherials_DeInit(void) {
 	HAL_FLASH_Lock();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END 0 */
 
 /**
@@ -1551,9 +1603,23 @@ int app_main(void) {
 	uint8_t cur_doorstate = 1, prev_doorstate = 1;
 	uint8_t menu_page = 0;
 	uint8_t cur_profile = ADMIN_PROFILE;
+
+
+	uint8_t algorithm_temp_state = 0;
+	int16_t Env_temperature, prev_Env_temperature, Delta_T;
+	uint8_t flag_rtc_10s=0;
+	uint8_t counter_flag_10s=0;
+
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
-//	printf("hello \n\r");
+	/////////////////////////transceiver PC<->ESP32/////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
+	printf("\033[0;31;49m\n\r***********************************************************\n\r\033[0;39;49m");
+	printf(    "\033[0;31;49m*                  ACAM Application                       *\n\r\033[0;39;49m");
+	printf(    "\033[0;31;49m***********************************************************\n\r\033[0;39;49m");
+	///////////////////////////////////////////////////////////////////////////////
+	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
+	HAL_Delay(100);
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
 	////////////////////////////////////////////////////////////////
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &received_byte, 1);
@@ -1637,16 +1703,7 @@ int app_main(void) {
 //		HAL_Delay(1000);
 //	}
 	glcd_blank();
-/////////////////////////transceiver PC<->ESP32/////////////////////////////
-	HAL_UART_Transmit(&huart3, (uint8_t*) "\033[0;0H", strlen("\033[0;0H"),
-	HAL_MAX_DELAY);
-	HAL_UART_Transmit(&huart3, (uint8_t*) "\033[2J", strlen("\033[2J"),
-	HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
-	HAL_Delay(100);
-	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET);
-//	HAL_UART_Receive_IT(&huart3, (uint8_t*) &PC_data, 1);
-//	HAL_UART_Receive_IT(&huart2, (uint8_t*) &ESP_data, 1);
+
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
@@ -1772,114 +1829,6 @@ int app_main(void) {
 //	pca9632_setbrighnessblinking(LEDS1,80,0);
 //	pca9632_setbrighnessblinking(LEDS2,0,1.0);
 //
-//	/////////////////////////////////////////////////////////
-//	uint8_t readdir=1;
-//	FILINFO fno;
-//	DIR dir;
-//	FIL input, output;
-//	BYTE  buf[1024];
-//	 UINT br, bw;
-//	char filesrc[50],filedes[50];
-//
-//	while(1)
-//	{
-//		if(USBHFatFS.fs_type!=0  && readdir)
-//		{
-//			readdir=0;
-//			for(uint8_t counter=0;counter<50;counter++)
-//			{
-//				sprintf(filedes,"1:log/Temperature %d.txt",counter+1);counter++;
-//				printf("%s\n\r",filedes);
-//				if ((fr = f_open(&output, (const TCHAR*) filedes, FA_WRITE | FA_CREATE_ALWAYS))
-//						!= FR_OK) {
-//					printf("open error\n\r");
-//					break;
-//				}
-//				for(uint8_t i=0;i<100;i++)
-//				{
-//					sprintf(buf,"Hello world  in %d\n",i);
-//					if(f_write(&output, buf, sizeof(buf), &bw)!=FR_OK)
-//					{
-//						printf("write in line %d error\n\r",i);
-//						break;
-//					}
-//				}
-//				f_close(&output);
-//				MX_USB_HOST_Process();
-//			}
-////			if ((fr = f_opendir(&dir, "0:/log")) == FR_OK) {
-////				for(;;)
-////				{
-////					fr=f_readdir(&dir, &fno);
-////					if (fr != FR_OK || fno.fname[0] == 0)
-////					{
-////						printf("end of 0:/log directory\n\r");
-////						break;
-////					}
-////					if(!(fno.fattrib & AM_DIR)) //it is file so copy
-////					{
-////						printf("%s\n\r",fno.fname);
-////						sprintf(filesrc,"0:/log/%s",fno.fname);
-////						sprintf(filedes,"1:/log/%s",fno.fname);
-////						if ((fr = f_open(&input, (const TCHAR*) filesrc, FA_READ)) != FR_OK) {
-////							readdir=1;
-////							break;
-////						}
-////
-////						if ((fr = f_open(&output, (const TCHAR*) filedes, FA_WRITE | FA_CREATE_ALWAYS))
-////								!= FR_OK) {
-////							f_close(&input);
-////							readdir=1;
-////							break;
-////						}
-////						while (!f_eof(&input)) {
-//////							if(f_gets(buf, 500, &input)==NULL)
-//////							{
-//////								f_close(&input);
-//////								f_close(&output);
-//////								return FR_DISK_ERR;
-//////							}
-//////
-//////							if(f_puts(buf,&output)<0)
-//////							{
-//////								f_close(&input);
-//////								f_close(&output);
-//////								return FR_DISK_ERR;
-//////							}
-////							if(f_read(&input, buf, sizeof(buf), &br)!=FR_OK)
-////							{
-////								readdir=1;
-////								break;
-////							}
-////							if(br==0)
-////							{
-////								break;
-////							}
-////							if(f_write(&output, buf, br, &bw)!=FR_OK)
-////							{
-////								readdir=1;
-////								break;
-////							}
-////							if(bw<br)
-////							{
-////								break;
-////							}
-////							HAL_Delay(10);
-////						}
-////						f_close(&input);
-////						f_close(&output);
-////
-////		//				f_unlink(filesrc);
-////
-////					}
-////					MX_USB_HOST_Process();
-////					HAL_Delay(100);
-////				}
-////				f_closedir(&dir);
-////			}
-//		}
-//		MX_USB_HOST_Process();
-//	}
 	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
@@ -1892,6 +1841,66 @@ int app_main(void) {
 			cur_date_t.day = cur_Date.Date;
 			cur_date_t.month = cur_Date.Month;
 			cur_date_t.year = cur_Date.Year;
+			sprintf(tmp_str2,"%04d-%02d-%02d",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date);
+			uart_transmit_frame(tmp_str2, cmd_event, DateEvent);
+			sprintf(tmp_str2,"%02d:%02d:%02d",cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			uart_transmit_frame(tmp_str2, cmd_event, TimeEvent);
+
+		}
+		/////////////////////read sensors//////////////////////////
+		for (uint8_t i = 0; i < 8; i++)
+		{
+			if (tmp275_readTemperature(i, &cur_temperature[i])
+					!= HAL_OK) {
+				cur_temperature[i] = (int16_t) 0x8fff;
+			}
+		}
+		////////////////////////////////////////////////////////////
+		if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
+				!= HAL_OK) {
+			cur_voltage[0] = -1.0;
+		}
+		if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+				!= HAL_OK) {
+			cur_current[0] = -1.0;
+		}
+		if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+				!= HAL_OK) {
+			cur_voltage[1] = -1.0;
+
+		}
+		if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+				!= HAL_OK) {
+			cur_current[1] = -1.0;
+
+		}
+		if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+				!= HAL_OK) {
+			cur_voltage[2] = -1.0;
+
+		}
+		if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+				!= HAL_OK) {
+			cur_current[2] = -1.0;
+
+		}
+		if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+				!= HAL_OK) {
+			cur_voltage[3] = -1.0;
+
+		}
+		if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+				!= HAL_OK) {
+			cur_current[3] = -1.0;
+
+		}
+
+		////////////////////////////////////////////////////////
+		if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
+			cur_insidelight = 0xffff;
+		}
+		if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+			cur_outsidelight = 0xffff;
 		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
@@ -1900,14 +1909,30 @@ int app_main(void) {
 			cur_doorstate = 0;
 		if (cur_doorstate != prev_doorstate) {
 			if (cur_doorstate)
+			{
 				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Opened\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+			}
 			else
+			{
 				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Closed\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+				sprintf(tmp_str2,"off");
+			}
 			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str2);
+			if(cur_doorstate)
+			{
+				sprintf(tmp_str2,"on");
+
+			}
+			else
+			{
+				sprintf(tmp_str2,"off");
+
+			}
+			uart_transmit_frame(tmp_str2, cmd_event, DoorEvent);
 			prev_doorstate = cur_doorstate;
 		}
 		//////////////////////////Saves parameters in logs file in SDCARD,just one  time////
@@ -2006,6 +2031,12 @@ int app_main(void) {
 			////////////////////////////1S flag//////////////////////////////////////////////////
 			if (flag_rtc_1s) {
 				flag_rtc_1s = 0;
+				counter_flag_10s++;
+				if(counter_flag_10s>=10)
+				{
+					counter_flag_10s=0;
+					flag_rtc_10s=1;
+				}
 				counter_change_form++;
 				if (counter_change_form > FORM_DELAY_SHOW) {
 					counter_change_form = 0;
@@ -2021,57 +2052,6 @@ int app_main(void) {
 					if (Delay_Astro_calculation == 0)
 						CalcAstro = 1;
 				}
-				/////////////////////read sensors//////////////////////////
-				for (uint8_t i = 0; i < 8; i++)
-					if (tmp275_readTemperature(i, &cur_temperature[i])
-							!= HAL_OK) {
-						cur_temperature[i] = (int16_t) 0x8fff;
-					}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-						!= HAL_OK) {
-					cur_voltage[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-						!= HAL_OK) {
-					cur_current[0] = -1.0;
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-						!= HAL_OK) {
-					cur_voltage[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-						!= HAL_OK) {
-					cur_current[1] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-						!= HAL_OK) {
-					cur_voltage[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-						!= HAL_OK) {
-					cur_current[2] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-						!= HAL_OK) {
-					cur_voltage[3] = -1.0;
-
-				}
-				if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-						!= HAL_OK) {
-					cur_current[3] = -1.0;
-
-				}
-				if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
-					cur_insidelight = 0xffff;
-				}
-				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-					cur_outsidelight = 0xffff;
-				}
-
 				////////////////////////////LED control////////////////////////////////////
 				if ((cur_time.Hours == 0 && cur_time.Minutes == 0
 						&& cur_time.Seconds == 0) || (CalcAstro)) {
@@ -2133,93 +2113,99 @@ int app_main(void) {
 					break;
 				}
 			}
-			/////////////////////Read & Log Sensors//////////////////////////////////
+			/////////////////////send sensor data to ESP32///////////////////////////
+			if(flag_rtc_10s)
+			{
+				flag_rtc_10s=0;
+				////////////////Temperature//////////////////////////
+				sprintf(tmp_str2,"");
+				for (uint8_t i = 0; i < 8; i++) {
+					if (cur_temperature[i] == (int16_t) 0x8fff) {
+						sprintf(tmp_str2, "%s-,", tmp_str2);
+					} else {
+						sprintf(tmp_str2, "%s%+4.1f,", tmp_str2,
+								cur_temperature[i] / 10.0);
+					}
+				}
+				sprintf(tmp_str2, "%s%02d:%02d:%02d",tmp_str2, cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+				uart_transmit_frame(tmp_str2, cmd_event, TemperatureEvent);
+				//////////////////// memory//////////////////////
+				DWORD fre_clust, fre_sect, tot_sect;
+				FRESULT res;
+				if (SDFatFS.fs_type == 0 || BSP_SD_IsDetected() == SD_NOT_PRESENT) {
+					sprintf(tmp_str2, "-,-");
+				} else {
+					tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
+					fre_sect = SDFatFS.free_clst * SDFatFS.csize;
+					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, SDCardEvent);
+
+				if (USBHFatFS.fs_type == 0) {
+
+					sprintf(tmp_str2, "-,-");
+
+				} else {
+					tot_sect = (USBHFatFS.n_fatent - 2) * USBHFatFS.csize;
+					fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
+					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, UsbMemEvent);
+				///////////////////////////Light/////////////////////////////
+				sprintf(tmp_str2,"%d",cur_outsidelight);
+				uart_transmit_frame(tmp_str2, cmd_event, LightoutsideEvent);
+				/////////////////////////Current Voltage//////////////////////
+				sprintf(tmp_str2,"");
+				for(uint8_t i=0;i<4;i++)
+				{
+					if(cur_voltage[i]>0)
+					{
+						sprintf(tmp_str2,"%s%3.1f,%+4.3f,",tmp_str2,cur_voltage[i], cur_current[i]);
+					}
+					else
+					{
+						sprintf(tmp_str2,"%s-,-,",tmp_str2);
+					}
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, CVEvent);
+			}
+			/////////////////////Log Sensors//////////////////////////////////
 			if (flag_log_data) {
 				flag_log_data = 0;
 				counter_log_data = 0;
-//				/////////////////////read sensors//////////////////////////
-//				for (uint8_t i = 0; i < 8; i++)
-//					if (tmp275_readTemperature(i, &cur_temperature[i])
-//							!= HAL_OK) {
-//						cur_temperature[i] = (int16_t) 0x8fff;
-//					}
 
-//				if (ina3221_readdouble((uint8_t) VOLTAGE_7V,
-//						&cur_voltage[0]) != HAL_OK) {
-//					cur_voltage[0] = -1.0;
-//				}
-//				if (ina3221_readdouble((uint8_t) CURRENT_7V,
-//						&cur_current[0]) != HAL_OK) {
-//					cur_current[0] = -1.0;
-//				}
-//				if (ina3221_readdouble((uint8_t) VOLTAGE_12V,
-//						&cur_voltage[1]) != HAL_OK) {
-//					cur_voltage[1] = -1.0;
-//
-//				}
-//				if (ina3221_readdouble((uint8_t) CURRENT_12V,
-//						&cur_current[1]) != HAL_OK) {
-//					cur_current[1] = -1.0;
-//
-//				}
-//				if (ina3221_readdouble((uint8_t) VOLTAGE_3V3,
-//						&cur_voltage[2]) != HAL_OK) {
-//					cur_voltage[2] = -1.0;
-//
-//				}
-//				if (ina3221_readdouble((uint8_t) CURRENT_3V3,
-//						&cur_current[2]) != HAL_OK) {
-//					cur_current[2] = -1.0;
-//
-//				}
-//				if (ina3221_readdouble((uint8_t) VOLTAGE_TEC,
-//						&cur_voltage[3]) != HAL_OK) {
-//					cur_voltage[3] = -1.0;
-//
-//				}
-//				if (ina3221_readdouble((uint8_t) CURRENT_TEC,
-//						&cur_current[3]) != HAL_OK) {
-//					cur_current[3] = -1.0;
-//
-//				}
-//				if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
-//					cur_insidelight = 0xffff;
-//				}
-//				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-//					cur_outsidelight = 0xffff;
-//				}
 				/////////////////////log sensors//////////////////////////
 
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 				for (uint8_t i = 0; i < 8; i++) {
 					if (cur_temperature[i] == (int16_t) 0x8fff) {
-						sprintf(tmp_str, "%s-,", tmp_str);
+						sprintf(tmp_str2, "%s-,", tmp_str2);
 					} else {
-						sprintf(tmp_str, "%s%f,", tmp_str,
+						sprintf(tmp_str2, "%s%f,", tmp_str2,
 								cur_temperature[i] / 10.0);
 					}
 				}
-				sprintf(tmp_str, "%s\n", tmp_str);
+				sprintf(tmp_str2, "%s\n", tmp_str2);
 
-				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str);
+				r_logtemp = Log_file(SDCARD_DRIVE, TEMPERATURE_FILE, tmp_str2);
 
-				sprintf(tmp_str,
+				sprintf(tmp_str2,
 						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 						cur_voltage[0], cur_current[0], cur_voltage[1],
 						cur_current[1], cur_voltage[2], cur_current[2],
 						cur_voltage[3], cur_current[3]);
-				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str);
+				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str2);
 
-				sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
+				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,%d,%d\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 						cur_insidelight, cur_outsidelight);
 
-				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str);
+				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str2);
 			}
 
 			///////////////////////////change display form////////////////////////////////////////////////
@@ -3335,7 +3321,7 @@ int app_main(void) {
 							LONG_Value.direction);
 					HAL_Delay(50);
 					EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF], UTC_OFF_Value);
-					sprintf(tmp_str,
+					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -3344,7 +3330,7 @@ int app_main(void) {
 							LONG_Value.deg, LONG_Value.min,
 							LONG_Value.second / 100.0, LONG_Value.direction);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
@@ -4419,7 +4405,7 @@ int app_main(void) {
 					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
 							S1_LED_Value.ADD_SUNSET_Value);
 
-					sprintf(tmp_str,
+					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,LED SET1,%s,%d,%f,%f,%d,%f,%f\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -4432,7 +4418,7 @@ int app_main(void) {
 							S1_LED_Value.NIGHT_BLINK_Value / 10.0,
 							S1_LED_Value.ADD_SUNSET_Value / 10.0);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -5119,7 +5105,7 @@ int app_main(void) {
 					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
 							S2_LED_Value.ADD_SUNSET_Value);
 
-					sprintf(tmp_str,
+					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -5132,7 +5118,7 @@ int app_main(void) {
 							S2_LED_Value.NIGHT_BLINK_Value / 10.0,
 							S2_LED_Value.ADD_SUNSET_Value / 10.0);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -5983,13 +5969,13 @@ int app_main(void) {
 								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
 								cur_time.Seconds);
 					else
-						sprintf(tmp_str,
+						sprintf(tmp_str2,
 								"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
 								cur_Date.Year + 2000, cur_Date.Month,
 								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
 								cur_time.Seconds);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					if (RELAY1_Value.active[0])
 						sprintf(tmp_str,
@@ -6009,9 +5995,9 @@ int app_main(void) {
 								RELAY1_Value.Edge[1],
 								RELAY1_Value.Temperature[1]);
 					else
-						sprintf(tmp_str, "%s,--\n", tmp_str);
+						sprintf(tmp_str2, "%s,--\n", tmp_str);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					if (RELAY2_Value.active[0])
 						sprintf(tmp_str,
@@ -6031,9 +6017,9 @@ int app_main(void) {
 								RELAY2_Value.Edge[1],
 								RELAY2_Value.Temperature[1]);
 					else
-						sprintf(tmp_str, "%s,--\n", tmp_str);
+						sprintf(tmp_str2, "%s,--\n", tmp_str);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -6315,12 +6301,12 @@ int app_main(void) {
 					DOOR_Value = tmp_door;
 					HAL_Delay(50);
 					EE_WriteVariable(VirtAddVarTab[ADD_DOOR], DOOR_Value);
-					sprintf(tmp_str, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d",
+					sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 							cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
 							DOOR_Value);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-							tmp_str);
+							tmp_str2);
 
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -6622,14 +6608,14 @@ int app_main(void) {
 									VirtAddVarTab[ADD_PASSWORD_ADMIN_3],
 									PASSWORD_ADMIN_Value[3]);
 
-							sprintf(tmp_str,
+							sprintf(tmp_str2,
 									"%04d-%02d-%02d,%02d:%02d:%02d,PASSWORD ADMIN CHANGED",
 									cur_Date.Year + 2000, cur_Date.Month,
 									cur_Date.Date, cur_time.Hours,
 									cur_time.Minutes, cur_time.Seconds);
 						}
 						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-								tmp_str);
+								tmp_str2);
 
 						index_option = MENU_state - POSITION_MENU;
 						create_menu(index_option, menu_page, 1, text_pos);
@@ -6830,13 +6816,13 @@ int app_main(void) {
 					FAN_OFF();
 					if (algorithm_temp_state != 2) {
 						algorithm_temp_state = 2;
-						sprintf(tmp_str,
+						sprintf(tmp_str2,
 								"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF,TEC,OFF",
 								cur_Date.Year + 2000, cur_Date.Month,
 								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
 								cur_time.Seconds);
 						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-								tmp_str);
+								tmp_str2);
 					}
 				} else if ((Delta_T > 2)
 						&& (Env_temperature > RELAY1_Value.Temperature[1])) //s3
@@ -6944,6 +6930,11 @@ int app_main(void) {
 				r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 						tmp_str2);
 			}
+		}
+		//////////////////////////////////////////check ESP32 Frame////////////////////////////////////////
+		if(received_valid)
+		{
+
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 
