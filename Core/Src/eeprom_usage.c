@@ -16,6 +16,8 @@ extern char PASSWORD_ADMIN_Value[5];
 extern char PASSWORD_USER_Value[5];
 extern uint16_t DOOR_Value;
 extern int8_t UTC_OFF_Value;
+extern uint8_t profile_user_Value;
+extern uint8_t profile_admin_Value;
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	uint16_t tmp;
@@ -121,6 +123,8 @@ void update_values(void) {
 
 	EE_ReadVariable(VirtAddVarTab[ADD_DOOR],&tmp);DOOR_Value=(uint16_t)tmp;
 	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_PROFILE_USER],&tmp);profile_user_Value=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_PROFILE_ADMIN],&tmp);profile_admin_Value=(uint8_t)tmp;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,5 +184,7 @@ void Write_defaults(void)
 	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_USER_3], DEFAULT_PASSWORD_USER_3);HAL_Delay(100);
 
 	EE_WriteVariable(VirtAddVarTab[ADD_DOOR],DEFAULT_DOOR);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PROFILE_USER],DEFAULT_PROFILE_USER);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_PROFILE_ADMIN],DEFAULT_PROFILE_ADMIN);HAL_Delay(100);
 
 }

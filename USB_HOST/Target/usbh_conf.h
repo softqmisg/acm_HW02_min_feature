@@ -128,7 +128,7 @@
 #if (USBH_DEBUG_LEVEL > 0U)
 #define  USBH_UsrLog(...)   do { \
                             printf(__VA_ARGS__); \
-                            printf("\n\r"); \
+                            printf("\n"); \
 } while (0)
 #else
 #define USBH_UsrLog(...) do {} while (0)
@@ -139,7 +139,7 @@
 #define  USBH_ErrLog(...) do { \
                             printf("ERROR: ") ; \
                             printf(__VA_ARGS__); \
-                            printf("\n\r"); \
+                            printf("\n"); \
 } while (0)
 #else
 #define USBH_ErrLog(...) do {} while (0)

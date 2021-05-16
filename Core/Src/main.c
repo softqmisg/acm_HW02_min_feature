@@ -112,6 +112,18 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 	flag_rtc_1s_general = 1;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define DashboardActivePage			0
+#define LEDActivePage				1
+#define TimePositionActivePage		2
+#define TemperatureActivePage		3
+#define UserOptionActivePage		4
+#define WifiActivePage				5
+#define UpgradeActivePage			6
+#define PasswordActivePage			7
+
+#define MAX_BROWSER_PAGE			8
+uint8_t ActiveBrowserPage[MAX_BROWSER_PAGE]={0};
+/////////////////////////////////////////////////////////////////////////////////
 typedef enum{
   cmd_none=0x80,
   cmd_submit=0x81,
@@ -133,20 +145,23 @@ typedef enum{
 #define LightoutsideEvent     0xB7
 #define LatitudeEvent         0xB8
 #define LongitudeEvent        0xB9
-#define CVEvent          0xBA
+#define CVEvent         	  0xBA
+#define LEDS1PageEvent        0xBB
+#define LEDS2PageEvent        0xBC
+#define TimePositionEvent	  0xBD
 
 #define readDashboard         0x90
-#define readLEDS1page         0x91
-#define readLEDS2page         0x92
-#define readTimePositionpage  0x93
-#define readTemperaturepage   0x94
-#define readWifipage          0x95
-#define readpassword          0x96
-#define readUseroptionpage    0x97
+#define LEDS1page         0x91
+#define LEDS2page         0x92
+#define TimePositionpage  0x93
+#define Temperaturepage   0x94
+#define Wifipage          0x95
+#define Passwordpage          0x96
+#define Useroptionpage    0x97
 
 
-#define MAX_SIZE_FRAME  100
-cmd_type_t recieved_cmd_type=cmd_none;
+#define MAX_SIZE_FRAME  120
+cmd_type_t received_cmd_type=cmd_none;
 uint8_t received_frame[MAX_SIZE_FRAME];
 uint8_t received_cmd_code;
 uint8_t received_state=0;
@@ -154,13 +169,12 @@ uint8_t received_index=0;
 uint8_t received_crc=0;
 uint8_t received_valid=0;
 uint8_t received_byte;
+uint8_t received_frame_length=0;
 /////////////////////////////////////////////////////////////////////////////
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
-//		USART3->DR = USART2->DR;
-//		USART3->DR = ESP_data;
+		received_byte=USART2->DR;
 	    switch (received_state)
 	    {
 	    case 0:
@@ -181,28 +195,31 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	        received_index=0;
 	        received_state=0;
 	        received_valid=0;
-	        recieved_cmd_type=cmd_none;
+	        received_cmd_type=cmd_none;
 	      }
 	    break;
 	    case 2:
 	      received_frame[received_index++]=received_byte;
 	      if(received_index==received_frame[4]+7)
 	      {
+
 	        received_crc=0;
 	        for(uint8_t i=0;i<received_frame[4]+5;i++)
 	        {
 	          received_crc+=received_frame[i];
 	        }
-	        if(received_crc==received_frame[received_index-1])
+
+	        if(received_crc==received_frame[received_index-2])
 	        {
 	          received_valid=1;
-	          recieved_cmd_type=(cmd_type_t) received_frame[2];
+	          received_cmd_type=(cmd_type_t) received_frame[2];
 	          received_cmd_code=received_frame[3];
+	          received_frame_length=received_index;
 	        }
 	        else
 	        {
 	          received_valid=0;
-	          recieved_cmd_type=cmd_none;
+	          received_cmd_type=cmd_none;
 	        }
 	        received_index=0;received_state=0;
 	      }
@@ -211,7 +228,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	        received_state=0;
 	        received_index=0;
 	        received_valid=0;
-	        recieved_cmd_type=cmd_none;
+	        received_cmd_type=cmd_none;
 	      }
 	    break;
 	    }
@@ -226,7 +243,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 void uart_transmit_frame(char *msg,cmd_type_t cmd_type,uint8_t cmd_code)
 {
-	uint8_t transmit_frame[100];
+	uint8_t transmit_frame[120];
 	transmit_frame[0]=0xaa;
 	transmit_frame[1]=0x55;
 	transmit_frame[2]=(uint8_t)cmd_type;
@@ -245,8 +262,8 @@ void uart_transmit_frame(char *msg,cmd_type_t cmd_type,uint8_t cmd_code)
 	}
 	transmit_frame[5+index]=crc;index++;
 	transmit_frame[5+index]='\n';
-	HAL_UART_Transmit(&huart2, transmit_frame, 6+index, 1000);
-	printf("send packet to esp32:%s\n\r",msg);
+	HAL_UART_Transmit(&huart2, transmit_frame, 6+index, 3000);
+//	printf("to esp32(%d):%s\n\r",strlen(msg),msg);
 }
 
 /* USER CODE END PFP */
@@ -311,6 +328,8 @@ char PASSWORD_ADMIN_Value[5];
 char PASSWORD_USER_Value[5];
 uint16_t DOOR_Value;
 int8_t UTC_OFF_Value;
+uint8_t profile_user_Value;
+uint8_t profile_admin_Value;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_cell(uint8_t x, uint8_t y, uint8_t width, uint8_t height,
 		uint8_t row, uint8_t col, char colour, bounding_box_t *box) {
@@ -656,8 +675,8 @@ void create_form5(uint8_t clear) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, pos_[0].y2, 128, 64 - pos_[0].y2, 3, 2, 1, pos_);
-	text_cell(pos_, 0, "RELAY1", Tahoma8, CENTER_ALIGN, 1, 1);
-	text_cell(pos_, 1, "RELAY2", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 0, "TEMPH", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 1, "TEMPL", Tahoma8, CENTER_ALIGN, 1, 1);
 	for (uint8_t i = 0; i < 2; i++) {
 		if (RELAY1_Value.active[i]) {
 			sprintf(tmp_str, "%c %+4.1f", RELAY1_Value.Edge[i],
@@ -1264,11 +1283,11 @@ void create_formRelay(uint8_t clear, bounding_box_t *text_pos,
 
 	pos_[1].x1 = 0;
 	pos_[1].x2 = 39;
-	text_cell(pos_, 1, "RELAY1:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 1, "TEMPH:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[2].x1 = 0;
 	pos_[2].x2 = 39;
-	text_cell(pos_, 2, "RELAY2:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 2, "TEMPL:", Tahoma8, LEFT_ALIGN, 1, 1);
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 3, 1, 1, pos_);
 	if (tmp_tec == 1)
@@ -1481,6 +1500,22 @@ void create_formUpgrade(uint8_t clear, bounding_box_t *text_pos) {
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
+/////////////////////////////////////////////////////////////////////////
+uint8_t find_profile(uint8_t *frame)
+{
+	char extracted_text[120];
+	uint8_t cur_browser_profile;
+	strncpy(extracted_text,(char *)&frame[5],frame[4]);
+	extracted_text[frame[4]]='\0';
+//							printf("msg from esp:%s\n\r",extracted_text);
+	char *ptr_splitted=strtok(extracted_text,",");
+	while(ptr_splitted!=NULL)
+	{
+		cur_browser_profile=atoi(ptr_splitted);
+		ptr_splitted=strtok(NULL,",");
+	}
+	return cur_browser_profile;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Peripherials_DeInit(void) {
 	MX_FATFS_DeInit();
@@ -1514,54 +1549,182 @@ void Peripherials_DeInit(void) {
 	__HAL_IWDG_RELOAD_COUNTER(&hiwdg);
 	HAL_FLASH_Lock();
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ready_msg_Dashboardpage(char *str2,
+		uint16_t cur_outsidelight,
+		uint8_t cur_doorstate,
+		uint8_t cur_client_number,
+		double *cur_voltage,
+		double *cur_current,
+		uint8_t cur_browser_profile)
+{
+	RTC_TimeTypeDef cur_time;
+	RTC_DateTypeDef cur_Date;
+	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	change_daylightsaving(&cur_Date, &cur_time, 1);
+
+
+	sprintf(str2,"%02d:%02d",cur_time.Hours,cur_time.Minutes);
+	sprintf(str2,"%s,%04d-%02d-%02d",str2,cur_Date.Year+2000,cur_Date.Month,cur_Date.Date);
+	sprintf(str2,"%s,%d",str2,cur_outsidelight);
+	if(cur_doorstate)
+	{
+		sprintf(str2,"%s,on",str2);
+	}
+	else
+		sprintf(str2,"%s,off",str2);
+
+	sprintf(str2,"%s,%d %d\' %05.2f\"%c,%d %d\' %05.2f\"%c",
+				str2,
+				LONG_Value.deg, LONG_Value.min,
+				LONG_Value.second / 100.0, LONG_Value.direction,
+				LAT_Value.deg, LAT_Value.min,
+				LAT_Value.second / 100.0, LAT_Value.direction
+				);
+
+	sprintf(str2,"%s,%d",str2,cur_client_number);
+	for(uint8_t i=0;i<4;i++)
+	{
+		if(cur_voltage[i]>0)
+		{
+			sprintf(str2,"%s,%3.1f,%+4.3f",str2,cur_voltage[i], cur_current[i]);
+		}
+		else
+		{
+			sprintf(str2,"%s,-,-",str2);
+		}
+	}
+	if(cur_browser_profile==0)//admin
+		sprintf(str2,"%s,%d",str2,profile_admin_Value);
+	else
+		sprintf(str2,"%s,%d",str2,profile_user_Value);
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+void ready_msg_LEDpage(char *str2,LED_t LED_Value,uint8_t cur_browser_profile)
+{
+	sprintf(str2,"%d",LED_Value.TYPE_Value);
+	sprintf(str2,"%s,%d",str2,LED_Value.DAY_BRIGHTNESS_Value);
+
+	if(LED_Value.TYPE_Value==WHITE_LED)
+		sprintf(str2,"%s,%2.1f",str2,LED_Value.DAY_BLINK_Value/10.0);
+	else
+		sprintf(str2,"%s,-",str2);
+
+	sprintf(str2,"%s,%d",str2,LED_Value.NIGHT_BRIGHTNESS_Value);
+	if(LED_Value.TYPE_Value==WHITE_LED)
+		sprintf(str2,"%s,%2.1f",str2,LED_Value.NIGHT_BLINK_Value/10.0);
+	else
+		sprintf(str2,"%s,-",str2);
+
+	if(cur_browser_profile==0)//admin
+		sprintf(str2,"%s,%d",str2,profile_admin_Value);
+	else
+		sprintf(str2,"%s,%d",str2,profile_user_Value);
+
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ready_msg_TimePositionpage(char *str2, Time_t sunrise,Time_t sunset,uint8_t cur_browser_profile)
+{
+	RTC_TimeTypeDef cur_time;
+	RTC_DateTypeDef cur_Date;
+	HAL_RTC_GetTime(&hrtc, &cur_time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &cur_Date, RTC_FORMAT_BIN);
+	change_daylightsaving(&cur_Date, &cur_time, 1);
+
+	sprintf(str2,"%04d-%02d-%02d",cur_Date.Year+2000,cur_Date.Month,cur_Date.Date);
+	sprintf(str2,"%s,%02d:%02d",str2,cur_time.Hours,cur_time.Minutes);
+	sprintf(str2,"%s,%02d",str2,LAT_Value.deg);
+	sprintf(str2,"%s,%02d",str2,LAT_Value.min);
+	sprintf(str2,"%s,%.2f",str2,LAT_Value.second/100.0);
+	sprintf(str2,"%s,%c",str2,LAT_Value.direction);
+	sprintf(str2,"%s,%02d",str2,LONG_Value.deg);
+	sprintf(str2,"%s,%02d",str2,LONG_Value.min);
+	sprintf(str2,"%s,%.2f",str2,LONG_Value.second/100.0);
+	sprintf(str2,"%s,%c",str2,LONG_Value.direction);
+	sprintf(str2,"%s,%.1f",str2,UTC_OFF_Value/10.0);
+	sprintf(str2,"%s,%02d:%02d",str2,sunrise.hr,sunrise.min);
+	sprintf(str2,"%s,%02d:%02d",str2,sunset.hr,sunset.min);
+
+	sprintf(str2,"%s,%.1f",str2,S1_LED_Value.ADD_SUNRISE_Value/10.0);
+	sprintf(str2,"%s,%.1f",str2,S1_LED_Value.ADD_SUNSET_Value/10.0);
+
+	if(cur_browser_profile==0)//admin
+		sprintf(str2,"%s,%d",str2,profile_admin_Value);
+	else
+		sprintf(str2,"%s,%d",str2,profile_user_Value);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void split_time(char *str,RTC_TimeTypeDef *t)
+{
+	printf("time:%s\n\r",str);
+	char *ptr_splitted=strtok(str,":");
+	t->Hours=atoi(ptr_splitted);
+	ptr_splitted=strtok(NULL,":");
+	t->Minutes=atoi(ptr_splitted);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void split_date(char *str,RTC_DateTypeDef *d)
+{
+	printf("date:%s,",str);
+	char *ptr_splitted=strtok(str,"-");
+	d->Year=atoi(ptr_splitted)-2000;
+	ptr_splitted=strtok(NULL,"-");
+	d->Month=atoi(ptr_splitted);
+	ptr_splitted=strtok(NULL,"-");
+	d->Date=atoi(ptr_splitted);
+	printf("%04d-%02d-%02d\n\r",d->Year,d->Month,d->Date);
+
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int app_main(void) {
-	/* USER CODE BEGIN 1 */
+  * @brief  The application entry point.
+  * @retval int
+  */
+int app_main(void)
+{
+  /* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_I2C3_Init();
-	MX_TIM4_Init();
-	MX_RTC_Init();
-	MX_SDIO_SD_Init();
-	MX_FATFS_Init();
-	MX_USB_DEVICE_Init();
-	MX_USART2_UART_Init();
-	MX_USART3_UART_Init();
-	MX_USB_HOST_Init();
-#if __LWIP__
-	MX_LWIP_Init();
-#endif
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_I2C3_Init();
+  MX_TIM4_Init();
+  MX_RTC_Init();
+  MX_SDIO_SD_Init();
+  MX_FATFS_Init();
+  MX_USB_DEVICE_Init();
+  MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
+  MX_USB_HOST_Init();
+  MX_LWIP_Init();
+
 #if !(__DEBUG__)
   MX_IWDG_Init();
 #endif
-	/* USER CODE BEGIN 2 */
+  /* USER CODE BEGIN 2 */
 	/////////////////////////
 	uint8_t flag_change_form = 0;
 	uint8_t counter_change_form = 0;
@@ -1569,8 +1732,10 @@ int app_main(void) {
 	uint8_t counter_log_data = 0;
 
 	bounding_box_t pos_[10];
-	char tmp_str[100], tmp_str1[100], tmp_str2[100];
-
+	char tmp_str[100], tmp_str1[100], tmp_str2[120];
+	char extracted_text[120];
+	char *ptr_splitted[20];
+	uint8_t index_ptr;
 	FRESULT fr;
 
 	uint8_t index_option = 0;
@@ -1603,13 +1768,15 @@ int app_main(void) {
 	uint8_t cur_doorstate = 1, prev_doorstate = 1;
 	uint8_t menu_page = 0;
 	uint8_t cur_profile = ADMIN_PROFILE;
-
+	uint8_t cur_browser_profile=ADMIN_PROFILE;
 
 	uint8_t algorithm_temp_state = 0;
 	int16_t Env_temperature, prev_Env_temperature, Delta_T;
-	uint8_t flag_rtc_10s=0;
-	uint8_t counter_flag_10s=0;
-
+	uint8_t flag_rtc_10s_general=0;
+	uint8_t counter_flag_10s_general=0;
+	uint8_t flag_rtc_1m_general=0;
+	uint8_t counter_flag_1m_general=0;
+	uint8_t cur_client_number;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	/////////////////////////transceiver PC<->ESP32/////////////////////////////
@@ -1622,7 +1789,7 @@ int app_main(void) {
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
 	////////////////////////////////////////////////////////////////
-	HAL_UART_Receive_IT(&huart2, (uint8_t*) &received_byte, 1);
+	HAL_UART_Receive_IT(&huart2,  &received_byte, 1);
 //	while(1)
 //	{
 //		if(ESP_validbuffer)
@@ -1829,6 +1996,7 @@ int app_main(void) {
 //	pca9632_setbrighnessblinking(LEDS1,80,0);
 //	pca9632_setbrighnessblinking(LEDS2,0,1.0);
 //
+	uint8_t start_count_1m=0;
 	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
@@ -1841,72 +2009,168 @@ int app_main(void) {
 			cur_date_t.day = cur_Date.Date;
 			cur_date_t.month = cur_Date.Month;
 			cur_date_t.year = cur_Date.Year;
-			sprintf(tmp_str2,"%04d-%02d-%02d",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date);
-			uart_transmit_frame(tmp_str2, cmd_event, DateEvent);
-			sprintf(tmp_str2,"%02d:%02d:%02d",cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-			uart_transmit_frame(tmp_str2, cmd_event, TimeEvent);
 
-		}
-		/////////////////////read sensors//////////////////////////
-		for (uint8_t i = 0; i < 8; i++)
-		{
-			if (tmp275_readTemperature(i, &cur_temperature[i])
+			counter_flag_10s_general++;
+			if(counter_flag_10s_general>=9)
+			{
+				counter_flag_10s_general=0;
+				flag_rtc_10s_general=1;
+			}
+
+
+			counter_flag_1m_general++;
+			if(counter_flag_1m_general>=59)
+			{
+				counter_flag_1m_general=0;
+				flag_rtc_1m_general=1;
+			}
+			/////////////////////read sensors evey 1 s//////////////////////////
+			for (uint8_t i = 0; i < 8; i++)
+			{
+				if (tmp275_readTemperature(i, &cur_temperature[i])
+						!= HAL_OK) {
+					cur_temperature[i] = (int16_t) 0x8fff;
+				}
+			}
+					////////////////////////////////////////////////////////////
+			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
 					!= HAL_OK) {
-				cur_temperature[i] = (int16_t) 0x8fff;
+				cur_voltage[0] = -1.0;
+			}
+			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
+					!= HAL_OK) {
+				cur_current[0] = -1.0;
+			}
+			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
+					!= HAL_OK) {
+				cur_voltage[1] = -1.0;
+
+			}
+			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
+					!= HAL_OK) {
+				cur_current[1] = -1.0;
+
+			}
+			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
+					!= HAL_OK) {
+				cur_voltage[2] = -1.0;
+
+			}
+			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
+					!= HAL_OK) {
+				cur_current[2] = -1.0;
+
+			}
+			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
+					!= HAL_OK) {
+				cur_voltage[3] = -1.0;
+
+			}
+			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
+					!= HAL_OK) {
+				cur_current[3] = -1.0;
+
+			}
+				////////////////////////////////////////////////////////
+			if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
+				cur_insidelight = 0xffff;
+			}
+			if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+				cur_outsidelight = 0xffff;
 			}
 		}
-		////////////////////////////////////////////////////////////
-		if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-				!= HAL_OK) {
-			cur_voltage[0] = -1.0;
+		if(flag_rtc_1m_general)
+		{
+			flag_rtc_1m_general=0;
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				sprintf(tmp_str2,"%04d-%02d-%02d",cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date);
+				uart_transmit_frame(tmp_str2, cmd_event, DateEvent);
+				sprintf(tmp_str2,"%02d:%02d",cur_time.Hours, cur_time.Minutes);
+				uart_transmit_frame(tmp_str2, cmd_event, TimeEvent);
+			}
 		}
-		if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-				!= HAL_OK) {
-			cur_current[0] = -1.0;
-		}
-		if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-				!= HAL_OK) {
-			cur_voltage[1] = -1.0;
+		/////////////////////send sensor data to ESP32:every 10s///////////////////////////
+		if(flag_rtc_10s_general)
+		{
+			flag_rtc_10s_general=0;
+			////////////////Temperature//////////////////////////
+			sprintf(tmp_str2,"");
+			for (uint8_t i = 0; i < 8; i++) {
+				if (cur_temperature[i] == (int16_t) 0x8fff) {
+					sprintf(tmp_str2, "%s-,", tmp_str2);
+				} else {
+					sprintf(tmp_str2, "%s%+4.1f,", tmp_str2,
+							cur_temperature[i] / 10.0);
+				}
+			}
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				sprintf(tmp_str2, "%s%02d:%02d:%02d",tmp_str2, cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
+				uart_transmit_frame(tmp_str2, cmd_event, TemperatureEvent);
+			}
+			//////////////////// memory//////////////////////
+			DWORD fre_clust, fre_sect, tot_sect;
+			FRESULT res;
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				if (SDFatFS.fs_type == 0 || BSP_SD_IsDetected() == SD_NOT_PRESENT) {
+					sprintf(tmp_str2, "-,-");
+				} else {
+					tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
+					fre_sect = SDFatFS.free_clst * SDFatFS.csize;
+					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, SDCardEvent);
+			}
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				if (USBHFatFS.fs_type == 0) {
 
-		}
-		if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-				!= HAL_OK) {
-			cur_current[1] = -1.0;
+					sprintf(tmp_str2, "-,-");
 
+				} else {
+					tot_sect = (USBHFatFS.n_fatent - 2) * USBHFatFS.csize;
+					fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
+					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, UsbMemEvent);
+			}
+			///////////////////////////Light/////////////////////////////
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				sprintf(tmp_str2,"%d",cur_outsidelight);
+				uart_transmit_frame(tmp_str2, cmd_event, LightoutsideEvent);
+			}
+			/////////////////////////Current Voltage//////////////////////
+			if(ActiveBrowserPage[DashboardActivePage])
+			{
+				sprintf(tmp_str2,"");
+				for(uint8_t i=0;i<4;i++)
+				{
+					if(cur_voltage[i]>0)
+					{
+						sprintf(tmp_str2,"%s%3.1f,%+4.3f,",tmp_str2,cur_voltage[i], cur_current[i]);
+					}
+					else
+					{
+						sprintf(tmp_str2,"%s-,-,",tmp_str2);
+					}
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, CVEvent);
+			}
 		}
-		if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-				!= HAL_OK) {
-			cur_voltage[2] = -1.0;
 
-		}
-		if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-				!= HAL_OK) {
-			cur_current[2] = -1.0;
 
-		}
-		if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-				!= HAL_OK) {
-			cur_voltage[3] = -1.0;
-
-		}
-		if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-				!= HAL_OK) {
-			cur_current[3] = -1.0;
-
-		}
-
-		////////////////////////////////////////////////////////
-		if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
-			cur_insidelight = 0xffff;
-		}
-		if (veml6030_als(&cur_outsidelight) != HAL_OK) {
-			cur_outsidelight = 0xffff;
-		}
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value)
-			cur_doorstate = 1;
-		else
+		{
 			cur_doorstate = 0;
+		}
+		else
+		{
+			cur_doorstate = 1;
+		}
 		if (cur_doorstate != prev_doorstate) {
 			if (cur_doorstate)
 			{
@@ -1922,17 +2186,20 @@ int app_main(void) {
 				sprintf(tmp_str2,"off");
 			}
 			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str2);
-			if(cur_doorstate)
+			if(ActiveBrowserPage[DashboardActivePage])
 			{
-				sprintf(tmp_str2,"on");
+				if(cur_doorstate)
+				{
+					sprintf(tmp_str2,"on");
 
-			}
-			else
-			{
-				sprintf(tmp_str2,"off");
+				}
+				else
+				{
+					sprintf(tmp_str2,"off");
 
+				}
+				uart_transmit_frame(tmp_str2, cmd_event, DoorEvent);
 			}
-			uart_transmit_frame(tmp_str2, cmd_event, DoorEvent);
 			prev_doorstate = cur_doorstate;
 		}
 		//////////////////////////Saves parameters in logs file in SDCARD,just one  time////
@@ -2031,12 +2298,6 @@ int app_main(void) {
 			////////////////////////////1S flag//////////////////////////////////////////////////
 			if (flag_rtc_1s) {
 				flag_rtc_1s = 0;
-				counter_flag_10s++;
-				if(counter_flag_10s>=10)
-				{
-					counter_flag_10s=0;
-					flag_rtc_10s=1;
-				}
 				counter_change_form++;
 				if (counter_change_form > FORM_DELAY_SHOW) {
 					counter_change_form = 0;
@@ -2061,6 +2322,11 @@ int app_main(void) {
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
 							cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
 							1);
+					if(ActiveBrowserPage[TimePositionActivePage])
+					{
+						ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+					}
 				}
 				if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 						S1_LED_Value.ADD_SUNRISE_Value / 10.0,
@@ -2113,62 +2379,6 @@ int app_main(void) {
 					break;
 				}
 			}
-			/////////////////////send sensor data to ESP32///////////////////////////
-			if(flag_rtc_10s)
-			{
-				flag_rtc_10s=0;
-				////////////////Temperature//////////////////////////
-				sprintf(tmp_str2,"");
-				for (uint8_t i = 0; i < 8; i++) {
-					if (cur_temperature[i] == (int16_t) 0x8fff) {
-						sprintf(tmp_str2, "%s-,", tmp_str2);
-					} else {
-						sprintf(tmp_str2, "%s%+4.1f,", tmp_str2,
-								cur_temperature[i] / 10.0);
-					}
-				}
-				sprintf(tmp_str2, "%s%02d:%02d:%02d",tmp_str2, cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-				uart_transmit_frame(tmp_str2, cmd_event, TemperatureEvent);
-				//////////////////// memory//////////////////////
-				DWORD fre_clust, fre_sect, tot_sect;
-				FRESULT res;
-				if (SDFatFS.fs_type == 0 || BSP_SD_IsDetected() == SD_NOT_PRESENT) {
-					sprintf(tmp_str2, "-,-");
-				} else {
-					tot_sect = (SDFatFS.n_fatent - 2) * SDFatFS.csize;
-					fre_sect = SDFatFS.free_clst * SDFatFS.csize;
-					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
-				}
-				uart_transmit_frame(tmp_str2, cmd_event, SDCardEvent);
-
-				if (USBHFatFS.fs_type == 0) {
-
-					sprintf(tmp_str2, "-,-");
-
-				} else {
-					tot_sect = (USBHFatFS.n_fatent - 2) * USBHFatFS.csize;
-					fre_sect = USBHFatFS.free_clst * USBHFatFS.csize;
-					sprintf(tmp_str2, "%5lu,%5lu",(tot_sect-fre_sect) / 2048, fre_sect / 2048);
-				}
-				uart_transmit_frame(tmp_str2, cmd_event, UsbMemEvent);
-				///////////////////////////Light/////////////////////////////
-				sprintf(tmp_str2,"%d",cur_outsidelight);
-				uart_transmit_frame(tmp_str2, cmd_event, LightoutsideEvent);
-				/////////////////////////Current Voltage//////////////////////
-				sprintf(tmp_str2,"");
-				for(uint8_t i=0;i<4;i++)
-				{
-					if(cur_voltage[i]>0)
-					{
-						sprintf(tmp_str2,"%s%3.1f,%+4.3f,",tmp_str2,cur_voltage[i], cur_current[i]);
-					}
-					else
-					{
-						sprintf(tmp_str2,"%s-,-,",tmp_str2);
-					}
-				}
-				uart_transmit_frame(tmp_str2, cmd_event, CVEvent);
-			}
 			/////////////////////Log Sensors//////////////////////////////////
 			if (flag_log_data) {
 				flag_log_data = 0;
@@ -2219,6 +2429,11 @@ int app_main(void) {
 					Astro_sunRiseSet(tmp_dlat, tmp_dlong, UTC_OFF_Value / 10.0,
 							cur_date_t, &cur_sunrise, &cur_noon, &cur_sunset,
 							1);
+					if(ActiveBrowserPage[TimePositionActivePage])
+					{
+						ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+					}
 					create_form1(1, cur_temperature);
 					DISP_state = DISP_FORM1;
 					break;
@@ -3296,6 +3511,8 @@ int app_main(void) {
 					LONG_Value = tmp_long;
 					UTC_OFF_Value = tmp_utcoff;
 
+					Delay_Astro_calculation = 3;
+					flag_rtc_1s_general = 1;
 					HAL_Delay(50);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], LAT_Value.deg);
 					HAL_Delay(50);
@@ -3331,6 +3548,22 @@ int app_main(void) {
 							LONG_Value.second / 100.0, LONG_Value.direction);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str2);
+					if(ActiveBrowserPage[TimePositionActivePage])
+					{
+						ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+					}
+					if(ActiveBrowserPage[DashboardActivePage])
+					{
+						ready_msg_Dashboardpage(tmp_str2,
+								cur_outsidelight,
+								cur_doorstate,
+								cur_client_number,
+								cur_voltage,
+								cur_current,
+								cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, DashboardEvent);
+					}
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
@@ -3775,6 +4008,24 @@ int app_main(void) {
 					HAL_Delay(100);
 					Delay_Astro_calculation = 3;
 					flag_rtc_1s_general = 1;
+
+					if(ActiveBrowserPage[TimePositionActivePage])
+					{
+						ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+					}
+					if(ActiveBrowserPage[DashboardActivePage])
+					{
+						ready_msg_Dashboardpage(tmp_str2,
+								cur_outsidelight,
+								cur_doorstate,
+								cur_client_number,
+								cur_voltage,
+								cur_current,
+								cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, DashboardEvent);
+					}
+
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
@@ -4404,6 +4655,12 @@ int app_main(void) {
 					HAL_Delay(50);
 					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
 							S1_LED_Value.ADD_SUNSET_Value);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNRISE],
+							S2_LED_Value.ADD_SUNRISE_Value);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
+							S2_LED_Value.ADD_SUNSET_Value);
 
 					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,LED SET1,%s,%d,%f,%f,%d,%f,%f\n",
@@ -4419,6 +4676,16 @@ int app_main(void) {
 							S1_LED_Value.ADD_SUNSET_Value / 10.0);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str2);
+					if(ActiveBrowserPage[LEDActivePage])
+					{
+						ready_msg_LEDpage(tmp_str2,S1_LED_Value,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, LEDS1PageEvent);
+					}
+					if(ActiveBrowserPage[TimePositionActivePage])
+					{
+						ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+					}
 
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -4433,6 +4700,11 @@ int app_main(void) {
 						Astro_sunRiseSet(tmp_dlat, tmp_dlong,
 								UTC_OFF_Value / 10.0, cur_date_t, &cur_sunrise,
 								&cur_noon, &cur_sunset, 1);
+						if(ActiveBrowserPage[TimePositionActivePage])
+						{
+							ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+						}
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
@@ -4515,7 +4787,7 @@ int app_main(void) {
 			}
 
 			break;
-			/////////////////////////////////////LEDIR_MENU/////////////////////////////////////////////////
+			/////////////////////////////////////LEDS2_MENU/////////////////////////////////////////////////
 		case LEDS2_MENU:
 			joystick_init(Key_TOP | Key_DOWN | Key_LEFT | Key_RIGHT | Key_ENTER,
 					Long_press);
@@ -5104,7 +5376,12 @@ int app_main(void) {
 					HAL_Delay(50);
 					EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],
 							S2_LED_Value.ADD_SUNSET_Value);
-
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNRISE],
+							S1_LED_Value.ADD_SUNRISE_Value);
+					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_ADD_SUNSET],
+							S1_LED_Value.ADD_SUNSET_Value);
 					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
 							cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
@@ -5119,7 +5396,11 @@ int app_main(void) {
 							S2_LED_Value.ADD_SUNSET_Value / 10.0);
 					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
 							tmp_str2);
-
+					if(ActiveBrowserPage[LEDActivePage])
+					{
+						ready_msg_LEDpage(tmp_str2,S2_LED_Value,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event, LEDS2PageEvent);
+					}
 					index_option = MENU_state - POSITION_MENU;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
@@ -5133,6 +5414,11 @@ int app_main(void) {
 						Astro_sunRiseSet(tmp_dlat, tmp_dlong,
 								UTC_OFF_Value / 10.0, cur_date_t, &cur_sunrise,
 								&cur_noon, &cur_sunset, 1);
+						if(ActiveBrowserPage[TimePositionActivePage])
+						{
+							ready_msg_TimePositionpage(tmp_str2,cur_sunrise,cur_sunset,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_event, TimePositionEvent);
+						}
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
 							S1_LED_Value.ADD_SUNRISE_Value / 10.0,
@@ -6934,7 +7220,371 @@ int app_main(void) {
 		//////////////////////////////////////////check ESP32 Frame////////////////////////////////////////
 		if(received_valid)
 		{
+			received_valid=0;
+			printf("from ESP %d bytes,type=%x,code=%x\n\r",received_frame_length,(uint8_t)received_cmd_type,received_cmd_code);
+			switch(received_cmd_type)
+			{
+				case cmd_none:
+				break;
+				/////////////////////////////////////////////////
+				case cmd_current:
+					for(uint8_t i=0;i<MAX_BROWSER_PAGE;i++)ActiveBrowserPage[i]=0;
+					cur_browser_profile=find_profile(received_frame);
+					switch(received_cmd_code)
+					{
+						case readDashboard:
+//							strncpy(extracted_text,(char *)&received_frame[5],received_frame[4]);
+//							extracted_text[received_frame[4]]='\0';
+////							printf("msg from esp:%s\n\r",extracted_text);
+//							char *ptr_splitted=strtok(extracted_text,",");
+//							while(ptr_splitted!=NULL)
+//							{
+//								cur_browser_profile=atoi(ptr_splitted);
+//								ptr_splitted=strtok(NULL,",");
+//							}
+							counter_flag_1m_general=cur_time.Seconds;
+//							sprintf(tmp_str2,"%02d:%02d,%04d-%02d-%02d,%d,",
+//										cur_time.Hours, cur_time.Minutes,
+//										cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+//										cur_outsidelight);
+//							if(cur_doorstate)
+//							{
+//								sprintf(tmp_str2,"%son,",tmp_str2);
+//							}
+//							else
+//							{
+//								sprintf(tmp_str2,"%soff,",tmp_str2);
+//							}
+//							sprintf(tmp_str2,"%s%d %d\' %05.2f\"%c,%d %d\' %05.2f\"%c,",
+//										tmp_str2,
+//										LONG_Value.deg, LONG_Value.min,
+//										LONG_Value.second / 100.0, LONG_Value.direction,
+//										LAT_Value.deg, LAT_Value.min,
+//										LAT_Value.second / 100.0, LAT_Value.direction
+//										);
+//							sprintf(tmp_str2,"%s%d,",tmp_str2,cur_client_number);
+//							for(uint8_t i=0;i<4;i++)
+//							{
+//								if(cur_voltage[i]>0)
+//								{
+//									sprintf(tmp_str2,"%s%3.1f,%+4.3f,",tmp_str2,cur_voltage[i], cur_current[i]);
+//								}
+//								else
+//								{
+//									sprintf(tmp_str2,"%s-,-,",tmp_str2);
+//								}
+//							}
+//
+//							if(cur_browser_profile==0)//admin
+//								sprintf(tmp_str2,"%s%d",tmp_str2,profile_admin_Value);
+//							else
+//								sprintf(tmp_str2,"%s%d",tmp_str2,profile_user_Value);
 
+							ready_msg_Dashboardpage(tmp_str2,
+										cur_outsidelight,
+										cur_doorstate,
+										cur_client_number,
+										cur_voltage,
+										cur_current,
+										cur_browser_profile);
+
+//							printf("to ESP32:%s\n\r",tmp_str2);
+							uart_transmit_frame(tmp_str2, cmd_current, readDashboard);
+							for(uint8_t i=0;i<MAX_BROWSER_PAGE;i++)ActiveBrowserPage[i]=0;
+							ActiveBrowserPage[DashboardActivePage]=1;
+						break;
+						case LEDS1page:
+							ready_msg_LEDpage(tmp_str2,S1_LED_Value,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_current, LEDS1page);
+							ActiveBrowserPage[LEDActivePage]=1;
+						break;
+						case LEDS2page:
+							ready_msg_LEDpage(tmp_str2,S2_LED_Value,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_current, LEDS2page);
+							ActiveBrowserPage[LEDActivePage]=1;
+						break;
+						case TimePositionpage:
+							ready_msg_TimePositionpage(tmp_str2, cur_sunrise,cur_sunset,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_current, TimePositionpage);
+							ActiveBrowserPage[TimePositionActivePage]=1;
+						break;
+						case Temperaturepage:
+							uart_transmit_frame(tmp_str2, cmd_current, Temperaturepage);
+							ActiveBrowserPage[TemperatureActivePage]=1;
+							break;
+						case Wifipage:
+							uart_transmit_frame(tmp_str2, cmd_current, Wifipage);
+							ActiveBrowserPage[WifiActivePage]=1;
+							break;
+						case Passwordpage:
+							uart_transmit_frame(tmp_str2, cmd_current, Passwordpage);
+							ActiveBrowserPage[PasswordActivePage]=1;
+							break;
+					}
+					printf("to ESP32(%d)%s\n\r",strlen(tmp_str2),tmp_str2);
+
+				break;
+				/////////////////////////////////////////////////
+				case cmd_default:
+					cur_browser_profile=find_profile(received_frame);
+					switch(received_cmd_code)
+					{
+						case LEDS1page:
+							ready_msg_LEDpage(tmp_str2,S1_LED_Value,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_default, LEDS1page);
+						break;
+						case LEDS2page:
+							ready_msg_LEDpage(tmp_str2,S2_LED_Value,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_default, LEDS2page);
+						break;
+						case TimePositionpage:
+							ready_msg_TimePositionpage(tmp_str2, cur_sunrise,cur_sunset,cur_browser_profile);
+							uart_transmit_frame(tmp_str2, cmd_default, TimePositionpage);
+
+						break;
+						case Temperaturepage:
+							uart_transmit_frame(tmp_str2, cmd_default, Temperaturepage);
+
+							break;
+						case Wifipage:
+							uart_transmit_frame(tmp_str2, cmd_default, Wifipage);
+
+							break;
+						case Passwordpage:
+							uart_transmit_frame(tmp_str2, cmd_default, Passwordpage);
+							break;
+					}
+				break;
+					/////////////////////////////////////////////////
+				case cmd_submit:
+					strncpy(extracted_text,(char *)&received_frame[5],received_frame[4]);
+					extracted_text[received_frame[4]]='\0';
+					printf("from ESP:%s\n\r",extracted_text);
+					ptr_splitted[0]=strtok(extracted_text,",");index_ptr=0;
+					while(ptr_splitted[index_ptr]!=NULL)
+					{
+						index_ptr++;
+						ptr_splitted[index_ptr]=strtok(NULL,",");
+					}
+
+					switch(received_cmd_code)
+					{
+						case LEDS1page:
+							S1_LED_Value.TYPE_Value=atoi(ptr_splitted[0]);
+							S1_LED_Value.DAY_BRIGHTNESS_Value=atoi(ptr_splitted[1]);
+							S1_LED_Value.DAY_BLINK_Value=(uint8_t)(atof(ptr_splitted[2])*10.0);
+							S1_LED_Value.NIGHT_BRIGHTNESS_Value=atoi(ptr_splitted[3]);
+							S1_LED_Value.NIGHT_BLINK_Value=(uint8_t)(atof(ptr_splitted[4])*10.0);
+
+							if (S2_LED_Value.TYPE_Value == WHITE_LED
+									&& S1_LED_Value.TYPE_Value == WHITE_LED) {
+								S2_LED_Value.DAY_BLINK_Value =
+										S1_LED_Value.DAY_BLINK_Value;
+								S2_LED_Value.NIGHT_BLINK_Value =
+										S1_LED_Value.NIGHT_BLINK_Value;
+								HAL_Delay(50);
+								EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+										S2_LED_Value.DAY_BLINK_Value);
+								HAL_Delay(50);
+								EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+										S2_LED_Value.NIGHT_BLINK_Value);
+							}
+
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_TYPE],
+									S1_LED_Value.TYPE_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BRIGHTNESS],
+									S1_LED_Value.DAY_BRIGHTNESS_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+									S1_LED_Value.DAY_BLINK_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BRIGHTNESS],
+									S1_LED_Value.NIGHT_BRIGHTNESS_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+									S1_LED_Value.NIGHT_BLINK_Value);
+							sprintf(tmp_str2,
+									"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
+									cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+									cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+									(S1_LED_Value.TYPE_Value == IR_LED) ?
+											"IR" : "WHITE",
+									S1_LED_Value.DAY_BRIGHTNESS_Value,
+									S1_LED_Value.DAY_BLINK_Value / 10.0,
+									S1_LED_Value.ADD_SUNRISE_Value / 10.0,
+									S1_LED_Value.NIGHT_BRIGHTNESS_Value,
+									S1_LED_Value.NIGHT_BLINK_Value / 10.0,
+									S1_LED_Value.ADD_SUNSET_Value / 10.0);
+							r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+									tmp_str2);
+							uart_transmit_frame("OK", cmd_submit, LEDS1page);
+						break;
+						case LEDS2page:
+							S2_LED_Value.TYPE_Value=atoi(ptr_splitted[0]);
+							S2_LED_Value.DAY_BRIGHTNESS_Value=atoi(ptr_splitted[1]);
+							S2_LED_Value.DAY_BLINK_Value=(uint8_t)(atof(ptr_splitted[2])*10.0);
+							S2_LED_Value.NIGHT_BRIGHTNESS_Value=atoi(ptr_splitted[3]);
+							S2_LED_Value.NIGHT_BLINK_Value=(uint8_t)(atof(ptr_splitted[4])*10.0);
+
+
+							if (S2_LED_Value.TYPE_Value == WHITE_LED
+									&& S1_LED_Value.TYPE_Value == WHITE_LED) {
+								S1_LED_Value.DAY_BLINK_Value =S2_LED_Value.DAY_BLINK_Value;
+								S1_LED_Value.NIGHT_BLINK_Value =S2_LED_Value.NIGHT_BLINK_Value;
+								HAL_Delay(50);
+								EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_DAY_BLINK],
+										S1_LED_Value.DAY_BLINK_Value);
+								HAL_Delay(50);
+								EE_WriteVariable(VirtAddVarTab[ADD_S1_LED_NIGHT_BLINK],
+										S1_LED_Value.NIGHT_BLINK_Value);
+							}
+
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_TYPE],
+									S2_LED_Value.TYPE_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BRIGHTNESS],
+									S2_LED_Value.DAY_BRIGHTNESS_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_DAY_BLINK],
+									S2_LED_Value.DAY_BLINK_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BRIGHTNESS],
+									S2_LED_Value.NIGHT_BRIGHTNESS_Value);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_NIGHT_BLINK],
+									S2_LED_Value.NIGHT_BLINK_Value);
+							sprintf(tmp_str2,
+									"%04d-%02d-%02d,%02d:%02d:%02d,LED SET2,%s,%d,%f,%f,%d,%f,%f\n",
+									cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+									cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+									(S2_LED_Value.TYPE_Value == IR_LED) ?
+											"IR" : "WHITE",
+									S2_LED_Value.DAY_BRIGHTNESS_Value,
+									S2_LED_Value.DAY_BLINK_Value / 10.0,
+									S2_LED_Value.ADD_SUNRISE_Value / 10.0,
+									S2_LED_Value.NIGHT_BRIGHTNESS_Value,
+									S2_LED_Value.NIGHT_BLINK_Value / 10.0,
+									S2_LED_Value.ADD_SUNSET_Value / 10.0);
+							r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+									tmp_str2);
+
+							uart_transmit_frame("OK", cmd_submit, LEDS2page);
+						break;
+						case TimePositionpage:
+
+							split_date(ptr_splitted[0],&tmp_Date);
+							split_time(ptr_splitted[1],&tmp_time);
+
+							LAT_Value.deg=atoi(ptr_splitted[2]);printf("Lat:%s,%d\n\r",ptr_splitted[2],LAT_Value.deg);
+							LAT_Value.min=atoi(ptr_splitted[3]);printf("Lat:%s,%d\n\r",ptr_splitted[3],LAT_Value.min);
+							LAT_Value.second=(uint16_t)(atof(ptr_splitted[4])*100.0);printf("Lat:%s,%d\n\r",ptr_splitted[4],LAT_Value.second);
+							LAT_Value.direction=*ptr_splitted[5];printf("Lat:%s,%c\n\r",ptr_splitted[5],LAT_Value.direction);
+
+							LONG_Value.deg=atoi(ptr_splitted[6]);printf("Long:%s,%d\n\r",ptr_splitted[6],LONG_Value.deg);
+							LONG_Value.min=atoi(ptr_splitted[7]);printf("Long:%s,%d\n\r",ptr_splitted[7],LONG_Value.min);
+							LONG_Value.second=(uint16_t)(atof(ptr_splitted[8])*100.0);printf("Long:%s,%d\n\r",ptr_splitted[8],LONG_Value.second);
+							LONG_Value.direction=*ptr_splitted[9];printf("Long:%s,%c\n\r",ptr_splitted[9],LONG_Value.direction);
+							UTC_OFF_Value=(int8_t)(atof(ptr_splitted[10])*10.0);printf("UTC:%s,%d\n\r",ptr_splitted[10],UTC_OFF_Value);
+
+							S1_LED_Value.ADD_SUNRISE_Value=S2_LED_Value.ADD_SUNRISE_Value=(int8_t)(atof(ptr_splitted[11])*10.0);
+							printf("sunrise:%s,%d\n\r",ptr_splitted[11],S2_LED_Value.ADD_SUNRISE_Value);
+							S1_LED_Value.ADD_SUNSET_Value=S2_LED_Value.ADD_SUNSET_Value=(int8_t)(atof(ptr_splitted[12])*10.0);
+							printf("sunset:%s,%d\n\r",ptr_splitted[12],S2_LED_Value.ADD_SUNSET_Value);
+
+
+
+							Delay_Astro_calculation = 3;
+							flag_rtc_1s_general = 1;
+
+							tmp_time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+							tmp_time.StoreOperation = RTC_STOREOPERATION_RESET;
+							change_daylightsaving(&tmp_Date, &tmp_time, 0);
+
+							HAL_RTC_SetDate(&hrtc, &tmp_Date, RTC_FORMAT_BIN);
+							HAL_Delay(100);
+
+							HAL_RTC_SetTime(&hrtc, &tmp_time, RTC_FORMAT_BIN);
+							HAL_Delay(100);
+
+
+							EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], LAT_Value.deg);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LAT_min], LAT_Value.min);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
+									LAT_Value.second);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
+									LAT_Value.direction);
+
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
+									LONG_Value.deg);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
+									LONG_Value.min);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
+									LONG_Value.second);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
+									LONG_Value.direction);
+							HAL_Delay(50);
+							EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF], UTC_OFF_Value);
+							sprintf(tmp_str2,
+									"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
+									cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
+									cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
+									LAT_Value.deg, LAT_Value.min,
+									LAT_Value.second / 100.0, LAT_Value.direction,
+									LONG_Value.deg, LONG_Value.min,
+									LONG_Value.second / 100.0, LONG_Value.direction);
+							r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+									tmp_str2);
+
+
+							uart_transmit_frame("OK", cmd_submit, TimePositionpage);
+						break;
+						case Temperaturepage:
+							uart_transmit_frame("OK", cmd_submit, Temperaturepage);
+
+							break;
+						case Wifipage:
+							uart_transmit_frame("OK", cmd_submit, Wifipage);
+
+							break;
+						case Passwordpage:
+							uart_transmit_frame("OK", cmd_submit, Passwordpage);
+
+							break;
+					}
+				break;
+				/////////////////////////////////////////////////
+				case cmd_event:
+					switch(received_cmd_code)
+					{
+						case ClientsEvent:
+							strncpy(extracted_text,(char *)&received_frame[5],received_frame[4]);
+							extracted_text[received_frame[4]]='\0';
+							char *ptr_splitted=strtok(extracted_text,",");
+							while(ptr_splitted!=NULL)
+							{
+								cur_client_number=atoi(ptr_splitted);
+								ptr_splitted=strtok(NULL,",");
+							}
+							printf("clients from esp:%d\n\r",cur_client_number);
+
+						break;
+					}
+				break;
+				/////////////////////////////////////////////////
+				case cmd_error:
+				break;
+
+			}
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -6981,103 +7631,109 @@ int app_main(void) {
 	HAL_IWDG_Refresh(&hiwdg);
 #endif
 	}
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
-		MX_USB_HOST_Process();
+    /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
-			| RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 25;
-	RCC_OscInitStruct.PLL.PLLN = 336;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 7;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
-		Error_Handler();
-	}
-	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-	PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
 
-/**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM1 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	/* USER CODE BEGIN Callback 0 */
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM1) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
 	if (htim->Instance == TIM1 && joystick_state() == jostick_initialized) {
 		joystick_read(Key_ALL, no_press);
 	}
-	/* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT

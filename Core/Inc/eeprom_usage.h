@@ -65,6 +65,9 @@
 #define 	ADD_PASSWORD_USER_2				43
 #define 	ADD_PASSWORD_USER_3				44
 
+#define 	ADD_PROFILE_USER				45
+#define 	ADD_PROFILE_ADMIN				46
+
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
 #define		DEFAULT_LAT_min						42
@@ -109,17 +112,20 @@
 #define 	DEFAULT_RELAY2_active1				1
 
 
-#define 	DEFAULT_PASSWORD_ADMIN_0			'A'
-#define 	DEFAULT_PASSWORD_ADMIN_1			'C'
-#define 	DEFAULT_PASSWORD_ADMIN_2			'A'
-#define 	DEFAULT_PASSWORD_ADMIN_3			'M'
+#define 	DEFAULT_PASSWORD_ADMIN_0			'0'
+#define 	DEFAULT_PASSWORD_ADMIN_1			'0'
+#define 	DEFAULT_PASSWORD_ADMIN_2			'0'
+#define 	DEFAULT_PASSWORD_ADMIN_3			'1'
 
 #define 	DEFAULT_PASSWORD_USER_0				'0'
 #define 	DEFAULT_PASSWORD_USER_1				'0'
 #define 	DEFAULT_PASSWORD_USER_2				'0'
 #define 	DEFAULT_PASSWORD_USER_3				'0'
 
-#define 	DEFAULT_DOOR						1200
+#define 	DEFAULT_DOOR						50000
+
+#define 	DEFAULT_PROFILE_USER				0xA5//0b10100101
+#define 	DEFAULT_PROFILE_ADMIN				0xFF//0b11111111
 ///////////////////////////////////////////////////////////////////////////////////
 
 uint16_t VirtAddVarTab[NB_OF_VAR];
