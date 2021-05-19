@@ -155,5 +155,5 @@
 
 uint16_t VirtAddVarTab[NB_OF_VAR];
 void Write_defaults(void);
-
+void update_values(void) ;
 #endif /* INC_EEPROM_USAGE_H_ */

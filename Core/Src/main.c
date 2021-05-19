@@ -264,6 +264,7 @@ enum {
 	DISP_FORM3,
 	DISP_FORM4,
 	DISP_FORM5,
+	DISP_FORM5_5,
 	DISP_FORM6,
 	DISP_FORM7
 } DISP_state = DISP_IDLE;
@@ -275,27 +276,28 @@ enum {
 	TIME_MENU,
 	LEDS1_MENU,
 	LEDS2_MENU,
-	TEMP_MENU,
 	DOOR_MENU,
-	COPY_MENU,
-	UPGRADE_MENU,
+	TEMP1_MENU,
+	TEMP2_MENU,
+	USEROPTION_MENU,
 	CHANGEPASS_MENU,
 	NEXT_MENU,
 	PREV_MENU,
-	WIFI_MENU,
-	ADMIN_MENU,
-	TEST1_MENU,
+	WIFI1_MENU,
+	WIFI2_MENU,
+	UPGRADE_MENU,
+	COPY_MENU,
 	TEST2_MENU,
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
 
-#define MENU_TOTAL_ITEMS	16
+#define MENU_TOTAL_ITEMS	17
 #define MENU_ITEMS_IN_PAGE	10
 #define MENU_TOTAL_PAGES	2
 
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
-		"SET Temp", "SET Door", "Copy USB", "Upgrade", "SET PASS", "Next->",
-		"<-Prev", "SET WIFI", "General", "test1", "test2", "Exit" };
+		 "SET Door", "SET Temp 1","SET Temp 2", "User Option", "SET PASS", "Next->",
+		"<-Prev", "SET WIFI 1", "SET WIFI 2", "Upgrade", "Copy USB","test2", "Exit" };
 
 char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
 		"Force upgrade from SD", "Force upgrade from  USB" };
@@ -651,95 +653,124 @@ void create_form5(uint8_t clear) {
 		glcd_blank();
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	clock_cell(pos_);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 128, 64-pos_[0].y2, 1, 1, 1, pos_);
-	uint8_t xc1=0;uint8_t y1=pos_[0].y1;
-	uint8_t xc2=65;uint8_t y2=pos_[0].y2;
-	//////////////////////////////////////////////////////////////////////////
-	create_cell(xc1,y1,22,y2-y1+1,4,1,1,pos_);glcd_refresh();
-//	pos_[0].x2 = pos_[0].x1+21;
-	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
+		//////////////////////////////////////////////////////////////////////////
+	create_cell(pos_[0].x1,pos_[0].y2,128,pos_[0].y2-pos_[0].y1+1,1,2,1,pos_);
 
-//	pos_[1].x2 = pos_[1].x1+21;
-	text_cell(pos_, 1, "ENV:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-
-//	pos_[2].x2 = pos_[2].x1+21;
-	text_cell(pos_, 2, "MB:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-
-//	pos_[3].x2 = pos_[0].x1+21;
-	text_cell(pos_, 3, "TEI:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-	//////////////////////////////////////////////////////////////////////////////
-	create_cell(xc2,y1,25,y2-y1+1,4,1,1,pos_);glcd_refresh();
-//	pos_[0].x2 = pos_[0].x1+24;
-	text_cell(pos_, 0, "Hys:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-
-
-//	pos_[1].x2 = pos_[1].x1+24;
-	text_cell(pos_, 1, "CAM:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-
-
-//	pos_[2].x2 = pos_[2].x1+24;
-	text_cell(pos_, 2, "CAS:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-
-//	pos_[3].x2 = pos_[0].x1+24;
-	text_cell(pos_, 3, "TEO:", Tahoma8, LEFT_ALIGN, 1, 1);glcd_refresh();
-	//////////////////////////////////////////////////////////////////////
-	create_cell(xc1+21,y1,xc2-xc1-20,y2-y1+1,4,1,1,pos_);glcd_refresh();
-
+	pos_[0].x2=pos_[0].x1+22;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1, 1);
 	(TEC_STATE_Value == 1) ?
 			sprintf(tmp_str, "ENA") : sprintf(tmp_str, "DIS");
-	pos_[0].x1+=1;
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+	pos_[0].x1+=22;
+	pos_[0].x2=63;
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	pos_[1].x2=pos_[1].x1+22;
+	text_cell(pos_, 1, "Hys:", Tahoma8, LEFT_ALIGN, 1, 1);
+	sprintf(tmp_str, "%3.1f'C", HYSTERESIS_Value/10.0);
+	pos_[1].x1+=22;
+	pos_[1].x2=127;
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	////////////////////////////////////////////////////////////////////////////////
+	create_cell(0,pos_[0].y2,128,64-pos_[0].y2,3,1,1,pos_);
+	pos_[0].x2 = pos_[0].x1+56;
+	text_cell(pos_, 0, "Enviroment:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[1].x2 = pos_[1].x1+56;
+	text_cell(pos_, 1, "Camera:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[2].x2 = pos_[1].x1+56;
+	text_cell(pos_, 2, "Case:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	if(TempLimit_Value[0].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[0].TemperatureH/10.0,TempLimit_Value[0].TemperatureL/10.0);
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[0].TemperatureH/10.0,TempLimit_Value[0].TemperatureL/10.0);
 	else
-		sprintf(tmp_str, "-,-" );
-	pos_[1].x1+=1;
-	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+		sprintf(tmp_str, "-/-" );
+	pos_[0].x1=pos_[0].x2+1;
+	pos_[0].x2=127;
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-	if(TempLimit_Value[2].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[2].TemperatureH/10.0,TempLimit_Value[2].TemperatureL/10.0);
-	else
-		sprintf(tmp_str, "-,-" );
-	pos_[2].x1+=1;
-	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
-
-	if(TempLimit_Value[4].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[4].TemperatureH/10.0,TempLimit_Value[4].TemperatureL/10.0);
-	else
-		sprintf(tmp_str, "-,-" );
-	pos_[3].x1+=1;
-	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
-
-	////////////////////////////////////////////////////////////////////////
-	create_cell(xc2+24,y1,128-xc2-23,y2-y1+1,4,1,1,pos_);glcd_refresh();
-
-	sprintf(tmp_str, "%3.1f'C", HYSTERESIS_Value/10.0);
-	pos_[0].x1+=1;
-	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
 
 	if(TempLimit_Value[1].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[1].TemperatureH/10.0,TempLimit_Value[1].TemperatureL/10.0);
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[1].TemperatureH/10.0,TempLimit_Value[1].TemperatureL/10.0);
 	else
-		sprintf(tmp_str, "-,-" );
-	pos_[1].x1+=1;
-	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+		sprintf(tmp_str, "-/-" );
+	pos_[1].x1=pos_[1].x2+1;
+	pos_[1].x2=127;
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	if(TempLimit_Value[2].active)
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[2].TemperatureH/10.0,TempLimit_Value[2].TemperatureL/10.0);
+	else
+		sprintf(tmp_str, "-/-" );
+	pos_[2].x1=pos_[2].x2+1;
+	pos_[2].x2=127;
+	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	glcd_refresh();
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_form5_5(uint8_t clear) {
+	char tmp_str[40];
+	bounding_box_t pos_[8];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	clock_cell(pos_);
+		//////////////////////////////////////////////////////////////////////////
+	create_cell(pos_[0].x1,pos_[0].y2,128,pos_[0].y2-pos_[0].y1+1,1,2,1,pos_);
+
+	pos_[0].x2=pos_[0].x1+22;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1, 1);
+	(TEC_STATE_Value == 1) ?
+			sprintf(tmp_str, "ENA") : sprintf(tmp_str, "DIS");
+	pos_[0].x1+=22;
+	pos_[0].x2=63;
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	pos_[1].x2=pos_[1].x1+22;
+	text_cell(pos_, 1, "Hys:", Tahoma8, LEFT_ALIGN, 1, 1);
+	sprintf(tmp_str, "%3.1f'C", HYSTERESIS_Value/10.0);
+	pos_[1].x1+=22;
+	pos_[1].x2=127;
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	////////////////////////////////////////////////////////////////////////////////
+	create_cell(0,pos_[0].y2,128,64-pos_[0].y2,3,1,1,pos_);
+	pos_[0].x2 = pos_[0].x1+56;
+	text_cell(pos_, 0, "M Board:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[1].x2 = pos_[1].x1+56;
+	text_cell(pos_, 1, "TEC In:", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[2].x2 = pos_[1].x1+56;
+	text_cell(pos_, 2, "TEC Out:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	if(TempLimit_Value[3].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[3].TemperatureH/10.0,TempLimit_Value[3].TemperatureL/10.0);
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[3].TemperatureH/10.0,TempLimit_Value[3].TemperatureL/10.0);
 	else
-		sprintf(tmp_str, "-,-" );
-	pos_[2].x1+=1;
-	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+		sprintf(tmp_str, "-/-" );
+	pos_[0].x1=pos_[0].x2+1;
+	pos_[0].x2=127;
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+
+	if(TempLimit_Value[4].active)
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[4].TemperatureH/10.0,TempLimit_Value[4].TemperatureL/10.0);
+	else
+		sprintf(tmp_str, "-/-" );
+	pos_[1].x1=pos_[1].x2+1;
+	pos_[1].x2=127;
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 	if(TempLimit_Value[5].active)
-		sprintf(tmp_str, "%3.1f,%3.1f", TempLimit_Value[5].TemperatureH/10.0,TempLimit_Value[5].TemperatureL/10.0);
+		sprintf(tmp_str, "%4.1f/%4.1f", TempLimit_Value[5].TemperatureH/10.0,TempLimit_Value[5].TemperatureL/10.0);
 	else
-		sprintf(tmp_str, "-,-" );
-	pos_[3].x1+=1;
-	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
-
+		sprintf(tmp_str, "-/-" );
+	pos_[2].x1=pos_[2].x2+1;
+	pos_[2].x2=127;
+	text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
@@ -1300,41 +1331,113 @@ void create_formLEDS2(uint8_t clear, bounding_box_t *text_pos, LED_t *tmp_led) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void create_formTemp(uint8_t clear, bounding_box_t *text_pos,
-		RELAY_t tmp_Relay1, RELAY_t tmp_Relay2, uint8_t tmp_tec) {
-//	char tmp_str[40];
-//	bounding_box_t pos_[3];
+void create_formTemp1(uint8_t clear, bounding_box_t *text_pos,
+		RELAY_t *tmp_limits, uint8_t tmp_tec,uint8_t tmp_hys) {
+	char tmp_str[40];
+	bounding_box_t pos_[3];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "Temp SET1", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 //	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	if (clear)
-//		glcd_blank();
-//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
-//
-//	pos_[0].x2 = 60;
-//	text_cell(pos_, 0, "RELAY", Tahoma8, LEFT_ALIGN, 1, 1);
-//
-//	pos_[0].x1 = 65;
-//	pos_[0].x2 = pos_[0].x1 + 20;
-//	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
-//
-//	pos_[0].x1 = pos_[0].x2;
-//	pos_[0].x2 = pos_[0].x1 + 42;
-//	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
-//
-//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	create_cell(0, pos_[0].y2, 40, 64 - pos_[0].y2, 3, 1, 1, pos_);
-//
-//	pos_[0].x1 = 0;
-//	pos_[0].x2 = 39;
-//	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 1, 1);
-//
-//	pos_[1].x1 = 0;
-//	pos_[1].x2 = 39;
-//	text_cell(pos_, 1, "TEMPH:", Tahoma8, LEFT_ALIGN, 1, 1);
-//
-//	pos_[2].x1 = 0;
-//	pos_[2].x2 = 39;
-//	text_cell(pos_, 2, "TEMPL:", Tahoma8, LEFT_ALIGN, 1, 1);
+	create_cell(0,pos_[0].y2,128,pos_[0].y2-pos_[0].y1+1,1,2,1,pos_);
+
+	pos_[0].x1+=1;
+	pos_[0].x2=pos_[0].x1+22;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	(tmp_tec == 1) ?sprintf(tmp_str, "ENA") : sprintf(tmp_str, "DIS");
+	pos_[0].x1+=35;
+	pos_[0].x2=pos_[0].x1 + text_width("ENA", Tahoma8, 1) + 1;
+	text_pos[2]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	pos_[1].x1+=1;
+	pos_[1].x2=pos_[1].x1+22;
+	text_cell(pos_, 1, "Hys:", Tahoma8, LEFT_ALIGN, 0, 0);
+	sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+	pos_[1].x1+=35;
+	pos_[1].x2=pos_[1].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	text_pos[3]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	////////////////////////////////////////////////////////////////////////////////
+	create_cell(0,pos_[0].y2,128,64-pos_[0].y2,3,1,1,pos_);
+	pos_[0].x1+=1;
+	pos_[0].x2 = pos_[0].x1+56;
+	text_cell(pos_, 0, "Enviroment:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	pos_[1].x1+=1;
+	pos_[1].x2 = pos_[1].x1+56;
+	text_cell(pos_, 1, "Camera:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	pos_[2].x1+=1;
+	pos_[2].x2 = pos_[1].x1+56;
+	text_cell(pos_, 2, "Case:", Tahoma8, LEFT_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[ENVIROMENT_TEMP].TemperatureH/10.0);
+	pos_[0].x1=pos_[0].x2+5;
+	pos_[0].x2=pos_[0].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[4]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[ENVIROMENT_TEMP].TemperatureL/10.0);
+	pos_[0].x1=pos_[0].x2+10;
+	pos_[0].x2=pos_[0].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[5]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	if(tmp_limits[ENVIROMENT_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[0].x1=pos_[0].x2+3;
+	pos_[0].x2=pos_[0].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[6]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[CAM_TEMP].TemperatureH/10.0);
+	pos_[1].x1=pos_[1].x2+5;
+	pos_[1].x2=pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[7]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[CAM_TEMP].TemperatureL/10.0);
+	pos_[1].x1=pos_[1].x2+10;
+	pos_[1].x2=pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[8]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	if(tmp_limits[CAM_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[1].x1=pos_[1].x2+3;
+	pos_[1].x2=pos_[1].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[9]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[CASE_TEMP].TemperatureH/10.0);
+	pos_[2].x1=pos_[2].x2+5;
+	pos_[2].x2=pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[10]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[CASE_TEMP].TemperatureL/10.0);
+	pos_[2].x1=pos_[2].x2+10;
+	pos_[2].x2=pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[11]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	if(tmp_limits[CASE_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[2].x1=pos_[2].x2+3;
+	pos_[2].x2=pos_[2].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[12]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
 //	/////////////////////////////////////////////////////////////////////////////////////////////////
 //	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 3, 1, 1, pos_);
 //	if (tmp_tec == 1)
@@ -1416,6 +1519,118 @@ void create_formTemp(uint8_t clear, bounding_box_t *text_pos,
 //	/////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void create_formTemp2(uint8_t clear, bounding_box_t *text_pos,
+		RELAY_t *tmp_limits, uint8_t tmp_tec,uint8_t tmp_hys) {
+	char tmp_str[40];
+	bounding_box_t pos_[3];
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	if (clear)
+		glcd_blank();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
+
+	pos_[0].x2 = 60;
+	text_cell(pos_, 0, "Temp SET1", Tahoma8, LEFT_ALIGN, 1, 1);
+
+	pos_[0].x1 = 65;
+	pos_[0].x2 = pos_[0].x1 + 20;
+	text_pos[0] = create_button(pos_[0], "OK", 0, 0);
+
+	pos_[0].x1 = pos_[0].x2;
+	pos_[0].x2 = pos_[0].x1 + 42;
+	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
+//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	create_cell(0,pos_[0].y2,128,pos_[0].y2-pos_[0].y1+1,1,2,1,pos_);
+
+	pos_[0].x1+=1;
+	pos_[0].x2=pos_[0].x1+22;
+	text_cell(pos_, 0, "TEC:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	(tmp_tec == 1) ?sprintf(tmp_str, "ENA") : sprintf(tmp_str, "DIS");
+	pos_[0].x1+=28;
+	pos_[0].x2=pos_[0].x1 + text_width("ENA", Tahoma8, 1) + 1;
+	text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	pos_[1].x1+=1;
+	pos_[1].x2=pos_[1].x1+22;
+	text_cell(pos_, 1, "Hys:", Tahoma8, LEFT_ALIGN, 0, 0);
+	sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+	pos_[1].x1+=28;
+	pos_[1].x2=pos_[1].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	////////////////////////////////////////////////////////////////////////////////
+	create_cell(0,pos_[0].y2,128,64-pos_[0].y2,3,1,1,pos_);
+	pos_[0].x1+=1;
+	pos_[0].x2 = pos_[0].x1+56;
+	text_cell(pos_, 0, "M Board:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	pos_[1].x1+=1;
+	pos_[1].x2 = pos_[1].x1+56;
+	text_cell(pos_, 1, "TEC In:", Tahoma8, LEFT_ALIGN, 0, 0);
+
+	pos_[2].x1+=1;
+	pos_[2].x2 = pos_[1].x1+56;
+	text_cell(pos_, 2, "TEC Out:", Tahoma8, LEFT_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[MOTHERBOARD_TEMP].TemperatureH/10.0);
+	pos_[0].x1=pos_[0].x2+5;
+	pos_[0].x2=pos_[0].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[2]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[MOTHERBOARD_TEMP].TemperatureL/10.0);
+	pos_[0].x1=pos_[0].x2+10;
+	pos_[0].x2=pos_[0].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[3]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	if(tmp_limits[MOTHERBOARD_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[0].x1=pos_[0].x2+3;
+	pos_[0].x2=pos_[0].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[4]=text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[TECIN_TEMP].TemperatureH/10.0);
+	pos_[1].x1=pos_[1].x2+5;
+	pos_[1].x2=pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[5]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[TECIN_TEMP].TemperatureL/10.0);
+	pos_[1].x1=pos_[1].x2+10;
+	pos_[1].x2=pos_[1].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[6]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+	if(tmp_limits[TECIN_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[1].x1=pos_[1].x2+3;
+	pos_[1].x2=pos_[1].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[7]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	/////////////////////////////////////////////////////////////////////////////////////////
+	sprintf(tmp_str, "%4.1f", tmp_limits[TECOUT_TEMP].TemperatureH/10.0);
+	pos_[2].x1=pos_[2].x2+5;
+	pos_[2].x2=pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[8]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	sprintf(tmp_str, "%4.1f", tmp_limits[TECOUT_TEMP].TemperatureL/10.0);
+	pos_[2].x1=pos_[2].x2+10;
+	pos_[2].x2=pos_[2].x1 + text_width("55.5", Tahoma8, 1) + 1;
+	text_pos[9]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	if(tmp_limits[TECOUT_TEMP].active)
+		sprintf(tmp_str, "A");
+	else
+		sprintf(tmp_str, "-" );
+
+	pos_[2].x1=pos_[2].x2+3;
+	pos_[2].x2=pos_[2].x1 + text_width("A", Tahoma8, 1) + 1;
+	text_pos[10]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+
+	//	/////////////////////////////////////////////////////////////////////////////////////////////////
+		glcd_refresh();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void create_formDoor(uint8_t clear, bounding_box_t *text_pos, uint16_t tmp_door) {
 	char tmp_str[40];
@@ -1774,9 +1989,9 @@ int app_main(void) {
 	RTC_TimeTypeDef tmp_time;
 	RTC_DateTypeDef tmp_Date;
 	LED_t tmp_LED;
-	RELAY_t tmp_Relay1, tmp_Relay2;
+	RELAY_t tmp_limits[6];
 	uint16_t tmp_door;
-	uint8_t tmp_TEC_STATE;
+	uint8_t tmp_TEC_STATE,tmp_hys;
 	bounding_box_t text_pos[12];
 	HAL_StatusTypeDef status;
 
@@ -1839,6 +2054,9 @@ int app_main(void) {
 	//////////////////////init LCD//////////
 	glcd_init(128, 64);
 	glcd_flip_screen(XLR_YTB);
+	////////////////////////////////////////////////
+//	create_form5(1);
+//	create_form5_5(1);
 
 //	//////////////////////////load Logo/////////////////////////////////////////
 #if !(__DEBUG__)
@@ -1877,27 +2095,6 @@ int app_main(void) {
 		HAL_SD_DeInit(&hsd);
 	}
 
-//	if ((fr = f_mount(&SDFatFS, (TCHAR const*) SDPath, 1)) != FR_OK) {
-//		printf("error mount SD\n\r");
-//		f_mount(NULL, "0:", 1);
-//		SDFatFS.fs_type=0;
-//		HAL_SD_DeInit(&hsd);
-//	} else {
-//		bmp_img img;
-//		if (bmp_img_read(&img, "logo.bmp") == BMP_OK)
-//		{
-//			draw_bmp_h(0, 0, img.img_header.biWidth, img.img_header.biHeight,
-//					img.img_pixels, 1);
-//			bmp_img_free(&img);
-//		}
-//		else
-//			printf("bmp file error\n\r");
-////		f_mount(NULL, "0:", 0);
-//
-//		create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-//		glcd_refresh();
-//		HAL_Delay(1000);
-//	}
 	glcd_blank();
 
 	///////////////////////initialize & checking sensors///////////////////////////////////////
@@ -2022,10 +2219,6 @@ int app_main(void) {
 	DISP_state = DISP_IDLE;
 	uint8_t flag_log_param = 1;
 	uint8_t Delay_Astro_calculation = 0, CalcAstro = 0;
-//	pca9632_setbrighnessblinking(LEDS1,80,0);
-//	pca9632_setbrighnessblinking(LEDS2,0,1.0);
-//
-	uint8_t start_count_1m = 0;
 	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
 	while (1) {
 		///////////////////////////////////////Always run process///////////////////////////////////////
@@ -2379,6 +2572,9 @@ int app_main(void) {
 				case DISP_FORM5:
 					create_form5(0);
 					break;
+				case DISP_FORM5_5:
+					create_form5_5(0);
+					break;
 				case DISP_FORM6:
 					create_form6(0, cur_insidelight, cur_outsidelight);
 					break;
@@ -2464,6 +2660,10 @@ int app_main(void) {
 					DISP_state = DISP_FORM5;
 					break;
 				case DISP_FORM5:
+					create_form5_5(1);
+					DISP_state = DISP_FORM5_5;
+					break;
+				case DISP_FORM5_5:
 					create_form6(1, cur_insidelight, cur_outsidelight);
 					DISP_state = DISP_FORM6;
 					break;
@@ -2512,13 +2712,15 @@ int app_main(void) {
 				case DISP_FORM5:
 					DISP_state = DISP_FORM3;
 					break;
-				case DISP_FORM6:
-					DISP_state = DISP_FORM4;
+				case DISP_FORM5_5:
+					DISP_state=DISP_FORM4;
 					break;
-				case DISP_FORM7:
+				case DISP_FORM6:
 					DISP_state = DISP_FORM5;
 					break;
-
+				case DISP_FORM7:
+					DISP_state = DISP_FORM5_5;
+					break;
 				}
 			}
 			if (joystick_read(Key_ENTER, Long_press)
@@ -2957,22 +3159,30 @@ int app_main(void) {
 						glcd_refresh();
 						MENU_state = LEDS2_MENU;
 						break;
-					case TEMP_MENU:
-//						tmp_Relay1 = RELAY1_Value;
-//						tmp_Relay2 = RELAY2_Value;
-//						tmp_TEC_STATE = TEC_STATE_Value;
-//						create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//								tmp_TEC_STATE);
-//						index_option = 2;
-//
-//						if (tmp_TEC_STATE == 1)
-//							sprintf(tmp_str, "ENABLE");
-//						else
-//							sprintf(tmp_str, "DISABLE");
-//						text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//								CENTER_ALIGN, 1, 0);
-//						glcd_refresh();
-//						MENU_state = RELAY_MENU;
+					case TEMP1_MENU:
+						memcpy(tmp_limits,TempLimit_Value,6*sizeof(RELAY_t));
+						tmp_hys=HYSTERESIS_Value;
+						tmp_TEC_STATE = TEC_STATE_Value;
+						create_formTemp1(1, text_pos, tmp_limits,tmp_TEC_STATE,tmp_hys);
+						index_option = 2;
+						if (tmp_TEC_STATE == 1)
+							sprintf(tmp_str, "ENA");
+						else
+							sprintf(tmp_str, "DIS");
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = TEMP1_MENU;
+						break;
+					case TEMP2_MENU:
+						memcpy(tmp_limits,TempLimit_Value,6*sizeof(RELAY_t));
+						tmp_hys=HYSTERESIS_Value;
+						tmp_TEC_STATE = TEC_STATE_Value;
+						create_formTemp2(1, text_pos, tmp_limits,tmp_TEC_STATE,tmp_hys);
+						index_option = 2;
+						sprintf(tmp_str,"%4.1f",tmp_limits[MOTHERBOARD_TEMP].TemperatureH);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = TEMP2_MENU;
 						break;
 					case DOOR_MENU:
 						tmp_door = DOOR_Value;
@@ -2996,17 +3206,8 @@ int app_main(void) {
 						glcd_refresh();
 						MENU_state = CHANGEPASS_MENU;
 						break;
-					case COPY_MENU:
-						MENU_state = COPY_MENU;
-						break;
-					case UPGRADE_MENU:
-						create_formUpgrade(1, text_pos);
-						index_option = 2;
-						sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
-						text_cell(text_pos, index_option, tmp_str, Tahoma8,
-								CENTER_ALIGN, 1, 0);
-						glcd_refresh();
-						MENU_state = UPGRADE_MENU;
+					case USEROPTION_MENU:
+						MENU_state=USEROPTION_MENU;
 						break;
 					case NEXT_MENU:
 						menu_page = 1;
@@ -3020,14 +3221,25 @@ int app_main(void) {
 						index_option = 0;
 						MENU_state = OPTION_MENU;
 						break;
-					case WIFI_MENU:
-						MENU_state = WIFI_MENU;
+					case WIFI1_MENU:
+						MENU_state = WIFI1_MENU;
 						break;
-					case ADMIN_MENU:
-						MENU_state = ADMIN_MENU;
+					case WIFI2_MENU:
+						MENU_state = WIFI2_MENU;
 						break;
-					case TEST1_MENU:
-						MENU_state = TEST1_MENU;
+					case UPGRADE_MENU:
+						create_formUpgrade(1, text_pos);
+						index_option = 2;
+						sprintf(tmp_str, "%s", menu_upgrade[index_option - 2]);
+						text_cell(text_pos, index_option, tmp_str, Tahoma8,
+								CENTER_ALIGN, 1, 0);
+						glcd_refresh();
+						MENU_state = UPGRADE_MENU;
+						break;
+						MENU_state = TEST2_MENU;
+						break;
+					case COPY_MENU:
+						MENU_state = COPY_MENU;
 						break;
 					case TEST2_MENU:
 						MENU_state = TEST2_MENU;
@@ -5505,8 +5717,8 @@ int app_main(void) {
 				glcd_refresh();
 			}
 			break;
-			/////////////////////////////////////RELAY_MENU/////////////////////////////////////////////////
-		case TEMP_MENU:
+			/////////////////////////////////////TEMPS1_MENU/////////////////////////////////////////////////
+		case TEMP1_MENU:
 //			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
 //			if (joystick_read(Key_TOP, Short_press)) {
 //				joystick_init(Key_TOP, Short_press);
@@ -6391,6 +6603,9 @@ int app_main(void) {
 //				glcd_refresh();
 //			}
 			break;
+			/////////////////////////////////////TEMPS2_MENU/////////////////////////////////////////////////
+		case TEMP2_MENU:
+		break;
 			/////////////////////////////////////DOOR_MENU/////////////////////////////////////////////////
 		case DOOR_MENU:
 			if (flag_rtc_1s) {
