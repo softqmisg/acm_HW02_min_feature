@@ -6,10 +6,13 @@
  */
 #include "eeprom_usage.h"
 #include "astro.h"
+
+
 uint16_t VirtAddVarTab[NB_OF_VAR];
 extern LED_t S1_LED_Value, S2_LED_Value;
-extern RELAY_t RELAY1_Value,RELAY2_Value;
+extern RELAY_t TempLimit_Value[6];
 extern uint8_t TEC_STATE_Value;
+extern uint8_t HYSTERESIS_Value;
 extern POS_t LAT_Value;
 extern POS_t LONG_Value;
 extern char PASSWORD_ADMIN_Value[5];
@@ -75,31 +78,53 @@ void update_values(void) {
 	EE_ReadVariable(VirtAddVarTab[ADD_TEC_STATE], &tmp);TEC_STATE_Value=(uint8_t)tmp;
 	HAL_Delay(100);
 
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],&tmp);RELAY1_Value.Temperature[0]=(int16_t)tmp;
-	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge0],&tmp);RELAY1_Value.Edge[0]=(char)tmp;
-	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active0],&tmp);RELAY1_Value.active[0]=(uint8_t)tmp;
-	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], &tmp);RELAY1_Value.Temperature[1]=(int16_t)tmp;
-	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_Edge1],&tmp);RELAY1_Value.Edge[1]=(char)tmp;
-	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY1_active1],&tmp);RELAY1_Value.active[1]=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_HYS_Temp], &tmp);HYSTERESIS_Value=(uint8_t)tmp;
 	HAL_Delay(100);
 
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],&tmp);RELAY2_Value.Temperature[0]=(int16_t)tmp;
+
+	EE_ReadVariable(VirtAddVarTab[ADD_ENV_TempH],&tmp);TempLimit_Value[ENVIROMENT_TEMP].TemperatureH=(int16_t)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge0],&tmp);RELAY2_Value.Edge[0]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_ENV_TempL],&tmp);TempLimit_Value[ENVIROMENT_TEMP].TemperatureL=(int16_t)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active0],&tmp);RELAY2_Value.active[0]=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_ENV_active],&tmp);TempLimit_Value[ENVIROMENT_TEMP].active=(uint8_t)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], &tmp);RELAY2_Value.Temperature[1]=(int16_t)tmp;
+
+	EE_ReadVariable(VirtAddVarTab[ADD_CAM_TempH],&tmp);TempLimit_Value[CAM_TEMP].TemperatureH=(int16_t)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_Edge1],&tmp);RELAY2_Value.Edge[1]=(char)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_CAM_TempL],&tmp);TempLimit_Value[CAM_TEMP].TemperatureL=(int16_t)tmp;
 	HAL_Delay(100);
-	EE_ReadVariable(VirtAddVarTab[ADD_RELAY2_active1],&tmp);RELAY2_Value.active[1]=(uint8_t)tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_CAM_active],&tmp);TempLimit_Value[CAM_TEMP].active=(uint8_t)tmp;
 	HAL_Delay(100);
+
+	EE_ReadVariable(VirtAddVarTab[ADD_CASE_TempH],&tmp);TempLimit_Value[CASE_TEMP].TemperatureH=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_CASE_TempL],&tmp);TempLimit_Value[CASE_TEMP].TemperatureL=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_CASE_active],&tmp);TempLimit_Value[CASE_TEMP].active=(uint8_t)tmp;
+	HAL_Delay(100);
+
+	EE_ReadVariable(VirtAddVarTab[ADD_MB_TempH],&tmp);TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_MB_TempL],&tmp);TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_MB_active],&tmp);TempLimit_Value[MOTHERBOARD_TEMP].active=(uint8_t)tmp;
+	HAL_Delay(100);
+
+	EE_ReadVariable(VirtAddVarTab[ADD_TECIN_TempH],&tmp);TempLimit_Value[TECIN_TEMP].TemperatureH=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_TECIN_TempL],&tmp);TempLimit_Value[TECIN_TEMP].TemperatureL=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_TECIN_active],&tmp);TempLimit_Value[TECIN_TEMP].active=(uint8_t)tmp;
+	HAL_Delay(100);
+
+
+	EE_ReadVariable(VirtAddVarTab[ADD_TECOUT_TempH],&tmp);TempLimit_Value[TECOUT_TEMP].TemperatureH=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_TECOUT_TempL],&tmp);TempLimit_Value[TECOUT_TEMP].TemperatureL=(int16_t)tmp;
+	HAL_Delay(100);
+	EE_ReadVariable(VirtAddVarTab[ADD_TECOUT_active],&tmp);TempLimit_Value[TECOUT_TEMP].active=(uint8_t)tmp;
+	HAL_Delay(100);
+
 
 	PASSWORD_ADMIN_Value[4] = 0;
 	EE_ReadVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_0],&tmp);PASSWORD_ADMIN_Value[0]=(char)tmp;
@@ -159,19 +184,32 @@ void Write_defaults(void)
 	EE_WriteVariable(VirtAddVarTab[ADD_S2_LED_ADD_SUNSET],DEFAULT_S2_LED_ADD_SUNSET);HAL_Delay(100);
 
 	EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], DEFAULT_TEC_STATE);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],DEFAULT_RELAY1_Temperature0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],DEFAULT_RELAY1_Edge0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],DEFAULT_RELAY1_active0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1], DEFAULT_RELAY1_Temperature1);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],DEFAULT_RELAY1_Edge1);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],DEFAULT_RELAY1_active1);HAL_Delay(100);
 
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],DEFAULT_RELAY2_Temperature0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],DEFAULT_RELAY2_Edge0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],DEFAULT_RELAY2_active0);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1], DEFAULT_RELAY2_Temperature1);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],DEFAULT_RELAY2_Edge1);HAL_Delay(100);
-	EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],DEFAULT_RELAY2_active1);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_HYS_Temp], DEFAULT_HYS_Temp);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempH], DEFAULT_ENV_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempL], DEFAULT_ENV_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_ENV_active], DEFAULT_ENV_active);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempH], DEFAULT_CAM_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempL], DEFAULT_CAM_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_CAM_active], DEFAULT_CAM_active);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempH], DEFAULT_CASE_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempL], DEFAULT_CASE_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_CASE_active], DEFAULT_CASE_active);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_MB_TempH], DEFAULT_MB_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_MB_TempL], DEFAULT_MB_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_MB_active], DEFAULT_MB_active);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempH], DEFAULT_TECIN_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempL], DEFAULT_TECIN_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_TECIN_active], DEFAULT_TECIN_active);HAL_Delay(100);
+
+	EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempH], DEFAULT_TECOUT_TempH);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempL], DEFAULT_TECOUT_TempL);HAL_Delay(100);
+	EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_active], DEFAULT_TECOUT_active);HAL_Delay(100);
 
 	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_0],DEFAULT_PASSWORD_ADMIN_0);HAL_Delay(100);
 	EE_WriteVariable(VirtAddVarTab[ADD_PASSWORD_ADMIN_1],DEFAULT_PASSWORD_ADMIN_1);HAL_Delay(100);

@@ -9,7 +9,7 @@
 #define INC_EEPROM_USAGE_H_
 #include "eeprom.h"
 #include "main.h"
-//////////////////////////////////Address of variable in EEPROM///////////////////////////////////////
+
 #define		ADD_LAT_deg						0
 #define		ADD_LAT_min						1
 #define		ADD_LAT_second					2
@@ -37,36 +37,48 @@
 #define 	ADD_S2_LED_ADD_SUNSET			21
 
 #define 	ADD_TEC_STATE					22
-#define 	ADD_RELAY1_Temperature0			23
-#define 	ADD_RELAY1_Edge0				24
-#define 	ADD_RELAY1_active0				25
-#define 	ADD_RELAY1_Temperature1			26
-#define 	ADD_RELAY1_Edge1				27
-#define 	ADD_RELAY1_active1				28
 
-#define 	ADD_RELAY2_Temperature0			29
-#define 	ADD_RELAY2_Edge0				30
-#define 	ADD_RELAY2_active0				31
-#define 	ADD_RELAY2_Temperature1			32
-#define 	ADD_RELAY2_Edge1				33
-#define 	ADD_RELAY2_active1				34
+#define 	ADD_HYS_Temp					23
 
+#define 	ADD_ENV_TempH					24
+#define 	ADD_ENV_TempL					25
+#define 	ADD_ENV_active					26
 
-#define 	ADD_PASSWORD_ADMIN_0			35
-#define 	ADD_PASSWORD_ADMIN_1			36
-#define 	ADD_PASSWORD_ADMIN_2			37
-#define 	ADD_PASSWORD_ADMIN_3			38
+#define 	ADD_CAM_TempH					27
+#define 	ADD_CAM_TempL					28
+#define 	ADD_CAM_active					29
 
-#define 	ADD_DOOR						39
-#define 	ADD_UTC_OFF						40
+#define 	ADD_CASE_TempH					30
+#define 	ADD_CASE_TempL					31
+#define 	ADD_CASE_active					32
 
-#define 	ADD_PASSWORD_USER_0				41
-#define 	ADD_PASSWORD_USER_1				42
-#define 	ADD_PASSWORD_USER_2				43
-#define 	ADD_PASSWORD_USER_3				44
+#define 	ADD_MB_TempH					33
+#define 	ADD_MB_TempL					34
+#define 	ADD_MB_active					35
 
-#define 	ADD_PROFILE_USER				45
-#define 	ADD_PROFILE_ADMIN				46
+#define 	ADD_TECIN_TempH					36
+#define 	ADD_TECIN_TempL					37
+#define 	ADD_TECIN_active				38
+
+#define 	ADD_TECOUT_TempH				39
+#define 	ADD_TECOUT_TempL				40
+#define 	ADD_TECOUT_active				41
+
+#define 	ADD_PASSWORD_ADMIN_0			42
+#define 	ADD_PASSWORD_ADMIN_1			43
+#define 	ADD_PASSWORD_ADMIN_2			44
+#define 	ADD_PASSWORD_ADMIN_3			45
+
+#define 	ADD_DOOR						46
+#define 	ADD_UTC_OFF						47
+
+#define 	ADD_PASSWORD_USER_0				48
+#define 	ADD_PASSWORD_USER_1				49
+#define 	ADD_PASSWORD_USER_2				50
+#define 	ADD_PASSWORD_USER_3				51
+
+#define 	ADD_PROFILE_USER				52
+#define 	ADD_PROFILE_ADMIN				53
 
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
@@ -97,19 +109,32 @@
 #define 	DEFAULT_S2_LED_ADD_SUNSET			-10
 
 #define 	DEFAULT_TEC_STATE					1
-#define 	DEFAULT_RELAY1_Temperature0			331
-#define 	DEFAULT_RELAY1_Edge0				'U'
-#define 	DEFAULT_RELAY1_active0				1
-#define 	DEFAULT_RELAY1_Temperature1			0
-#define 	DEFAULT_RELAY1_Edge1				'-'
-#define 	DEFAULT_RELAY1_active1				0
 
-#define 	DEFAULT_RELAY2_Temperature0			325
-#define 	DEFAULT_RELAY2_Edge0				'D'
-#define 	DEFAULT_RELAY2_active0				1
-#define 	DEFAULT_RELAY2_Temperature1			358
-#define 	DEFAULT_RELAY2_Edge1				'U'
-#define 	DEFAULT_RELAY2_active1				1
+#define 	DEFAULT_HYS_Temp					10
+
+#define 	DEFAULT_ENV_TempH					555
+#define 	DEFAULT_ENV_TempL					555
+#define 	DEFAULT_ENV_active					1
+
+#define 	DEFAULT_CAM_TempH					555
+#define 	DEFAULT_CAM_TempL					555
+#define 	DEFAULT_CAM_active					1
+
+#define 	DEFAULT_CASE_TempH					400
+#define 	DEFAULT_CASE_TempL					100
+#define 	DEFAULT_CASE_active					0
+
+#define 	DEFAULT_MB_TempH					400
+#define 	DEFAULT_MB_TempL					100
+#define 	DEFAULT_MB_active					0
+
+#define 	DEFAULT_TECIN_TempH					400
+#define 	DEFAULT_TECIN_TempL					100
+#define 	DEFAULT_TECIN_active				0
+
+#define 	DEFAULT_TECOUT_TempH				400
+#define 	DEFAULT_TECOUT_TempL				100
+#define 	DEFAULT_TECOUT_active				0
 
 
 #define 	DEFAULT_PASSWORD_ADMIN_0			'0'

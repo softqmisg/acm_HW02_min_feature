@@ -138,6 +138,14 @@ void Error_Handler(void);
 #define WHITE_LED	0
 #define IR_LED		1
 
+#define ENVIROMENT_TEMP		0
+#define CAM_TEMP			1
+#define CASE_TEMP			2
+#define MOTHERBOARD_TEMP	3
+#define TECIN_TEMP			4
+#define TECOUT_TEMP			5
+
+
 typedef struct {
 	uint8_t TYPE_Value;
 	uint16_t DAY_BRIGHTNESS_Value;
@@ -150,9 +158,9 @@ typedef struct {
 } LED_t;
 typedef struct
 {
-	int16_t Temperature[2];
-	char Edge[2];
-	uint8_t active[2];
+	int16_t TemperatureH;
+	int16_t TemperatureL;
+	uint8_t active;
 } RELAY_t;
 /* USER CODE END Private defines */
 
