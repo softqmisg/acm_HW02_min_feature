@@ -21,6 +21,7 @@ extern uint16_t DOOR_Value;
 extern int8_t UTC_OFF_Value;
 extern uint8_t profile_user_Value;
 extern uint8_t profile_admin_Value;
+extern uint8_t profile_active[][MENU_TOTAL_ITEMS];
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	uint16_t tmp;
@@ -150,6 +151,76 @@ void update_values(void) {
 	HAL_Delay(100);
 	EE_ReadVariable(VirtAddVarTab[ADD_PROFILE_USER],&tmp);profile_user_Value=(uint8_t)tmp;
 	EE_ReadVariable(VirtAddVarTab[ADD_PROFILE_ADMIN],&tmp);profile_admin_Value=(uint8_t)tmp;
+	if(profile_user_Value& 0x02)
+	{
+		profile_active[USER_PROFILE][2]=1;
+		profile_active[USER_PROFILE][3]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][2]=0;
+		profile_active[USER_PROFILE][3]=0;
+	}
+
+	if(profile_user_Value& 0x04)
+	{
+		profile_active[USER_PROFILE][0]=1;
+		profile_active[USER_PROFILE][1]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][0]=0;
+		profile_active[USER_PROFILE][1]=0;
+	}
+
+	if(profile_user_Value& 0x08)
+	{
+		profile_active[USER_PROFILE][5]=1;
+		profile_active[USER_PROFILE][6]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][5]=0;
+		profile_active[USER_PROFILE][6]=0;
+	}
+
+	if(profile_user_Value& 0x20)
+	{
+		profile_active[USER_PROFILE][11]=1;
+		profile_active[USER_PROFILE][12]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][11]=0;
+		profile_active[USER_PROFILE][12]=0;
+	}
+
+	if(profile_user_Value& 0x40)
+	{
+		profile_active[USER_PROFILE][13]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][13]=0;
+	}
+
+
+	if(profile_user_Value& 0x80)
+	{
+		profile_active[USER_PROFILE][8]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][8]=0;
+	}
+	profile_active[USER_PROFILE][4]=0;
+	profile_active[USER_PROFILE][7]=0;
+	profile_active[USER_PROFILE][9]=1;
+	profile_active[USER_PROFILE][10]=1;
+	profile_active[USER_PROFILE][14]=0;
+	profile_active[USER_PROFILE][15]=0;
+	profile_active[USER_PROFILE][15]=1;
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

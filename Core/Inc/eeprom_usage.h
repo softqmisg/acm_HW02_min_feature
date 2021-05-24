@@ -113,27 +113,27 @@
 #define 	DEFAULT_HYS_Temp					10
 
 #define 	DEFAULT_ENV_TempH					555
-#define 	DEFAULT_ENV_TempL					555
+#define 	DEFAULT_ENV_TempL					554
 #define 	DEFAULT_ENV_active					1
 
-#define 	DEFAULT_CAM_TempH					555
-#define 	DEFAULT_CAM_TempL					555
+#define 	DEFAULT_CAM_TempH					545
+#define 	DEFAULT_CAM_TempL					544
 #define 	DEFAULT_CAM_active					1
 
 #define 	DEFAULT_CASE_TempH					400
 #define 	DEFAULT_CASE_TempL					100
 #define 	DEFAULT_CASE_active					0
 
-#define 	DEFAULT_MB_TempH					400
-#define 	DEFAULT_MB_TempL					100
+#define 	DEFAULT_MB_TempH					402
+#define 	DEFAULT_MB_TempL					101
 #define 	DEFAULT_MB_active					0
 
-#define 	DEFAULT_TECIN_TempH					400
-#define 	DEFAULT_TECIN_TempL					100
+#define 	DEFAULT_TECIN_TempH					403
+#define 	DEFAULT_TECIN_TempL					102
 #define 	DEFAULT_TECIN_active				0
 
-#define 	DEFAULT_TECOUT_TempH				400
-#define 	DEFAULT_TECOUT_TempL				100
+#define 	DEFAULT_TECOUT_TempH				404
+#define 	DEFAULT_TECOUT_TempL				103
 #define 	DEFAULT_TECOUT_active				0
 
 

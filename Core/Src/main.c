@@ -148,7 +148,9 @@ typedef enum {
 #define CVEvent         	  0xBA
 #define LEDS1PageEvent        0xBB
 #define LEDS2PageEvent        0xBC
-#define TimePositionEvent	  0xBD
+#define TimePositionPageEvent	0xBD
+#define TemperaturePageEvent	0xBE
+
 
 #define readDashboard         0x90
 #define LEDS1page         0x91
@@ -291,9 +293,7 @@ enum {
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
 
-#define MENU_TOTAL_ITEMS	17
-#define MENU_ITEMS_IN_PAGE	10
-#define MENU_TOTAL_PAGES	2
+
 
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		 "SET Door", "SET Temp 1","SET Temp 2", "User Option", "SET PASS", "Next->",
@@ -303,10 +303,9 @@ char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
 		"Force upgrade from SD", "Force upgrade from  USB" };
 
 uint8_t profile_active[][MENU_TOTAL_ITEMS] = { { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1 }, { 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1 } };
+		1, 1, 1, 1, 1, 1 ,1}, { 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1,1 } };
 
-#define ADMIN_PROFILE	0
-#define USER_PROFILE	1
+
 /////////////////////////////////////////////////parameter variable///////////////////////////////////////////////////////////
 
 LED_t S1_LED_Value, S2_LED_Value;
@@ -1368,7 +1367,7 @@ void create_formTemp1(uint8_t clear, bounding_box_t *text_pos,
 	text_cell(pos_, 1, "Hys:", Tahoma8, LEFT_ALIGN, 0, 0);
 	sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
 	pos_[1].x1+=35;
-	pos_[1].x2=pos_[1].x1 + text_width("5.5", Tahoma8, 1) + 1;
+	pos_[1].x2=pos_[1].x1 + text_width("5.5'C", Tahoma8, 1) + 1;
 	text_pos[3]=text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	////////////////////////////////////////////////////////////////////////////////
 	create_cell(0,pos_[0].y2,128,64-pos_[0].y2,3,1,1,pos_);
@@ -1438,85 +1437,6 @@ void create_formTemp1(uint8_t clear, bounding_box_t *text_pos,
 	pos_[2].x2=pos_[2].x1 + text_width("A", Tahoma8, 1) + 1;
 	text_pos[12]=text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
-//	/////////////////////////////////////////////////////////////////////////////////////////////////
-//	create_cell(40, pos_[0].y1, 128 - 40, 64 - pos_[0].y1, 3, 1, 1, pos_);
-//	if (tmp_tec == 1)
-//		sprintf(tmp_str, "ENABLE");
-//	else
-//		sprintf(tmp_str, "DISABLE");
-//
-//	pos_[0].x1 = 50;
-//	pos_[0].x2 = pos_[0].x1 + text_width("DISABLE", Tahoma8, 1) + 1;
-//	text_pos[2] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//	////////////////////////////////////////
-//	if (tmp_Relay1.active[0])
-//		sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//	else
-//		sprintf(tmp_str, "-");
-//
-//	pos_[1].x1 = 42;
-//	pos_[1].x2 = pos_[1].x1 + text_width("D", Tahoma8, 1) + 1;
-//	text_pos[3] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//
-//	if (tmp_Relay1.active[0])
-//		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[0] / 10.0);
-//	else
-//		sprintf(tmp_str, "------");
-//	pos_[1].x1 = pos_[1].x2 + 1;
-//	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
-//	text_pos[4] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//	////////////////////////////////////////
-//	if (tmp_Relay1.active[1])
-//		sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//	else
-//		sprintf(tmp_str, "-");
-//	pos_[1].x1 = pos_[1].x2 + 12;
-//	pos_[1].x2 = pos_[1].x1 + text_width("D", Tahoma8, 1) + 1;
-//	text_pos[5] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//
-//	if (tmp_Relay1.active[1])
-//		sprintf(tmp_str, "%+4.1f", tmp_Relay1.Temperature[1] / 10.0);
-//	else
-//		sprintf(tmp_str, "------");
-//	pos_[1].x1 = pos_[1].x2 + 1;
-//	pos_[1].x2 = pos_[1].x1 + text_width("+55.5", Tahoma8, 1) + 1;
-//	text_pos[6] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//	////////////////////////////////////////
-//	////////////////////////////////////////
-//	if (tmp_Relay2.active[0])
-//		sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//	else
-//		sprintf(tmp_str, "-");
-//
-//	pos_[2].x1 = 42;
-//	pos_[2].x2 = pos_[2].x1 + text_width("D", Tahoma8, 1) + 1;
-//	text_pos[7] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//
-//	if (tmp_Relay2.active[0])
-//		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[0] / 10.0);
-//	else
-//		sprintf(tmp_str, "------");
-//	pos_[2].x1 = pos_[2].x2 + 1;
-//	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
-//	text_pos[8] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//	////////////////////////////////////////
-//	if (tmp_Relay2.active[1])
-//		sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//	else
-//		sprintf(tmp_str, "-");
-//	pos_[2].x1 = pos_[2].x2 + 12;
-//	pos_[2].x2 = pos_[2].x1 + text_width("D", Tahoma8, 1) + 1;
-//	text_pos[9] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//
-//	if (tmp_Relay2.active[1])
-//		sprintf(tmp_str, "%+4.1f", tmp_Relay2.Temperature[1] / 10.0);
-//	else
-//		sprintf(tmp_str, "------");
-//	pos_[2].x1 = pos_[2].x2 + 1;
-//	pos_[2].x2 = pos_[2].x1 + text_width("+55.5", Tahoma8, 1) + 1;
-//	text_pos[10] = text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-//	////////////////////////////////////////
-//	/////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1531,7 +1451,7 @@ void create_formTemp2(uint8_t clear, bounding_box_t *text_pos,
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
 
 	pos_[0].x2 = 60;
-	text_cell(pos_, 0, "Temp SET1", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "Temp SET2", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	pos_[0].x1 = 65;
 	pos_[0].x2 = pos_[0].x1 + 20;
@@ -1901,6 +1821,43 @@ void ready_msg_TimePositionpage(char *str2, Time_t sunrise, Time_t sunset,
 		sprintf(str2, "%s,%d", str2, profile_user_Value);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+void ready_msg_Temperaturepage(char *str2, RELAY_t *TempLimit,uint8_t hys,uint8_t tec,uint8_t cur_browser_profile)
+{
+	sprintf(str2,"%d",tec);
+	sprintf(str2,"%s,%3.1f",str2,hys/10.0);
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[ENVIROMENT_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[ENVIROMENT_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[ENVIROMENT_TEMP].active);
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[CAM_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[CAM_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[CAM_TEMP].active);
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[CASE_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[CASE_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[CASE_TEMP].active);
+
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[MOTHERBOARD_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[MOTHERBOARD_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[MOTHERBOARD_TEMP].active);
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[TECIN_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[TECIN_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[TECIN_TEMP].active);
+
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[TECOUT_TEMP].TemperatureH/10.0);
+	sprintf(str2,"%s,%4.1f",str2,TempLimit[TECOUT_TEMP].TemperatureL/10.0);
+	sprintf(str2,"%s,%d",str2,TempLimit[TECOUT_TEMP].active);
+
+	if (cur_browser_profile == 0)	//admin
+		sprintf(str2, "%s,%d", str2, profile_admin_Value);
+	else
+		sprintf(str2, "%s,%d", str2, profile_user_Value);
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 void split_time(char *str, RTC_TimeTypeDef *t) {
 	printf("time:%s\n\r", str);
 	char *ptr_splitted = strtok(str, ":");
@@ -1972,7 +1929,6 @@ int app_main(void) {
 	uint8_t flag_log_data = 0;
 	uint8_t counter_log_data = 0;
 
-	bounding_box_t pos_[10];
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
 	char extracted_text[120];
 	char *ptr_splitted[20];
@@ -1992,7 +1948,8 @@ int app_main(void) {
 	RELAY_t tmp_limits[6];
 	uint16_t tmp_door;
 	uint8_t tmp_TEC_STATE,tmp_hys;
-	bounding_box_t text_pos[12];
+	bounding_box_t pos_[15];
+	bounding_box_t text_pos[15];
 	HAL_StatusTypeDef status;
 
 	FRESULT r_logtemp = FR_OK, r_logvolt = FR_OK, r_loglight = FR_OK,
@@ -2312,8 +2269,13 @@ int app_main(void) {
 			flag_rtc_10s_general = 0;
 			////////////////Temperature//////////////////////////
 			if (ActiveBrowserPage[DashboardActivePage]) {
-				sprintf(tmp_str2, "");
-				for (uint8_t i = 0; i < 8; i++) {
+				if (cur_temperature[0] == (int16_t) 0x8fff) {
+					sprintf(tmp_str2, "-");
+				} else {
+					sprintf(tmp_str2, "%+4.1f",	cur_temperature[0] / 10.0);
+				}
+
+				for (uint8_t i = 1; i < 8; i++) {
 					if (cur_temperature[i] == (int16_t) 0x8fff) {
 						sprintf(tmp_str2, "%s,-", tmp_str2);
 					} else {
@@ -2321,8 +2283,8 @@ int app_main(void) {
 								cur_temperature[i] / 10.0);
 					}
 				}
-				sprintf(tmp_str2, "%s,%02d:%02d:%02d", tmp_str2, cur_time.Hours,
-						cur_time.Minutes, cur_time.Seconds);
+				sprintf(tmp_str2, "%s,%02d:%02d:%02d", tmp_str2, cur_time.Hours,cur_time.Minutes, cur_time.Seconds);
+				printf("to ESP32 Temp event:%s\n\r",tmp_str2);
 				uart_transmit_frame(tmp_str2, cmd_event, TemperatureEvent);
 			}
 			//////////////////// memory//////////////////////
@@ -2527,7 +2489,7 @@ int app_main(void) {
 						ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 								cur_sunset, cur_browser_profile);
 						uart_transmit_frame(tmp_str2, cmd_event,
-								TimePositionEvent);
+								TimePositionPageEvent);
 					}
 				}
 				if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
@@ -2638,7 +2600,7 @@ int app_main(void) {
 						ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 								cur_sunset, cur_browser_profile);
 						uart_transmit_frame(tmp_str2, cmd_event,
-								TimePositionEvent);
+								TimePositionPageEvent);
 					}
 					create_form1(1, cur_temperature);
 					DISP_state = DISP_FORM1;
@@ -3179,7 +3141,7 @@ int app_main(void) {
 						tmp_TEC_STATE = TEC_STATE_Value;
 						create_formTemp2(1, text_pos, tmp_limits,tmp_TEC_STATE,tmp_hys);
 						index_option = 2;
-						sprintf(tmp_str,"%4.1f",tmp_limits[MOTHERBOARD_TEMP].TemperatureH);
+						sprintf(tmp_str,"%4.1f",tmp_limits[MOTHERBOARD_TEMP].TemperatureH/10.0);
 						text_cell(text_pos, index_option, tmp_str, Tahoma8,CENTER_ALIGN, 1, 0);
 						glcd_refresh();
 						MENU_state = TEMP2_MENU;
@@ -3770,7 +3732,7 @@ int app_main(void) {
 						ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 								cur_sunset, cur_browser_profile);
 						uart_transmit_frame(tmp_str2, cmd_event,
-								TimePositionEvent);
+								TimePositionPageEvent);
 					}
 					if (ActiveBrowserPage[DashboardActivePage]) {
 						ready_msg_Dashboardpage(tmp_str2, cur_outsidelight,
@@ -4228,7 +4190,7 @@ int app_main(void) {
 						ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 								cur_sunset, cur_browser_profile);
 						uart_transmit_frame(tmp_str2, cmd_event,
-								TimePositionEvent);
+								TimePositionPageEvent);
 					}
 					if (ActiveBrowserPage[DashboardActivePage]) {
 						ready_msg_Dashboardpage(tmp_str2, cur_outsidelight,
@@ -4898,7 +4860,7 @@ int app_main(void) {
 						ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 								cur_sunset, cur_browser_profile);
 						uart_transmit_frame(tmp_str2, cmd_event,
-								TimePositionEvent);
+								TimePositionPageEvent);
 					}
 
 					index_option = MENU_state - POSITION_MENU;
@@ -4918,7 +4880,7 @@ int app_main(void) {
 							ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 									cur_sunset, cur_browser_profile);
 							uart_transmit_frame(tmp_str2, cmd_event,
-									TimePositionEvent);
+									TimePositionPageEvent);
 						}
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
@@ -5634,7 +5596,7 @@ int app_main(void) {
 							ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
 									cur_sunset, cur_browser_profile);
 							uart_transmit_frame(tmp_str2, cmd_event,
-									TimePositionEvent);
+									TimePositionPageEvent);
 						}
 					}
 					if (Astro_CheckDayNight(cur_time, cur_sunrise, cur_sunset,
@@ -5719,892 +5681,834 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////TEMPS1_MENU/////////////////////////////////////////////////
 		case TEMP1_MENU:
-//			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
-//			if (joystick_read(Key_TOP, Short_press)) {
-//				joystick_init(Key_TOP, Short_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//				}
-//				switch (index_option) {
-//				case 0:	//OK
-//					break;
-//				case 1:	//CANCEL
-//					break;
-//				case 2:
-//					if (tmp_TEC_STATE) {
-//						sprintf(tmp_str, "DISBALE");
-//						tmp_TEC_STATE = 0;
-//					} else {
-//						sprintf(tmp_str, "ENABLE");
-//						tmp_TEC_STATE = 1;
-//					}
-//					break;
-//				case 3:
-//					if (tmp_Relay1.Edge[0] == 'U') {
-//						tmp_Relay1.Edge[0] = 'D';
-//						tmp_Relay1.active[0] = 1;
-//					} else if (tmp_Relay1.Edge[0] == 'D') {
-//						tmp_Relay1.Edge[0] = '-';
-//						tmp_Relay1.active[0] = 0;
-//					} else {
-//						tmp_Relay1.Edge[0] = 'U';
-//						tmp_Relay1.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					break;
-//				case 4:
-//					tmp_Relay1.Temperature[0] += 1;
-//					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
-//						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[0] / 10.0);
-//					break;
-//
-//				case 5:
-//					if (tmp_Relay1.Edge[1] == 'U') {
-//						tmp_Relay1.Edge[1] = 'D';
-//						tmp_Relay1.active[1] = 1;
-//					} else if (tmp_Relay1.Edge[1] == 'D') {
-//						tmp_Relay1.Edge[1] = '-';
-//						tmp_Relay1.active[1] = 0;
-//					} else {
-//						tmp_Relay1.Edge[1] = 'U';
-//						tmp_Relay1.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					break;
-//				case 6:
-//					tmp_Relay1.Temperature[1] += 1;
-//					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
-//						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[1] / 10.0);
-//
-//					break;
-//				case 7:
-//
-//					if (tmp_Relay2.Edge[0] == 'U') {
-//						tmp_Relay2.Edge[0] = 'D';
-//						tmp_Relay2.active[0] = 1;
-//					} else if (tmp_Relay2.Edge[0] == 'D') {
-//						tmp_Relay2.Edge[0] = '-';
-//						tmp_Relay2.active[0] = 0;
-//					} else {
-//						tmp_Relay2.Edge[0] = 'U';
-//						tmp_Relay2.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//
-//					break;
-//				case 8:
-//					tmp_Relay2.Temperature[0] += 1;
-//					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
-//						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[0] / 10.0);
-//					break;
-//				case 9:
-//					if (tmp_Relay2.Edge[1] == 'U') {
-//						tmp_Relay2.Edge[1] = 'D';
-//						tmp_Relay2.active[1] = 1;
-//					} else if (tmp_Relay2.Edge[1] == 'D') {
-//						tmp_Relay2.Edge[1] = '-';
-//						tmp_Relay2.active[1] = 0;
-//					} else {
-//						tmp_Relay2.Edge[1] = 'U';
-//						tmp_Relay2.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//
-//					break;
-//				case 10:
-//
-//					tmp_Relay2.Temperature[1] += 1;
-//					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
-//						tmp_Relay2.Temperature[1] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[1] / 10.0);
-//					break;
-//				}
-//				if (index_option > 1)
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				glcd_refresh();
-//			}
-//
-//			if (joystick_read(Key_TOP, Long_press)) {
-//				joystick_init(Key_TOP, Long_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//				}
-//				switch (index_option) {
-//				case 0:	//OK
-//					break;
-//				case 1:	//CANCEL
-//					break;
-//				case 2:
-//					if (tmp_TEC_STATE) {
-//						sprintf(tmp_str, "DISBALE");
-//						tmp_TEC_STATE = 0;
-//					} else {
-//						sprintf(tmp_str, "ENABLE");
-//						tmp_TEC_STATE = 1;
-//					}
-//					break;
-//				case 3:
-//					if (tmp_Relay1.Edge[0] == 'U') {
-//						tmp_Relay1.Edge[0] = 'D';
-//						tmp_Relay1.active[0] = 1;
-//					} else if (tmp_Relay1.Edge[0] == 'D') {
-//						tmp_Relay1.Edge[0] = '-';
-//						tmp_Relay1.active[0] = 0;
-//					} else {
-//						tmp_Relay1.Edge[0] = 'U';
-//						tmp_Relay1.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					break;
-//				case 4:
-//					tmp_Relay1.Temperature[0] += 100;
-//					if (tmp_Relay1.Temperature[0] > TEMPERATURE_MAX)
-//						tmp_Relay1.Temperature[0] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[0] / 10.0);
-//					break;
-//
-//				case 5:
-//					if (tmp_Relay1.Edge[1] == 'U') {
-//						tmp_Relay1.Edge[1] = 'D';
-//						tmp_Relay1.active[1] = 1;
-//					} else if (tmp_Relay1.Edge[1] == 'D') {
-//						tmp_Relay1.Edge[1] = '-';
-//						tmp_Relay1.active[1] = 0;
-//					} else {
-//						tmp_Relay1.Edge[1] = 'U';
-//						tmp_Relay1.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					break;
-//				case 6:
-//					tmp_Relay1.Temperature[1] += 100;
-//					if (tmp_Relay1.Temperature[1] > TEMPERATURE_MAX)
-//						tmp_Relay1.Temperature[1] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[1] / 10.0);
-//
-//					break;
-//				case 7:
-//
-//					if (tmp_Relay2.Edge[0] == 'U') {
-//						tmp_Relay2.Edge[0] = 'D';
-//						tmp_Relay2.active[0] = 1;
-//					} else if (tmp_Relay2.Edge[0] == 'D') {
-//						tmp_Relay2.Edge[0] = '-';
-//						tmp_Relay2.active[0] = 0;
-//					} else {
-//						tmp_Relay2.Edge[0] = 'U';
-//						tmp_Relay2.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//
-//					break;
-//				case 8:
-//					tmp_Relay2.Temperature[0] += 100;
-//					if (tmp_Relay2.Temperature[0] > TEMPERATURE_MAX)
-//						tmp_Relay2.Temperature[0] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[0] / 10.0);
-//					break;
-//				case 9:
-//					if (tmp_Relay2.Edge[1] == 'U') {
-//						tmp_Relay2.Edge[1] = 'D';
-//						tmp_Relay2.active[1] = 1;
-//					} else if (tmp_Relay2.Edge[1] == 'D') {
-//						tmp_Relay2.Edge[1] = '-';
-//						tmp_Relay2.active[1] = 0;
-//					} else {
-//						tmp_Relay2.Edge[1] = 'U';
-//						tmp_Relay2.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//
-//					break;
-//				case 10:
-//
-//					tmp_Relay2.Temperature[1] += 100;
-//					if (tmp_Relay2.Temperature[1] > TEMPERATURE_MAX)
-//						tmp_Relay2.Temperature[1] = TEMPERATURE_MIN;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[1] / 10.0);
-//					break;
-//				}
-//				if (index_option > 1)
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				glcd_refresh();
-//			}
-//
-//			if (joystick_read(Key_DOWN, Short_press)) {
-//				joystick_init(Key_DOWN, Short_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//				}
-//				switch (index_option) {
-//				case 0:	//OK
-//					break;
-//				case 1:	//CANCEL
-//					break;
-//				case 2:
-//					if (tmp_TEC_STATE) {
-//						sprintf(tmp_str, "DISBALE");
-//						tmp_TEC_STATE = 0;
-//					} else {
-//						sprintf(tmp_str, "ENABLE");
-//						tmp_TEC_STATE = 1;
-//					}
-//					break;
-//				case 3:
-//					if (tmp_Relay1.Edge[0] == 'U') {
-//						tmp_Relay1.Edge[0] = 'D';
-//						tmp_Relay1.active[0] = 1;
-//					} else if (tmp_Relay1.Edge[0] == 'D') {
-//						tmp_Relay1.Edge[0] = '-';
-//						tmp_Relay1.active[0] = 0;
-//					} else {
-//						tmp_Relay1.Edge[0] = 'U';
-//						tmp_Relay1.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					break;
-//				case 4:
-//					tmp_Relay1.Temperature[0] -= 1;
-//					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
-//						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[0] / 10.0);
-//					break;
-//
-//				case 5:
-//					if (tmp_Relay1.Edge[1] == 'U') {
-//						tmp_Relay1.Edge[1] = 'D';
-//						tmp_Relay1.active[1] = 1;
-//					} else if (tmp_Relay1.Edge[1] == 'D') {
-//						tmp_Relay1.Edge[1] = '-';
-//						tmp_Relay1.active[1] = 0;
-//					} else {
-//						tmp_Relay1.Edge[1] = 'U';
-//						tmp_Relay1.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					break;
-//				case 6:
-//					tmp_Relay1.Temperature[1] -= 1;
-//					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
-//						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[1] / 10.0);
-//
-//					break;
-//				case 7:
-//
-//					if (tmp_Relay2.Edge[0] == 'U') {
-//						tmp_Relay2.Edge[0] = 'D';
-//						tmp_Relay2.active[0] = 1;
-//					} else if (tmp_Relay2.Edge[0] == 'D') {
-//						tmp_Relay2.Edge[0] = '-';
-//						tmp_Relay2.active[0] = 0;
-//					} else {
-//						tmp_Relay2.Edge[0] = 'U';
-//						tmp_Relay2.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//
-//					break;
-//				case 8:
-//					tmp_Relay2.Temperature[0] -= 1;
-//					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
-//						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[0] / 10.0);
-//					break;
-//				case 9:
-//					if (tmp_Relay2.Edge[1] == 'U') {
-//						tmp_Relay2.Edge[1] = 'D';
-//						tmp_Relay2.active[1] = 1;
-//					} else if (tmp_Relay2.Edge[1] == 'D') {
-//						tmp_Relay2.Edge[1] = '-';
-//						tmp_Relay2.active[1] = 0;
-//					} else {
-//						tmp_Relay2.Edge[1] = 'U';
-//						tmp_Relay2.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//
-//					break;
-//				case 10:
-//
-//					tmp_Relay2.Temperature[1] -= 1;
-//					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
-//						tmp_Relay2.Temperature[1] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[1] / 10.0);
-//					break;
-//				}
-//				if (index_option > 1)
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				glcd_refresh();
-//			}
-//
-//			if (joystick_read(Key_DOWN, Long_press)) {
-//				joystick_init(Key_DOWN, Long_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//				}
-//				switch (index_option) {
-//				case 0:	//OK
-//					break;
-//				case 1:	//CANCEL
-//					break;
-//				case 2:
-//					if (tmp_TEC_STATE) {
-//						sprintf(tmp_str, "DISBALE");
-//						tmp_TEC_STATE = 0;
-//					} else {
-//						sprintf(tmp_str, "ENABLE");
-//						tmp_TEC_STATE = 1;
-//					}
-//					break;
-//				case 3:
-//					if (tmp_Relay1.Edge[0] == 'U') {
-//						tmp_Relay1.Edge[0] = 'D';
-//						tmp_Relay1.active[0] = 1;
-//					} else if (tmp_Relay1.Edge[0] == 'D') {
-//						tmp_Relay1.Edge[0] = '-';
-//						tmp_Relay1.active[0] = 0;
-//					} else {
-//						tmp_Relay1.Edge[0] = 'U';
-//						tmp_Relay1.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					break;
-//				case 4:
-//					tmp_Relay1.Temperature[0] -= 100;
-//					if (tmp_Relay1.Temperature[0] < TEMPERATURE_MIN)
-//						tmp_Relay1.Temperature[0] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[0] / 10.0);
-//					break;
-//
-//				case 5:
-//					if (tmp_Relay1.Edge[1] == 'U') {
-//						tmp_Relay1.Edge[1] = 'D';
-//						tmp_Relay1.active[1] = 1;
-//					} else if (tmp_Relay1.Edge[1] == 'D') {
-//						tmp_Relay1.Edge[1] = '-';
-//						tmp_Relay1.active[1] = 0;
-//					} else {
-//						tmp_Relay1.Edge[1] = 'U';
-//						tmp_Relay1.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					break;
-//				case 6:
-//					tmp_Relay1.Temperature[1] -= 100;
-//					if (tmp_Relay1.Temperature[1] < TEMPERATURE_MIN)
-//						tmp_Relay1.Temperature[1] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay1.Temperature[1] / 10.0);
-//
-//					break;
-//				case 7:
-//
-//					if (tmp_Relay2.Edge[0] == 'U') {
-//						tmp_Relay2.Edge[0] = 'D';
-//						tmp_Relay2.active[0] = 1;
-//					} else if (tmp_Relay2.Edge[0] == 'D') {
-//						tmp_Relay2.Edge[0] = '-';
-//						tmp_Relay2.active[0] = 0;
-//					} else {
-//						tmp_Relay2.Edge[0] = 'U';
-//						tmp_Relay2.active[0] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//
-//					break;
-//				case 8:
-//					tmp_Relay2.Temperature[0] -= 100;
-//					if (tmp_Relay2.Temperature[0] < TEMPERATURE_MIN)
-//						tmp_Relay2.Temperature[0] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[0] / 10.0);
-//					break;
-//				case 9:
-//					if (tmp_Relay2.Edge[1] == 'U') {
-//						tmp_Relay2.Edge[1] = 'D';
-//						tmp_Relay2.active[1] = 1;
-//					} else if (tmp_Relay2.Edge[1] == 'D') {
-//						tmp_Relay2.Edge[1] = '-';
-//						tmp_Relay2.active[1] = 0;
-//					} else {
-//						tmp_Relay2.Edge[1] = 'U';
-//						tmp_Relay2.active[1] = 1;
-//					}
-//					create_formTemp(1, text_pos, tmp_Relay1, tmp_Relay2,
-//							tmp_TEC_STATE);
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//
-//					break;
-//				case 10:
-//
-//					tmp_Relay2.Temperature[1] -= 100;
-//					if (tmp_Relay2.Temperature[1] < TEMPERATURE_MIN)
-//						tmp_Relay2.Temperature[1] = TEMPERATURE_MAX;
-//					sprintf(tmp_str, "%+4.1f",
-//							tmp_Relay2.Temperature[1] / 10.0);
-//					break;
-//				}
-//				if (index_option > 1)
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				glcd_refresh();
-//			}
-//
-//			if (joystick_read(Key_LEFT, Short_press)) {
-//				joystick_init(Key_LEFT, Short_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 0, 0);
-//				}
-//
-//				switch (index_option) {
-//				case 0:	//OK
-//					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
-//					if (tmp_Relay2.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[1] / 10.0);
-//						index_option = 10;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//						index_option = 9;
-//					}
-//					break;
-//				case 1:	//CANCEL
-//					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
-//							0);
-//					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
-//					index_option = 0;
-//					break;
-//				case 2:
-//					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
-//							1);
-//					index_option = 1;
-//					break;
-//				case 3:
-//					if (tmp_TEC_STATE)
-//						sprintf(tmp_str, "ENABLE");
-//					else
-//						sprintf(tmp_str, "DISABLE");
-//					index_option = 2;
-//
-//					break;
-//				case 4:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					index_option = 3;
-//					break;
-//				case 5:
-//					if (tmp_Relay1.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[0] / 10.0);
-//						index_option = 4;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//						index_option = 3;
-//					}
-//					break;
-//				case 6:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					index_option = 5;
-//					break;
-//				case 7:
-//					if (tmp_Relay1.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[1] / 10.0);
-//						index_option = 6;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//						index_option = 5;
-//					}
-//					break;
-//				case 8:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//					index_option = 7;
-//					break;
-//				case 9:
-//					if (tmp_Relay2.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[0] / 10.0);
-//						index_option = 8;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//						index_option = 7;
-//					}
-//					break;
-//				case 10:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//					index_option = 9;
-//					break;
-//				}
-//				if (index_option > 1) {
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				}
-//				glcd_refresh();
-//			}
-//			if (joystick_read(Key_RIGHT, Short_press)) {
-//				joystick_init(Key_RIGHT, Short_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 0, 0);
-//				}
-//
-//				switch (index_option) {
-//				case 0:	//OK
-//					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
-//					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
-//							1);
-//					index_option = 1;
-//
-//					break;
-//				case 1:	//CANCEL
-//					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
-//							0);
-//					if (tmp_TEC_STATE)
-//						sprintf(tmp_str, "ENABLE");
-//					else
-//						sprintf(tmp_str, "DISABLE");
-//					index_option = 2;
-//					break;
-//				case 2:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					index_option = 3;
-//					break;
-//				case 3:
-//					if (tmp_Relay1.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[0] / 10.0);
-//						index_option = 4;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//						index_option = 5;
-//					}
-//
-//					break;
-//				case 4:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					index_option = 5;
-//					break;
-//				case 5:
-//					if (tmp_Relay1.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[1] / 10.0);
-//						index_option = 6;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//						index_option = 7;
-//					}
-//					break;
-//				case 6:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//					index_option = 7;
-//					break;
-//				case 7:
-//					if (tmp_Relay1.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[0] / 10.0);
-//						index_option = 8;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//						index_option = 9;
-//					}
-//					break;
-//				case 8:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//					index_option = 9;
-//					break;
-//				case 9:
-//					if (tmp_Relay2.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[1] / 10.0);
-//						index_option = 10;
-//					} else {
-//						text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1,
-//								1);
-//						index_option = 0;
-//					}
-//					break;
-//				case 10:
-//					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
-//					index_option = 0;
-//					break;
-//				}
-//				if (index_option > 1) {
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				}
-//				glcd_refresh();
-//			}
-//
-//			if (joystick_read(Key_ENTER, Short_press)) {
-//				joystick_init(Key_ENTER, Short_press);
-//				if (index_option > 1) {
-//					draw_fill(text_pos[index_option].x1 - 1,
-//							text_pos[index_option].y1 + 1,
-//							text_pos[index_option].x2 - 1,
-//							text_pos[index_option].y2 - 1, 0);
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 0, 0);
-//				}
-//				glcd_refresh();
-//				switch (index_option) {
-//				case 0:	//OK
-//						//save in eeprom
-//					TEC_STATE_Value = tmp_TEC_STATE;
-//					RELAY1_Value = tmp_Relay1;
-//					RELAY2_Value = tmp_Relay2;
-//
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE],
-//							TEC_STATE_Value);
-//
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature0],
-//							RELAY1_Value.Temperature[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge0],
-//							RELAY1_Value.Edge[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active0],
-//							RELAY1_Value.active[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Temperature1],
-//							RELAY1_Value.Temperature[1]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_Edge1],
-//							RELAY1_Value.Edge[1]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY1_active1],
-//							RELAY1_Value.active[1]);
-//
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature0],
-//							RELAY2_Value.Temperature[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge0],
-//							RELAY2_Value.Edge[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active0],
-//							RELAY2_Value.active[0]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Temperature1],
-//							RELAY2_Value.Temperature[1]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_Edge1],
-//							RELAY2_Value.Edge[1]);
-//					HAL_Delay(50);
-//					EE_WriteVariable(VirtAddVarTab[ADD_RELAY2_active1],
-//							RELAY2_Value.active[1]);
-//
-//					if (TEC_STATE_Value)
-//						sprintf(tmp_str,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds);
-//					else
-//						sprintf(tmp_str2,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds);
-//					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-//							tmp_str2);
-//
-//					if (RELAY1_Value.active[0])
-//						sprintf(tmp_str,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds, RELAY1_Value.Edge[0],
-//								RELAY1_Value.Temperature[0]);
-//					else
-//						sprintf(tmp_str,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds);
-//					if (RELAY1_Value.active[1])
-//						sprintf(tmp_str, "%s,%c%f\n", tmp_str,
-//								RELAY1_Value.Edge[1],
-//								RELAY1_Value.Temperature[1]);
-//					else
-//						sprintf(tmp_str2, "%s,--\n", tmp_str);
-//					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-//							tmp_str2);
-//
-//					if (RELAY2_Value.active[0])
-//						sprintf(tmp_str,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds, RELAY2_Value.Edge[0],
-//								RELAY2_Value.Temperature[0]);
-//					else
-//						sprintf(tmp_str,
-//								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
-//								cur_Date.Year + 2000, cur_Date.Month,
-//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-//								cur_time.Seconds);
-//					if (RELAY2_Value.active[1])
-//						sprintf(tmp_str, "%s,%c%f\n", tmp_str,
-//								RELAY2_Value.Edge[1],
-//								RELAY2_Value.Temperature[1]);
-//					else
-//						sprintf(tmp_str2, "%s,--\n", tmp_str);
-//					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-//							tmp_str2);
-//
-//					index_option = MENU_state - POSITION_MENU;
-//					create_menu(index_option, menu_page, 1, text_pos);
-//					MENU_state = OPTION_MENU;
-//					break;
-//				case 1:					//CANCEL
-//					index_option = MENU_state - POSITION_MENU;
-//					create_menu(index_option, menu_page, 1, text_pos);
-//					MENU_state = OPTION_MENU;
-//					break;
-//				case 2:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[0]);
-//					index_option = 3;
-//					break;
-//				case 3:
-//					if (tmp_Relay1.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[0] / 10.0);
-//						index_option = 4;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//						index_option = 5;
-//					}
-//
-//					break;
-//				case 4:
-//					sprintf(tmp_str, "%c", tmp_Relay1.Edge[1]);
-//					index_option = 5;
-//					break;
-//				case 5:
-//					if (tmp_Relay1.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay1.Temperature[1] / 10.0);
-//						index_option = 6;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//						index_option = 7;
-//					}
-//					break;
-//				case 6:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[0]);
-//					index_option = 7;
-//					break;
-//				case 7:
-//					if (tmp_Relay1.active[0]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[0] / 10.0);
-//						index_option = 8;
-//					} else {
-//						sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//						index_option = 9;
-//					}
-//					break;
-//				case 8:
-//					sprintf(tmp_str, "%c", tmp_Relay2.Edge[1]);
-//					index_option = 9;
-//					break;
-//				case 9:
-//					if (tmp_Relay2.active[1]) {
-//						sprintf(tmp_str, "%+4.1f",
-//								tmp_Relay2.Temperature[1] / 10.0);
-//						index_option = 10;
-//					} else {
-//						text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1,
-//								1);
-//						index_option = 0;
-//					}
-//					break;
-//				case 10:
-//					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
-//					index_option = 0;
-//					break;
-//				}
-//				if (index_option > 1 && MENU_state != OPTION_MENU) {
-//					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//							CENTER_ALIGN, 1, 0);
-//				}
-//				glcd_refresh();
-//			}
-			break;
+			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					tmp_TEC_STATE = 1-tmp_TEC_STATE;
+					(tmp_TEC_STATE)?sprintf(tmp_str, "ENA"):sprintf(tmp_str, "DIS");
+					break;
+				case 3:
+					tmp_hys+=1;
+					if(tmp_hys>HYSTERESIS_MAX)
+						tmp_hys=HYSTERESIS_MIN;
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3].TemperatureH+=1;
+					if(tmp_limits[(index_option-4)/3].TemperatureH>TEMPERATURE_MAX)
+						tmp_limits[(index_option-4)/3].TemperatureH=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-4)/3] .TemperatureH/ 10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					tmp_limits[(index_option-5)/3].TemperatureL+=1;
+					if(tmp_limits[(index_option-5)/3].TemperatureL>TEMPERATURE_MAX)
+						tmp_limits[(index_option-5)/3].TemperatureL=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/ 10.0);
+					break;
+				case 6:
+				case 9:
+				case 12:
+					tmp_limits[(index_option-6)/3].active=1-tmp_limits[(index_option-6)/3].active;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_TOP, Long_press)) {
+				joystick_init(Key_TOP, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					tmp_TEC_STATE = 1-tmp_TEC_STATE;
+					(tmp_TEC_STATE)?sprintf(tmp_str, "ENA"):sprintf(tmp_str, "DIS");
+					break;
+				case 3:
+					tmp_hys+=10;
+					if(tmp_hys>HYSTERESIS_MAX)
+						tmp_hys=HYSTERESIS_MIN;
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3].TemperatureH+=10;
+					if(tmp_limits[(index_option-4)/3].TemperatureH>TEMPERATURE_MAX)
+						tmp_limits[(index_option-4)/3].TemperatureH=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-4)/3].TemperatureH / 10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					tmp_limits[(index_option-5)/3].TemperatureL+=10;
+					if(tmp_limits[(index_option-5)/3].TemperatureL>TEMPERATURE_MAX)
+						tmp_limits[(index_option-5)/3].TemperatureL=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/ 10.0);
+					break;
+				case 6:
+				case 9:
+				case 12:
+					tmp_limits[(index_option-6)/3].active=1-tmp_limits[(index_option-6)/3].active;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					tmp_TEC_STATE = 1-tmp_TEC_STATE;
+					(tmp_TEC_STATE)?sprintf(tmp_str, "ENA"):sprintf(tmp_str, "DIS");
+					break;
+				case 3:
+					if(tmp_hys==HYSTERESIS_MIN)
+						tmp_hys=HYSTERESIS_MIN+1;
+					tmp_hys-=1;
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3].TemperatureH-=1;
+					if(tmp_limits[(index_option-4)/3].TemperatureH<TEMPERATURE_MIN)
+						tmp_limits[(index_option-4)/3].TemperatureH=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-4)/3] .TemperatureH/ 10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					tmp_limits[(index_option-5)/3].TemperatureL-=1;
+					if(tmp_limits[(index_option-5)/3].TemperatureL<TEMPERATURE_MIN)
+						tmp_limits[(index_option-5)/3].TemperatureL=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/ 10.0);
+					break;
+				case 6:
+				case 9:
+				case 12:
+					tmp_limits[(index_option-6)/3].active=1-tmp_limits[(index_option-6)/3].active;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Long_press)) {
+				joystick_init(Key_DOWN, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+					tmp_TEC_STATE = 1-tmp_TEC_STATE;
+					(tmp_TEC_STATE)?sprintf(tmp_str, "ENA"):sprintf(tmp_str, "DIS");
+					break;
+				case 3:
+					if(tmp_hys<=HYSTERESIS_MIN+10)
+						tmp_hys=HYSTERESIS_MIN+10;
+					tmp_hys-=10;
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3].TemperatureH-=10;
+					if(tmp_limits[(index_option-4)/3].TemperatureH<TEMPERATURE_MIN)
+						tmp_limits[(index_option-4)/3].TemperatureH=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-4)/3] .TemperatureH/ 10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					tmp_limits[(index_option-5)/3].TemperatureL-=10;
+					if(tmp_limits[(index_option-5)/3].TemperatureL<TEMPERATURE_MIN)
+						tmp_limits[(index_option-5)/3].TemperatureL=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/ 10.0);
+					break;
+				case 6:
+				case 9:
+				case 12:
+					tmp_limits[(index_option-6)/3].active=1-tmp_limits[(index_option-6)/3].active;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					(tmp_limits[2].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					index_option=12;
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				case 2:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+					break;
+				case 3:
+					(tmp_TEC_STATE)?sprintf(tmp_str,"ENA"):sprintf(tmp_str,"DIS");
+					index_option = 2;
+					break;
+				case 4:
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					index_option = 3;
+					break;
+				case 5:
+				case 8:
+				case 11:
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-5)/3].TemperatureH/10.0);
+					index_option-=1;
+					break;
+				case 7:
+				case 10:
+					(tmp_limits[(index_option-4)/3-1].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					index_option -=1;
+					break;
+				case 6:
+				case 9:
+				case 12:
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-6)/3].TemperatureL/10.0);
+					index_option-=1;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					(tmp_TEC_STATE)?sprintf(tmp_str,"ENA"):sprintf(tmp_str,"DIS");
+					index_option = 2;
+					break;
+				case 2:
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					index_option = 3;
+					break;
+				case 3:
+				case 6:
+				case 9:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-4)/3].TemperatureH/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					index_option+=1;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				case 12:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				glcd_refresh();
+				switch (index_option) {
+				case 0:	//OK
+						//save in eeprom
+					TEC_STATE_Value = tmp_TEC_STATE;
+					HYSTERESIS_Value=tmp_hys;
+					memcpy(TempLimit_Value,tmp_limits,6*sizeof(RELAY_t));
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], TEC_STATE_Value);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_HYS_Temp], HYSTERESIS_Value);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempH], TempLimit_Value[ENVIROMENT_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempL], TempLimit_Value[ENVIROMENT_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_active], TempLimit_Value[ENVIROMENT_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempH], TempLimit_Value[CAM_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempL], TempLimit_Value[CAM_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_active], TempLimit_Value[CAM_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempH], TempLimit_Value[CASE_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempL], TempLimit_Value[CASE_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_active], TempLimit_Value[CASE_TEMP].active);HAL_Delay(50);
+
+					if (TEC_STATE_Value)
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
+					else
+						sprintf(tmp_str2,
+								"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,Hysteresis,%f",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds,HYSTERESIS_Value );
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[ENVIROMENT_TEMP].TemperatureH/10.0,
+								TempLimit_Value[ENVIROMENT_TEMP].TemperatureL/10.0,TempLimit_Value[ENVIROMENT_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[CAM_TEMP].TemperatureH/10.0,
+								TempLimit_Value[CAM_TEMP].TemperatureL/10.0,TempLimit_Value[CAM_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[CASE_TEMP].TemperatureH/10.0,
+								TempLimit_Value[CASE_TEMP].TemperatureL/10.0,TempLimit_Value[CASE_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+					if (ActiveBrowserPage[TemperatureActivePage]) {
+						ready_msg_Temperaturepage(tmp_str2, TempLimit_Value,HYSTERESIS_Value,TEC_STATE_Value,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event,TemperaturePageEvent);
+					}
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 1:					//CANCEL
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+					sprintf(tmp_str, "%3.1f'C", tmp_hys/10.0);
+					index_option = 3;
+					break;
+				case 3:
+				case 6:
+				case 9:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-4)/3].TemperatureH/10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-5)/3].TemperatureL/10.0);
+					break;
+				case 5:
+				case 8:
+				case 11:
+					index_option+=1;
+					(tmp_limits[(index_option-6)/3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				case 12:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+		break;
 			/////////////////////////////////////TEMPS2_MENU/////////////////////////////////////////////////
 		case TEMP2_MENU:
+			joystick_init(Key_LEFT | Key_RIGHT | Key_ENTER, Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 5:
+				case 8:
+					tmp_limits[(index_option-2)/3+3].TemperatureH+=1;
+					if(tmp_limits[(index_option-2)/3+3].TemperatureH>TEMPERATURE_MAX)
+						tmp_limits[(index_option-2)/3+3].TemperatureH=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-2)/3+3] .TemperatureH/ 10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					tmp_limits[(index_option-3)/3+3].TemperatureL+=1;
+					if(tmp_limits[(index_option-3)/3+3].TemperatureL>TEMPERATURE_MAX)
+						tmp_limits[(index_option-3)/3+3].TemperatureL=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureL/ 10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3+3].active=1-tmp_limits[(index_option-4)/3+3].active;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_TOP, Long_press)) {
+				joystick_init(Key_TOP, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 5:
+				case 8:
+					tmp_limits[(index_option-2)/3+3].TemperatureH+=10;
+					if(tmp_limits[(index_option-2)/3+3].TemperatureH>TEMPERATURE_MAX)
+						tmp_limits[(index_option-2)/3+3].TemperatureH=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-2)/3+3].TemperatureH / 10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					tmp_limits[(index_option-3)/3+3].TemperatureL+=10;
+					if(tmp_limits[(index_option-3)/3+3].TemperatureL>TEMPERATURE_MAX)
+						tmp_limits[(index_option-3)/3+3].TemperatureL=TEMPERATURE_MAX;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureL/ 10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3+3].active=1-tmp_limits[(index_option-4)/3+3].active;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 5:
+				case 8:
+					tmp_limits[(index_option-2)/3+3].TemperatureH-=1;
+					if(tmp_limits[(index_option-2)/3+3].TemperatureH<TEMPERATURE_MIN)
+						tmp_limits[(index_option-2)/3+3].TemperatureH=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-2)/3+3] .TemperatureH/ 10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					tmp_limits[(index_option-3)/3+3].TemperatureL-=1;
+					if(tmp_limits[(index_option-3)/3+3].TemperatureL<TEMPERATURE_MIN)
+						tmp_limits[(index_option-3)/3+3].TemperatureL=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureL/ 10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3+3].active=1-tmp_limits[(index_option-4)/3+3].active;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_DOWN, Long_press)) {
+				joystick_init(Key_DOWN, Long_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 5:
+				case 8:
+					tmp_limits[(index_option-2)/3+3].TemperatureH-=10;
+					if(tmp_limits[(index_option-2)/3+3].TemperatureH<TEMPERATURE_MIN)
+						tmp_limits[(index_option-2)/3+3].TemperatureH=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-2)/3+3] .TemperatureH/ 10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					tmp_limits[(index_option-3)/3+3].TemperatureL-=10;
+					if(tmp_limits[(index_option-3)/3+3].TemperatureL<TEMPERATURE_MIN)
+						tmp_limits[(index_option-3)/3+3].TemperatureL=TEMPERATURE_MIN;
+					sprintf(tmp_str, "%4.1f",tmp_limits[(index_option-3)/3-3].TemperatureL/ 10.0);
+					break;
+				case 4:
+				case 7:
+				case 10:
+					tmp_limits[(index_option-4)/3+3].active=1-tmp_limits[(index_option-4)/3+3].active;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					(tmp_limits[5].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					index_option=10;
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				case 2:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,	1);
+					index_option = 1;
+					break;
+				case 3:
+				case 6:
+				case 9:
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureH/10.0);
+					index_option-=1;
+					break;
+				case 5:
+				case 8:
+					(tmp_limits[(index_option-5)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					index_option -=1;
+					break;
+				case 4:
+				case 7:
+				case 10:
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-4)/3+3].TemperatureL/10.0);
+					index_option-=1;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+
+				switch (index_option) {
+				case 0:	//OK
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					index_option = 1;
+
+					break;
+				case 1:	//CANCEL
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,0);
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-1)/3+3].TemperatureH/10.0);
+					index_option = 2;
+					break;
+				case 2:
+				case 5:
+				case 8:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureL/10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					index_option+=1;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				case 4:
+				case 7:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-2)/3+3].TemperatureH/10.0);
+					break;
+				case 10:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 - 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2 - 1,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				glcd_refresh();
+				switch (index_option) {
+				case 0:	//OK
+						//save in eeprom
+					memcpy(TempLimit_Value,tmp_limits,6*sizeof(RELAY_t));
+
+
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_TempH], TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_TempL], TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_active], TempLimit_Value[MOTHERBOARD_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempH], TempLimit_Value[TECIN_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempL], TempLimit_Value[TECIN_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_active], TempLimit_Value[TECIN_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempH], TempLimit_Value[TECOUT_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempL], TempLimit_Value[TECOUT_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_active], TempLimit_Value[TECOUT_TEMP].active);HAL_Delay(50);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH/10.0,
+								TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL/10.0,TempLimit_Value[MOTHERBOARD_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[TECIN_TEMP].TemperatureH/10.0,
+								TempLimit_Value[TECIN_TEMP].TemperatureL/10.0,TempLimit_Value[TECIN_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[TECOUT_TEMP].TemperatureH/10.0,
+								TempLimit_Value[TECOUT_TEMP].TemperatureL/10.0,TempLimit_Value[TECOUT_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+					if (ActiveBrowserPage[TemperatureActivePage]) {
+						ready_msg_Temperaturepage(tmp_str2, TempLimit_Value,HYSTERESIS_Value,TEC_STATE_Value,cur_browser_profile);
+						uart_transmit_frame(tmp_str2, cmd_event,TemperaturePageEvent);
+					}
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 1:					//CANCEL
+					index_option = MENU_state - POSITION_MENU;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+				case 5:
+				case 8:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-3)/3+3].TemperatureL/10.0);
+					break;
+				case 3:
+				case 6:
+				case 9:
+					index_option+=1;
+					(tmp_limits[(index_option-4)/3+3].active)?sprintf(tmp_str,"A"):sprintf(tmp_str,"-");
+					break;
+				case 4:
+				case 7:
+					index_option+=1;
+					sprintf(tmp_str,"%4.1f",tmp_limits[(index_option-2)/3+3].TemperatureH/10.0);
+					break;
+				case 10:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1 && MENU_state != OPTION_MENU) {
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				}
+				glcd_refresh();
+			}
+
 		break;
 			/////////////////////////////////////DOOR_MENU/////////////////////////////////////////////////
 		case DOOR_MENU:
@@ -7515,13 +7419,13 @@ int app_main(void) {
 					ActiveBrowserPage[LEDActivePage] = 1;
 					break;
 				case TimePositionpage:
-					ready_msg_TimePositionpage(tmp_str2, cur_sunrise,
-							cur_sunset, cur_browser_profile);
+					ready_msg_TimePositionpage(tmp_str2, cur_sunrise,	cur_sunset, cur_browser_profile);
 					uart_transmit_frame(tmp_str2, cmd_current,
 							TimePositionpage);
 					ActiveBrowserPage[TimePositionActivePage] = 1;
 					break;
 				case Temperaturepage:
+					ready_msg_Temperaturepage(tmp_str2, TempLimit_Value, HYSTERESIS_Value, TEC_STATE_Value, cur_browser_profile);
 					uart_transmit_frame(tmp_str2, cmd_current, Temperaturepage);
 					ActiveBrowserPage[TemperatureActivePage] = 1;
 					break;
@@ -7559,8 +7463,9 @@ int app_main(void) {
 
 					break;
 				case Temperaturepage:
+					ready_msg_Temperaturepage(tmp_str2, TempLimit_Value, HYSTERESIS_Value, TEC_STATE_Value, cur_browser_profile);
+					printf("msg temppage:%s\n\r",tmp_str2);
 					uart_transmit_frame(tmp_str2, cmd_default, Temperaturepage);
-
 					break;
 				case Wifipage:
 					uart_transmit_frame(tmp_str2, cmd_default, Wifipage);
@@ -7786,8 +7691,145 @@ int app_main(void) {
 					uart_transmit_frame(tmp_str2, cmd_submit, TimePositionpage);
 					break;
 				case Temperaturepage:
-					sprintf(tmp_str2, "OK");
-					uart_transmit_frame(tmp_str2, cmd_submit, Temperaturepage);
+					memcpy(TempLimit_Value,tmp_limits,6*sizeof(RELAY_t));
+					TEC_STATE_Value=(uint8_t)atoi(ptr_splitted[0]);
+					HYSTERESIS_Value=(int16_t)(atof(ptr_splitted[1])*10.0);
+					TempLimit_Value[ENVIROMENT_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[2])*10.0);
+					TempLimit_Value[ENVIROMENT_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[3])*10.0);
+					TempLimit_Value[ENVIROMENT_TEMP].active=(uint8_t)(atoi(ptr_splitted[4]));
+
+					TempLimit_Value[CAM_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[5])*10.0);
+					TempLimit_Value[CAM_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[6])*10.0);
+					TempLimit_Value[CAM_TEMP].active=(uint8_t)(atoi(ptr_splitted[7]));
+
+					TempLimit_Value[CASE_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[8])*10.0);
+					TempLimit_Value[CASE_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[9])*10.0);
+					TempLimit_Value[CASE_TEMP].active=(uint8_t)(atoi(ptr_splitted[10]));
+
+					TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[11])*10.0);
+					TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[12])*10.0);
+					TempLimit_Value[MOTHERBOARD_TEMP].active=(uint8_t)(atoi(ptr_splitted[13]));
+
+					TempLimit_Value[TECIN_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[14])*10.0);
+					TempLimit_Value[TECIN_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[15])*10.0);
+					TempLimit_Value[TECIN_TEMP].active=(uint8_t)(atoi(ptr_splitted[16]));
+
+					TempLimit_Value[TECOUT_TEMP].TemperatureH=(int16_t)(atof(ptr_splitted[17])*10.0);
+					TempLimit_Value[TECOUT_TEMP].TemperatureL=(int16_t)(atof(ptr_splitted[18])*10.0);
+					TempLimit_Value[TECOUT_TEMP].active=(uint8_t)(atoi(ptr_splitted[19]));
+
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TEC_STATE], TEC_STATE_Value);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_HYS_Temp], HYSTERESIS_Value);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempH], TempLimit_Value[ENVIROMENT_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_TempL], TempLimit_Value[ENVIROMENT_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_ENV_active], TempLimit_Value[ENVIROMENT_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempH], TempLimit_Value[CAM_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_TempL], TempLimit_Value[CAM_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CAM_active], TempLimit_Value[CAM_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempH], TempLimit_Value[CASE_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_TempL], TempLimit_Value[CASE_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_CASE_active], TempLimit_Value[CASE_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_TempH], TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_TempL], TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_MB_active], TempLimit_Value[MOTHERBOARD_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempH], TempLimit_Value[TECIN_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_TempL], TempLimit_Value[TECIN_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECIN_active], TempLimit_Value[TECIN_TEMP].active);HAL_Delay(50);
+
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempH], TempLimit_Value[TECOUT_TEMP].TemperatureH);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_TempL], TempLimit_Value[TECOUT_TEMP].TemperatureL);HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_TECOUT_active], TempLimit_Value[TECOUT_TEMP].active);HAL_Delay(50);
+
+					if (TEC_STATE_Value)
+						sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,TEC ENABLE\n",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
+					else
+						sprintf(tmp_str2,
+								"%04d-%02d-%02d,%02d:%02d:%02d,TEC DISABLE\n",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,Hysteresis,%f",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds,HYSTERESIS_Value );
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[ENVIROMENT_TEMP].TemperatureH/10.0,
+								TempLimit_Value[ENVIROMENT_TEMP].TemperatureL/10.0,TempLimit_Value[ENVIROMENT_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[CAM_TEMP].TemperatureH/10.0,
+								TempLimit_Value[CAM_TEMP].TemperatureL/10.0,TempLimit_Value[CAM_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[CASE_TEMP].TemperatureH/10.0,
+								TempLimit_Value[CASE_TEMP].TemperatureL/10.0,TempLimit_Value[CASE_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[MOTHERBOARD_TEMP].TemperatureH/10.0,
+								TempLimit_Value[MOTHERBOARD_TEMP].TemperatureL/10.0,TempLimit_Value[MOTHERBOARD_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[TECIN_TEMP].TemperatureH/10.0,
+								TempLimit_Value[TECIN_TEMP].TemperatureL/10.0,TempLimit_Value[TECIN_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+
+					sprintf(tmp_str,
+								"%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%f,%f,%d",
+								cur_Date.Year + 2000, cur_Date.Month,
+								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+								cur_time.Seconds, TempLimit_Value[TECOUT_TEMP].TemperatureH/10.0,
+								TempLimit_Value[TECOUT_TEMP].TemperatureL/10.0,TempLimit_Value[TECOUT_TEMP].active);
+					r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+							tmp_str2);
+
+					uart_transmit_frame("OK", cmd_submit, Temperaturepage);
 					break;
 				case Wifipage:
 					sprintf(tmp_str2, "OK");

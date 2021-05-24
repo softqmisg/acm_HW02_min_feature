@@ -132,8 +132,12 @@ void Error_Handler(void);
 #define ADD_SUNSET_S2_MAX	20 //10
 #define ADD_SUNSET_S2_MIN	-20 //10
 
-#define TEMPERATURE_MAX		1000 //*10
-#define TEMPERATURE_MIN		-400 //*10
+#define TEMPERATURE_MAX		800 //*10
+#define TEMPERATURE_MIN		100 //*10
+
+#define HYSTERESIS_MAX		99
+#define HYSTERESIS_MIN		0
+
 
 #define WHITE_LED	0
 #define IR_LED		1
@@ -145,6 +149,12 @@ void Error_Handler(void);
 #define TECIN_TEMP			4
 #define TECOUT_TEMP			5
 
+#define ADMIN_PROFILE	0
+#define USER_PROFILE	1
+
+#define MENU_TOTAL_ITEMS	17
+#define MENU_ITEMS_IN_PAGE	10
+#define MENU_TOTAL_PAGES	2
 
 typedef struct {
 	uint8_t TYPE_Value;
