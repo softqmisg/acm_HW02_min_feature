@@ -183,7 +183,14 @@ void update_values(void) {
 		profile_active[USER_PROFILE][5]=0;
 		profile_active[USER_PROFILE][6]=0;
 	}
-
+	if(profile_user_Value& 0x10)
+	{
+		profile_active[USER_PROFILE][7]=1;
+	}
+	else
+	{
+		profile_active[USER_PROFILE][7]=0;
+	}
 	if(profile_user_Value& 0x20)
 	{
 		profile_active[USER_PROFILE][11]=1;
@@ -214,7 +221,6 @@ void update_values(void) {
 		profile_active[USER_PROFILE][8]=0;
 	}
 	profile_active[USER_PROFILE][4]=0;
-	profile_active[USER_PROFILE][7]=0;
 	profile_active[USER_PROFILE][9]=1;
 	profile_active[USER_PROFILE][10]=1;
 	profile_active[USER_PROFILE][14]=0;

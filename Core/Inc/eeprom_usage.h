@@ -149,6 +149,7 @@
 
 #define 	DEFAULT_DOOR						50000
 
+///password page| upgrade page| Wifi page| user option page| Temperature page| Time page| LED page |Dashboard page(1)
 #define 	DEFAULT_PROFILE_USER				0xA5//0b10100101
 #define 	DEFAULT_PROFILE_ADMIN				0xFF//0b11111111
 ///////////////////////////////////////////////////////////////////////////////////
