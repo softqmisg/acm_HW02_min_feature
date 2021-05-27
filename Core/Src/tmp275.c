@@ -30,30 +30,32 @@ HAL_StatusTypeDef tmp275_readTemperature(uint8_t ch,int16_t *Temperature)
 	uint8_t buffer[2];
 	uint16_t raw_temp;
 
-	buffer[0]=TMP275_TMP_REG;
-
-	if(HAL_I2C_Master_Transmit(&hi2c3,(TMP275_BASEADDRESS+ch)<<1,buffer,1,1000)!=TMP275_OK)
-		return TMP275_ERROR;
-
-	switch(tmp275_res)
+//	buffer[0]=TMP275_TMP_REG;
+//	if(HAL_I2C_Master_Transmit(&hi2c3,(TMP275_BASEADDRESS+ch)<<1,buffer,1,1000)!=TMP275_OK)
+//		return TMP275_ERROR;
+//
+////	switch(tmp275_res)
+////	{
+////	case TMP275_9BIT:
+////		HAL_Delay(TMP275_9BIT_DELAY);
+////		break;
+////	case TMP275_10BIT:
+////		HAL_Delay(TMP275_10BIT_DELAY);
+////		break;
+////	case TMP275_11BIT:
+////		HAL_Delay(TMP275_11BIT_DELAY);
+////		break;
+////	case TMP275_12BIT:
+////		HAL_Delay(TMP275_12BIT_DELAY);
+////		break;
+////	}
+//
+//	if(HAL_I2C_Master_Receive(&hi2c3,(TMP275_BASEADDRESS+ch)<<1,buffer,2,2000)!=TMP275_OK)
+//		return TMP275_ERROR;
+	if( HAL_I2C_Mem_Read(&hi2c3, (TMP275_BASEADDRESS+ch)<<1, TMP275_TMP_REG, I2C_MEMADD_SIZE_8BIT, buffer, 2, 1000)!=TMP275_OK)
 	{
-	case TMP275_9BIT:
-		HAL_Delay(TMP275_9BIT_DELAY);
-		break;
-	case TMP275_10BIT:
-		HAL_Delay(TMP275_10BIT_DELAY);
-		break;
-	case TMP275_11BIT:
-		HAL_Delay(TMP275_11BIT_DELAY);
-		break;
-	case TMP275_12BIT:
-		HAL_Delay(TMP275_12BIT_DELAY);
-		break;
-	}
-
-	if(HAL_I2C_Master_Receive(&hi2c3,(TMP275_BASEADDRESS+ch)<<1,buffer,2,2000)!=TMP275_OK)
 		return TMP275_ERROR;
-
+	}
 	raw_temp=(uint16_t)(buffer[0]<<4)|(buffer[1]>>4);
 	if(buffer[0]>0x80)
 	{

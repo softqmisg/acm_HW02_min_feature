@@ -2558,6 +2558,7 @@ int app_main(void) {
 				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 					cur_temperature[i] = (int16_t) 0x8fff;
 				}
+				HAL_Delay(20);
 			}
 			////////////////////////////////////////////////////////////
 			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
@@ -8283,7 +8284,7 @@ int app_main(void) {
 								tmp_str2);
 					}
 
-				} else if ((Delta_T > 2)&& (Env_temperature	>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
+				} else if ((Delta_T < -2)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
 				{
 					FAN_ON();
 					TEC_HOT();
@@ -8298,7 +8299,7 @@ int app_main(void) {
 								tmp_str2);
 					}
 
-				} else if ((Delta_T < -2)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
+				} else if ((Delta_T > 2)&& (Env_temperature	>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
 				{
 						FAN_OFF();
 						if (algorithm_temp_state != 8) {
