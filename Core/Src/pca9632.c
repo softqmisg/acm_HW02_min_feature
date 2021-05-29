@@ -3,8 +3,8 @@
 
 //////////////////////////////////////////////////////////////////
 HAL_StatusTypeDef pca9632_init(void) {
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
+//	HAL_I2C_MspInit(&hi2c3);
+//	MX_I2C3_Init();
 	uint8_t buffer[5];
 	buffer[0] = PCA9632_CMD_MODE1;
 	buffer[1] = 0x00; //00000001//normal & accept all call

@@ -3,8 +3,8 @@
 #include "vcnl4200.h"
 ///////////////////////////////////////////////////
 HAL_StatusTypeDef vcnl4200_init(void) {
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
+//	HAL_I2C_MspInit(&hi2c3);
+//	MX_I2C3_Init();
 	uint8_t buffer[4];
 	/////////////////////////////////ALS_CONF////////////////////////////////////////
 	buffer[0] = VCNL4200_ALS_CONF;

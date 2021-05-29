@@ -105,6 +105,146 @@ void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+uint8_t reinit=0;
+void reinit_i2c(I2C_HandleTypeDef *instance)
+{
+
+	   GPIO_InitTypeDef GPIO_InitStruct;
+	    int timeout =100;
+	    int timeout_cnt=0;
+
+	    // 1. Clear PE bit.
+	    instance->Instance->CR1 &= ~(0x0001);
+
+	    //  2. Configure the SCL and SDA I/Os as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+	    GPIO_InitStruct.Mode         = GPIO_MODE_OUTPUT_OD;
+	    GPIO_InitStruct.Alternate    = GPIO_AF4_I2C3;
+	    GPIO_InitStruct.Pull         = GPIO_PULLUP;
+	    GPIO_InitStruct.Speed        = GPIO_SPEED_FREQ_HIGH;
+
+	    GPIO_InitStruct.Pin          = GPIO_PIN_7;//scl
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	    GPIO_InitStruct.Pin          = GPIO_PIN_8;//sda
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+
+	    // 3. Check SCL and SDA High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        //Move clock to release I2C
+	        HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_RESET);
+	        asm("nop");
+	        HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 4. Configure the SDA I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	    //  5. Check SDA Low level in GPIOx_IDR.
+	    while (GPIO_PIN_RESET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 6. Configure the SCL I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_RESET);
+
+	    //  7. Check SCL Low level in GPIOx_IDR.
+	    while (GPIO_PIN_RESET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 8. Configure the SCL I/O as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	    // 9. Check SCL High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 10. Configure the SDA I/O as General Purpose Output Open-Drain , High level (Write 1 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+	    // 11. Check SDA High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+	    GPIO_InitStruct.Pull = GPIO_PULLUP;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	    GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
+
+	    GPIO_InitStruct.Pin = GPIO_PIN_7;
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+	    GPIO_InitStruct.Pin = GPIO_PIN_8;
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+	    // 13. Set SWRST bit in I2Cx_CR1 register.
+	    instance->Instance->CR1 |= 0x8000;
+
+	    asm("nop");
+
+	    // 14. Clear SWRST bit in I2Cx_CR1 register.
+	    instance->Instance->CR1 &= ~0x8000;
+
+	    asm("nop");
+
+	    // 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
+	    instance->Instance->CR1 |= 0x0001;
+
+	    // Call initialization function.
+	    HAL_I2C_Init(instance);
+
+//
+//
+//	HAL_I2C_MspDeInit(&hi2c3);
+//	HAL_Delay(100);
+//	MX_I2C3_Init();
+	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+		tmp275_init(ch);
+		HAL_Delay(20);
+	}
+	ina3221_init(INA3221_LED_BASEADDRESS);
+	ina3221_init(INA3221_TEC_BASEADDRESS);
+	pca9632_init();
+	vcnl4200_init();
+	veml6030_init();
+
+
+	reinit=1;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t flag_rtc_1s = 0;
 uint8_t flag_rtc_1s_general = 0;
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
@@ -293,7 +433,7 @@ enum {
 	WIFI2_MENU,
 	UPGRADE_MENU,
 	COPY_MENU,
-	TEST2_MENU,
+	FACTORYRESET_MENU,
 	EXIT_MENU
 } MENU_state = MAIN_MENU;
 
@@ -301,7 +441,7 @@ enum {
 
 char *menu[] = { "SET Position", "SET Time", "SET LED S1", "SET LED S2",
 		 "SET Door", "SET Temp 1","SET Temp 2", "User Option", "SET PASS", "Next->",
-		"<-Prev", "SET WIFI 1", "SET WIFI 2", "Upgrade", "Copy USB","test2", "Exit" };
+		"<-Prev", "SET WIFI 1", "SET WIFI 2", "Upgrade", "Copy USB","Factory rst", "Exit" };
 
 char *menu_upgrade[] = { "Upgrade from SD", "Upgrade from USB",
 		"Force upgrade from SD", "Force upgrade from  USB" };
@@ -319,7 +459,7 @@ typedef struct {
 	uint8_t ssidhidden;
 	uint8_t maxclients;
 }WiFi_t;
-WiFi_t cur_wifi;
+WiFi_t cur_wifi={0};
 char *tx_array[]={
 				"19.5dBm",
 				"19  dBm",
@@ -426,8 +566,7 @@ bounding_box_t create_button(bounding_box_t box, char *str, uint8_t text_inv,
 	return text_cell(&box, 0, str, Tahoma8, CENTER_ALIGN, text_inv, box_inv);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void create_menu(uint8_t selected, uint8_t page, uint8_t clear,
-		bounding_box_t *text_pos) {
+void create_menu(uint8_t selected, uint8_t page, uint8_t clear,	bounding_box_t *text_pos) {
 
 	if (clear)
 		glcd_blank();
@@ -449,10 +588,9 @@ void create_menu(uint8_t selected, uint8_t page, uint8_t clear,
 				+ text_height(menu[op + MENU_ITEMS_IN_PAGE * page], Tahoma8);
 		glcd_refresh();
 	}
-	if (selected < MENU_ITEMS_IN_PAGE)
-		draw_text(menu[selected + MENU_ITEMS_IN_PAGE * page],
-				(selected / 5) * 66 + 2, (selected % 5) * 12 + 1, Tahoma8, 1,
-				1);
+//	selected=selected%MENU_ITEMS_IN_PAGE;
+	draw_text(menu[selected + MENU_ITEMS_IN_PAGE * page],(selected / 5) * 66 + 2, (selected % 5) * 12 + 1, Tahoma8, 1,1);
+
 	glcd_refresh();
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -822,7 +960,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[0].x1 = 1;
 	pos_[0].x2 = 70;
-	text_cell(pos_, 0, "Inside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 0, "Door:", Tahoma8, LEFT_ALIGN, 1, 1);
 
 	if (outside_light != 0xffff)
 		sprintf(tmp_str, "%05d", outside_light);
@@ -832,7 +970,7 @@ void create_form6(uint8_t clear, uint16_t inside_light, uint16_t outside_light) 
 	text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
 	pos_[1].x1 = 1;
 	pos_[1].x2 = 70;
-	text_cell(pos_, 1, "Outside Light:", Tahoma8, LEFT_ALIGN, 1, 1);
+	text_cell(pos_, 1, "Ambient Light:", Tahoma8, LEFT_ALIGN, 1, 1);
 	////
 	DWORD fre_clust, fre_sect, tot_sect;
 	FRESULT res;
@@ -1849,8 +1987,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(27, pos_[0].y1, 128 - 27, 64 - pos_[0].y1, 4, 1, 1, pos_);glcd_refresh();
-	uint8_t index=0;
-	while(tmp_wifi.ssid[index])
+	for(uint8_t index=0; index<10;index++)
 	{
 		sprintf(tmp_str, "%c",tmp_wifi.ssid[index]);
 		pos_[0].x1 = pos_[0].x1+1;
@@ -1860,8 +1997,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 		index++;
 	}
 
-	index=0;
-	while(tmp_wifi.pass[index])
+	for(uint8_t index=0; index<10;index++)
 	{
 		sprintf(tmp_str, "%c",tmp_wifi.pass[index]);
 		pos_[1].x1 = pos_[1].x1+1;
@@ -1874,7 +2010,6 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 	(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
 	pos_[2].x1 = pos_[2].x1 + 1;
 	pos_[2].x2=pos_[2].x2 -1;
-//	pos_[2].x2 = pos_[2].x1 + text_width("Y", Tahoma8, 1) + 1;
 	text_pos[22] = text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
 
 
@@ -1996,8 +2131,8 @@ void create_formWIFI2(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 	}
 
 	sprintf(tmp_str, "%s",tx_array[tmp_wifi.txpower]);
-//	pos_[3].x1 = pos_[3].x1 + 1;
-//	pos_[3].x2 = pos_[3].x1 + text_width("19.5dBm", Tahoma8, 1) + 1;
+	pos_[3].x1 = pos_[3].x1 + 1;
+	pos_[3].x2 =pos_[3].x2 -1;
 	text_pos[38] = text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2543,13 +2678,13 @@ int app_main(void) {
 			cur_date_t.year = cur_Date.Year;
 
 			counter_flag_10s_general++;
-			if (counter_flag_10s_general >= 9) {
+			if (counter_flag_10s_general >= 10) {
 				counter_flag_10s_general = 0;
 				flag_rtc_10s_general = 1;
 			}
 
 			counter_flag_1m_general++;
-			if (counter_flag_1m_general >= 59) {
+			if (counter_flag_1m_general >= 60) {
 				counter_flag_1m_general = 0;
 				flag_rtc_1m_general = 1;
 			}
@@ -2564,44 +2699,51 @@ int app_main(void) {
 			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
 					!= HAL_OK) {
 				cur_voltage[0] = -1.0;
+				reinit_i2c(&hi2c3);
 			}
 			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
 					!= HAL_OK) {
 				cur_current[0] = -1.0;
+				reinit_i2c(&hi2c3);
 			}
 			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
 					!= HAL_OK) {
 				cur_voltage[1] = -1.0;
+				reinit_i2c(&hi2c3);
 
 			}
 			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
 					!= HAL_OK) {
 				cur_current[1] = -1.0;
+				reinit_i2c(&hi2c3);
 
 			}
 			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
 					!= HAL_OK) {
 				cur_voltage[2] = -1.0;
+				reinit_i2c(&hi2c3);
 
 			}
 			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
 					!= HAL_OK) {
 				cur_current[2] = -1.0;
+				reinit_i2c(&hi2c3);
 
 			}
 			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
 					!= HAL_OK) {
 				cur_voltage[3] = -1.0;
-
+				reinit_i2c(&hi2c3);
 			}
 			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
 					!= HAL_OK) {
 				cur_current[3] = -1.0;
-
+				reinit_i2c(&hi2c3);
 			}
 			////////////////////////////////////////////////////////
 			if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 				cur_insidelight = 0xffff;
+				reinit_i2c(&hi2c3);
 			}
 			if (veml6030_als(&cur_outsidelight) != HAL_OK) {
 				cur_outsidelight = 0xffff;
@@ -3325,16 +3467,14 @@ int app_main(void) {
 				do {
 					index_option++;
 					if (menu_page == (MENU_TOTAL_PAGES - 1)) {
-						if (index_option
-								>= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
+						if (index_option>= (MENU_TOTAL_ITEMS % MENU_ITEMS_IN_PAGE))
 							index_option = 0;
 					} else {
 						if (index_option >= MENU_ITEMS_IN_PAGE)
 							index_option = 0;
 
 					}
-				} while (!profile_active[cur_profile][index_option
-						+ MENU_ITEMS_IN_PAGE * menu_page]);
+				} while (!profile_active[cur_profile][index_option	+ MENU_ITEMS_IN_PAGE * menu_page]);
 				draw_text(menu[index_option + MENU_ITEMS_IN_PAGE * menu_page],
 						(index_option / 5) * 66 + 2,
 						(index_option % 5) * 12 + 1, Tahoma8, 1, 1);
@@ -3571,13 +3711,11 @@ int app_main(void) {
 						glcd_refresh();
 						MENU_state = UPGRADE_MENU;
 						break;
-						MENU_state = TEST2_MENU;
-						break;
 					case COPY_MENU:
 						MENU_state = COPY_MENU;
 						break;
-					case TEST2_MENU:
-						MENU_state = TEST2_MENU;
+					case FACTORYRESET_MENU:
+						MENU_state = FACTORYRESET_MENU;
 						break;
 					case EXIT_MENU:
 						MENU_state = EXIT_MENU;
@@ -7771,16 +7909,16 @@ int app_main(void) {
 				case 9:
 				case 10:
 				case 11:
-					tmp_wifi.ssid[index_option - 2] = (char) tmp_wifi.ssid[index_option
-							- 2] + 1;
-					if (tmp_wifi.ssid[index_option - 2] > '9'
-							&& tmp_wifi.ssid[index_option - 2] < 'A')
+					tmp_wifi.ssid[index_option - 2] = (char) tmp_wifi.ssid[index_option	- 2] + 1;
+
+					if(tmp_wifi.ssid[index_option - 2] > ' ' && tmp_wifi.ssid[index_option - 2]<'0')
+						tmp_wifi.ssid[index_option - 2]='0';
+					else if (tmp_wifi.ssid[index_option - 2] > '9'&& tmp_wifi.ssid[index_option - 2] < 'A')
 						tmp_wifi.ssid[index_option - 2] = 'A';
-					else if (tmp_wifi.ssid[index_option - 2] > 'Z'
-							&& tmp_wifi.ssid[index_option - 2] < 'a')
+					else if (tmp_wifi.ssid[index_option - 2] > 'Z'	&& tmp_wifi.ssid[index_option - 2] < 'a')
 						tmp_wifi.ssid[index_option - 2] = 'a';
-					if (tmp_wifi.ssid[index_option - 2] > 'z')
-						tmp_wifi.ssid[index_option - 2] = '0';
+					else if (tmp_wifi.ssid[index_option - 2] > 'z')
+						tmp_wifi.ssid[index_option - 2] = ' ';
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					break;
 				case 12:
@@ -7793,16 +7931,16 @@ int app_main(void) {
 				case 19:
 				case 20:
 				case 21:
-					tmp_wifi.pass[index_option - 12] =
-							(char) tmp_wifi.pass[index_option - 12] + 1;
-					if (tmp_wifi.pass[index_option - 12] > '9'
-							&& tmp_wifi.pass[index_option - 12] < 'A')
+					tmp_wifi.pass[index_option - 12] =	(char) tmp_wifi.pass[index_option - 12] + 1;
+
+					if(tmp_wifi.pass[index_option - 2] > ' ' && tmp_wifi.pass[index_option - 2]<'0')
+						tmp_wifi.pass[index_option - 2]='0';
+					else if (tmp_wifi.pass[index_option - 12] > '9'	&& tmp_wifi.pass[index_option - 12] < 'A')
 						tmp_wifi.pass[index_option - 12] = 'A';
-					else if (tmp_wifi.pass[index_option - 12] > 'Z'
-							&& tmp_wifi.pass[index_option - 12] < 'a')
+					else if (tmp_wifi.pass[index_option - 12] > 'Z'&& tmp_wifi.pass[index_option - 12] < 'a')
 						tmp_wifi.pass[index_option - 12] = 'a';
-					if (tmp_wifi.pass[index_option - 12] > 'z')
-						tmp_wifi.pass[index_option - 12] = '0';
+					else if (tmp_wifi.pass[index_option - 12] > 'z')
+						tmp_wifi.pass[index_option - 12] = ' ';
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 22:
@@ -7846,16 +7984,16 @@ int app_main(void) {
 				case 9:
 				case 10:
 				case 11:
-					tmp_wifi.ssid[index_option - 2] = (char) tmp_wifi.ssid[index_option
-							- 2] - 1;
-					if (tmp_wifi.ssid[index_option - 2] < '0')
+					tmp_wifi.ssid[index_option - 2] = (char) tmp_wifi.ssid[index_option	- 2] - 1;
+
+					if(tmp_wifi.ssid[index_option - 2] < ' ' )
 						tmp_wifi.ssid[index_option - 2] = 'z';
-					else if (tmp_wifi.ssid[index_option - 2] < 'a'
-							&& tmp_wifi.ssid[index_option - 2] > 'Z')
-						tmp_wifi.ssid[index_option - 2] = 'Z';
-					else if (tmp_wifi.ssid[index_option - 2] < 'A'
-							&& tmp_wifi.ssid[index_option - 2] > '9')
+					else if (tmp_wifi.ssid[index_option - 2] < '0' && tmp_wifi.ssid[index_option - 2] > ' ')
+						tmp_wifi.ssid[index_option - 2] = ' ';
+					else if (tmp_wifi.ssid[index_option - 2] < 'A'	&& tmp_wifi.ssid[index_option - 2] > '9')
 						tmp_wifi.ssid[index_option - 2] = '9';
+					else if (tmp_wifi.ssid[index_option - 2] < 'a'	&& tmp_wifi.ssid[index_option - 2] > 'Z')
+						tmp_wifi.ssid[index_option - 2] = 'Z';
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 
 					break;
@@ -7869,16 +8007,14 @@ int app_main(void) {
 				case 19:
 				case 20:
 				case 21:
-					tmp_wifi.pass[index_option - 12] =
-							(char) tmp_wifi.pass[index_option - 12] - 1;
-					if (tmp_wifi.pass[index_option - 12] < '0')
-						tmp_wifi.pass[index_option - 12] = 'z';
-					else if (tmp_wifi.pass[index_option - 12] < 'a'
-							&& tmp_wifi.pass[index_option - 12] > 'Z')
-						tmp_wifi.pass[index_option - 12] = 'Z';
-					else if (tmp_wifi.pass[index_option - 12] < 'A'
-							&& tmp_wifi.pass[index_option - 12] > '9')
-						tmp_wifi.pass[index_option - 12] = '9';
+					if(tmp_wifi.pass[index_option - 2] < ' ' )
+						tmp_wifi.pass[index_option - 2] = 'z';
+					else if (tmp_wifi.pass[index_option - 2] < '0' && tmp_wifi.pass[index_option - 2] > ' ')
+						tmp_wifi.pass[index_option - 2] = ' ';
+					else if (tmp_wifi.pass[index_option - 2] < 'A'	&& tmp_wifi.pass[index_option - 2] > '9')
+						tmp_wifi.pass[index_option - 2] = '9';
+					else if (tmp_wifi.pass[index_option - 2] < 'a'	&& tmp_wifi.pass[index_option - 2] > 'Z')
+						tmp_wifi.pass[index_option - 2] = 'Z';
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 22:
@@ -7931,8 +8067,16 @@ int app_main(void) {
 				case 8:
 				case 9:
 				case 10:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
+					if(tmp_wifi.ssid[index_option - 2]==' ')
+					{
+						index_option=12;
+						sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					}
+					else
+					{
+						index_option++;
+						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
+					}
 					break;
 				case 11:
 				case 12:
@@ -7944,8 +8088,16 @@ int app_main(void) {
 				case 18:
 				case 19:
 				case 20:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					if(tmp_wifi.ssid[index_option - 2]==' ')
+					{
+						index_option=22;
+						(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
+					}
+					else
+					{
+						index_option++;
+						sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					}
 					break;
 				case 21:
 					index_option++;
@@ -8004,7 +8156,10 @@ int app_main(void) {
 				case 10:
 				case 11:
 				case 12:
-					index_option--;
+					do
+					{
+						index_option--;
+					}while(tmp_wifi.ssid[index_option - 12]!=' ');
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					break;
 				case 13:
@@ -8017,7 +8172,11 @@ int app_main(void) {
 				case 20:
 				case 21:
 				case 22:
-					index_option--;
+					do
+					{
+						index_option--;
+
+					}while(tmp_wifi.pass[index_option - 12]!=' ');
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 23:
@@ -8045,9 +8204,20 @@ int app_main(void) {
 				}
 				switch (index_option) {
 				case 0:	//OK
-						//save in eeprom
+
 						cur_wifi=tmp_wifi;
-						index_option = MENU_state - POSITION_MENU;
+
+						sprintf(tmp_str2,"%s,%s,%s,%s,%s,%d,%d",
+								strtok(cur_wifi.ssid," "),
+								strtok(cur_wifi.pass," "),
+								cur_wifi.ip,
+								cur_wifi.gateway,
+								cur_wifi.netmask,
+								cur_wifi.ssidhidden,
+								cur_wifi.maxclients
+								);
+						uart_transmit_frame(tmp_str2, cmd_event, WifiPageEvent);
+						index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
 						create_menu(index_option, menu_page, 1, text_pos);
 						MENU_state = OPTION_MENU;
 					break;
@@ -8059,17 +8229,53 @@ int app_main(void) {
 				case 2:
 				case 3:
 				case 4:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_pass[index_option - 2]);
-					break;
 				case 5:
 				case 6:
 				case 7:
 				case 8:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_confirmpass[index_option - 6]);
-					break;
 				case 9:
+				case 10:
+					if(tmp_wifi.ssid[index_option - 2]==' ')
+					{
+						index_option=12;
+						sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					}
+					else
+					{
+						index_option++;
+						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
+					}
+					break;
+				case 11:
+				case 12:
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+					if(tmp_wifi.ssid[index_option - 2]==' ')
+					{
+						index_option=22;
+						(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
+					}
+					else
+					{
+						index_option++;
+						sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					}
+					break;
+				case 21:
+					index_option++;
+					(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
+				break;
+				case 22:
+					index_option++;
+					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					break;
+				case 23:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
@@ -8200,6 +8406,19 @@ int app_main(void) {
 			}
 
 			break;
+			/////////////////////////////////////FACTORYRESET_MENU/////////////////////////////////////////////////
+		case FACTORYRESET_MENU:
+			glcd_blank();
+			create_cell(0, 0, 128, 64, 1, 1, 1, text_pos);
+			text_cell(text_pos, 0, "Loading Defaults", Tahoma8, CENTER_ALIGN, 0, 0);
+			glcd_refresh();
+			Write_defaults();
+			update_values();
+
+			index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
+			create_menu(index_option, menu_page, 1, text_pos);
+			MENU_state = OPTION_MENU;
+		break;
 			/////////////////////////////////////EXIT_MENU/////////////////////////////////////////////////
 		case EXIT_MENU:
 			MENU_state = MAIN_MENU;
@@ -8284,52 +8503,55 @@ int app_main(void) {
 								tmp_str2);
 					}
 
-				} else if ((Delta_T < -2)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
-				{
-					FAN_ON();
-					TEC_HOT();
-					if (algorithm_temp_state != 7) {
-						algorithm_temp_state = 7;
-						sprintf(tmp_str2,
-								"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,HOT",
-								cur_Date.Year + 2000, cur_Date.Month,
-								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-								cur_time.Seconds);
-						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-								tmp_str2);
-					}
-
-				} else if ((Delta_T > 2)&& (Env_temperature	>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
-				{
-						FAN_OFF();
-						if (algorithm_temp_state != 8) {
-							algorithm_temp_state = 8;
-							sprintf(tmp_str2,
-									"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF",
-									cur_Date.Year + 2000, cur_Date.Month,
-									cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-									cur_time.Seconds);
-							r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-									tmp_str2);
-						}
-
-				} else if (Env_temperature	<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)) //s7
-				{
-					FAN_ON();
-					TEC_HOT();
-					if (algorithm_temp_state != 5) {
-						algorithm_temp_state = 5;
-						sprintf(tmp_str2,
-								"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,HOT",
-								cur_Date.Year + 2000, cur_Date.Month,
-								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
-								cur_time.Seconds);
-						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
-								tmp_str2);
-					}
-
 				}
-//				else if ((Env_temperature	>= TempLimit_Value[ENVIROMENT_TEMP].TemperatureL)&& (Env_temperature<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH)))
+//				else if ((Delta_T < -2)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
+//				{
+//					FAN_ON();
+//					TEC_HOT();
+//					if (algorithm_temp_state != 7) {
+//						algorithm_temp_state = 7;
+//						sprintf(tmp_str2,
+//								"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,HOT",
+//								cur_Date.Year + 2000, cur_Date.Month,
+//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+//								cur_time.Seconds);
+//						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+//								tmp_str2);
+//					}
+//
+//				} else if ((Delta_T > 2)&& (Env_temperature	>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)))
+//				{
+//						FAN_OFF();
+//						if (algorithm_temp_state != 8) {
+//							algorithm_temp_state = 8;
+//							sprintf(tmp_str2,
+//									"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF",
+//									cur_Date.Year + 2000, cur_Date.Month,
+//									cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+//									cur_time.Seconds);
+//							r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+//									tmp_str2);
+//						}
+//
+//				} else if (Env_temperature	<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureL- HYSTERESIS_Value)) //s7
+//				{
+//					FAN_ON();
+//					TEC_HOT();
+//					if (algorithm_temp_state != 5) {
+//						algorithm_temp_state = 5;
+//						sprintf(tmp_str2,
+//								"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,HOT",
+//								cur_Date.Year + 2000, cur_Date.Month,
+//								cur_Date.Date, cur_time.Hours, cur_time.Minutes,
+//								cur_time.Seconds);
+//						r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE,
+//								tmp_str2);
+//					}
+//
+//				}
+
+
+				//				else if ((Env_temperature	>= TempLimit_Value[ENVIROMENT_TEMP].TemperatureL)&& (Env_temperature<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH)))
 //				{
 //					FAN_OFF();
 //					if (algorithm_temp_state != 6) {
@@ -8976,10 +9198,18 @@ int app_main(void) {
 						break;
 					case WifiPageEvent:
 						strcpy(cur_wifi.ssid,ptr_splitted[0]);
+						for(uint8_t i=strlen(cur_wifi.ssid);i<10;i++)
+								cur_wifi.ssid[i]=' ';
+						cur_wifi.ssid[10]=0;
+
 						strcpy(cur_wifi.pass,ptr_splitted[1]);
-						strcpy(cur_wifi.ip,ptr_splitted[2]);
-						strcpy(cur_wifi.gateway,ptr_splitted[3]);
-						strcpy(cur_wifi.netmask,ptr_splitted[4]);
+						for(uint8_t i=strlen(cur_wifi.pass);i<10;i++)
+								cur_wifi.pass[i]=' ';
+						cur_wifi.pass[10]=0;
+
+						strcpy(cur_wifi.ip,ptr_splitted[2]);cur_wifi.ip[15]=0;
+						strcpy(cur_wifi.gateway,ptr_splitted[3]);cur_wifi.gateway[15]=0;
+						strcpy(cur_wifi.netmask,ptr_splitted[4]);cur_wifi.netmask[15]=0;
 						cur_wifi.ssidhidden=atoi(ptr_splitted[5]);
 						cur_wifi.maxclients=atoi(ptr_splitted[6]);
 						cur_wifi.txpower=atoi(ptr_splitted[7]);
