@@ -10,8 +10,8 @@
 uint8_t tmp275_res=TMP275_12BIT;
 HAL_StatusTypeDef tmp275_init(uint8_t ch)
 {
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
+//	HAL_I2C_MspInit(&hi2c3);
+//	MX_I2C3_Init();
 	return tmp275_setResolution(ch,TMP275_12BIT);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

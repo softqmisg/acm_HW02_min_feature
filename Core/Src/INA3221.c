@@ -32,8 +32,8 @@ HAL_StatusTypeDef ina3221_init(uint8_t add)
 {
 	HAL_StatusTypeDef status=HAL_OK;
 	uint8_t buffer[2];
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
+//	HAL_I2C_MspInit(&hi2c3);
+//	MX_I2C3_Init();
 //	buffer[1]=0x80;
 //	buffer[0]=0x00;
 //	status=ina3221_writereg( add, INA3221_CONF,buffer);

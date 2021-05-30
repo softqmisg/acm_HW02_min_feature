@@ -16,8 +16,8 @@ HAL_StatusTypeDef veml6030_init() {
 	uint8_t buffer[3];
 	uint16_t tmp;
 
-	HAL_I2C_MspInit(&hi2c3);
-	MX_I2C3_Init();
+//	HAL_I2C_MspInit(&hi2c3);
+//	MX_I2C3_Init();
 	////////////////////////////
 	tmp = (uint16_t) ALS_PWR_ON << CONF0_ALS_SD
 			| (uint16_t) ALS_INT_DIS << CONF0_ALS_INT_EN

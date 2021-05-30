@@ -104,6 +104,144 @@ void SystemClock_Config(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
+void reinit_i2c(I2C_HandleTypeDef *instance)
+{
+
+	   GPIO_InitTypeDef GPIO_InitStruct;
+	    int timeout =100;
+	    int timeout_cnt=0;
+
+	    // 1. Clear PE bit.
+	    instance->Instance->CR1 &= ~(0x0001);
+
+	    //  2. Configure the SCL and SDA I/Os as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+	    GPIO_InitStruct.Mode         = GPIO_MODE_OUTPUT_OD;
+	    GPIO_InitStruct.Alternate    = GPIO_AF4_I2C3;
+	    GPIO_InitStruct.Pull         = GPIO_PULLUP;
+	    GPIO_InitStruct.Speed        = GPIO_SPEED_FREQ_HIGH;
+
+	    GPIO_InitStruct.Pin          = GPIO_PIN_7;//scl
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	    GPIO_InitStruct.Pin          = GPIO_PIN_8;//sda
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+
+	    // 3. Check SCL and SDA High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        //Move clock to release I2C
+	        HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_RESET);
+	        asm("nop");
+	        HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 4. Configure the SDA I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	    //  5. Check SDA Low level in GPIOx_IDR.
+	    while (GPIO_PIN_RESET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 6. Configure the SCL I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_RESET);
+
+	    //  7. Check SCL Low level in GPIOx_IDR.
+	    while (GPIO_PIN_RESET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 8. Configure the SCL I/O as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+
+	    // 9. Check SCL High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_7))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 10. Configure the SDA I/O as General Purpose Output Open-Drain , High level (Write 1 to GPIOx_ODR).
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+	    // 11. Check SDA High level in GPIOx_IDR.
+	    while (GPIO_PIN_SET != HAL_GPIO_ReadPin(GPIOH, GPIO_PIN_8))
+	    {
+	        timeout_cnt++;
+	        if(timeout_cnt>timeout)
+	            return;
+	    }
+
+	    // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+	    GPIO_InitStruct.Pull = GPIO_PULLUP;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	    GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
+
+	    GPIO_InitStruct.Pin = GPIO_PIN_7;
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+	    GPIO_InitStruct.Pin = GPIO_PIN_8;
+	    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_7, GPIO_PIN_SET);
+	    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_8, GPIO_PIN_SET);
+
+	    // 13. Set SWRST bit in I2Cx_CR1 register.
+	    instance->Instance->CR1 |= 0x8000;
+
+	    asm("nop");
+
+	    // 14. Clear SWRST bit in I2Cx_CR1 register.
+	    instance->Instance->CR1 &= ~0x8000;
+
+	    asm("nop");
+
+	    // 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
+	    instance->Instance->CR1 |= 0x0001;
+
+	    // Call initialization function.
+	    HAL_I2C_Init(instance);
+
+//
+//
+//	HAL_I2C_MspDeInit(&hi2c3);
+//	HAL_Delay(100);
+//	MX_I2C3_Init();
+	for (uint8_t ch = TMP_CH0; ch <= TMP_CH7; ch++) {
+		tmp275_init(ch);
+		HAL_Delay(20);
+	}
+	ina3221_init(INA3221_LED_BASEADDRESS);
+	ina3221_init(INA3221_TEC_BASEADDRESS);
+	pca9632_init();
+	vcnl4200_init();
+	veml6030_init();
+
+
+
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t flag_rtc_1s = 0;
 uint8_t flag_rtc_1s_general = 0;
@@ -1910,6 +2048,7 @@ int app_main(void) {
 				}
 				if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 					cur_insidelight = 0xffff;
+					reinit_i2c(&hi2c3);
 				}
 				if (veml6030_als(&cur_outsidelight) != HAL_OK) {
 					cur_outsidelight = 0xffff;
