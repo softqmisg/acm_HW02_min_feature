@@ -1994,7 +1994,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 		pos_[0].x2 = pos_[0].x1 + text_width("W", Tahoma8, 1) ;
 		text_pos[2+index] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 		pos_[0].x1 += text_width("W", Tahoma8, 1);
-		index++;
+//		index++;
 	}
 
 	for(uint8_t index=0; index<10;index++)
@@ -2004,7 +2004,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 		pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) + 1;
 		text_pos[12+index] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 		pos_[1].x1 += text_width("W", Tahoma8, 1);
-		index++;
+//		index++;
 	}
 
 	(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
@@ -2546,7 +2546,7 @@ int app_main(void) {
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
 		if ((status = tmp275_init(ch)) != TMP275_OK) {
 			printf("tmp275 sensor (#%d) error\n\r", ch + 1);
-			sprintf(tmp_str1, "tmp(%d)ERR", ch + 1);
+			sprintf(tmp_str1, "Temp(%d)ERR", ch + 1);
 			inv = 1;
 
 		} else {
