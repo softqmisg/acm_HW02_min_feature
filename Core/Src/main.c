@@ -1954,6 +1954,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	create_cell(0, 0, 128, 13, 1, 1, 1, pos_);
 
+	pos_[0].x1=1;
 	pos_[0].x2 = 60;
 	text_cell(pos_, 0, "WiFi 1", Tahoma8, LEFT_ALIGN, 1, 1);
 
@@ -1966,49 +1967,50 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi,bounding_box_t *text_pos) {
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 28, 64 - pos_[0].y2, 4, 1, 1, pos_);
+	create_cell(0, pos_[0].y2, 25, 64 - pos_[0].y2, 4, 1, 1, pos_);
 	glcd_refresh();
 
 	pos_[0].x1 = 1;
-	pos_[0].x2 = 27;
-	text_cell(pos_, 0, "SSID", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
+	pos_[0].x2 = 24;
+	text_cell(pos_, 0, "ssid", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 
 	pos_[1].x1 = 1;
-	pos_[1].x2 = 27;
-	text_cell(pos_, 1, "PASS", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
+	pos_[1].x2 = 24;
+	text_cell(pos_, 1, "Pass", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 
 	pos_[2].x1 = 1;
-	pos_[2].x2 = 27;
+	pos_[2].x2 = 24;
 	text_cell(pos_, 2, "Hide", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 
 	pos_[3].x1 = 1;
-	pos_[3].x2 = 27;
-	text_cell(pos_, 3, "Clnts", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
+	pos_[3].x2 = 24;
+	text_cell(pos_, 3, "Clnt", Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(27, pos_[0].y1, 128 - 27, 64 - pos_[0].y1, 4, 1, 1, pos_);glcd_refresh();
+	create_cell(25, pos_[0].y1, 128 - 25, 64 - pos_[0].y1, 4, 1, 1, pos_);glcd_refresh();
+	pos_[0].x1 = 27;
 	for(uint8_t index=0; index<10;index++)
 	{
 		sprintf(tmp_str, "%c",tmp_wifi.ssid[index]);
-		pos_[0].x1 = pos_[0].x1+1;
+		pos_[0].x1 = pos_[0].x1;
 		pos_[0].x2 = pos_[0].x1 + text_width("W", Tahoma8, 1) ;
-		text_pos[2+index] = text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
-		pos_[0].x1 += text_width("W", Tahoma8, 1);
+		text_pos[2+index] = text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+		pos_[0].x1 += text_width("W", Tahoma8, 1)+1;
 //		index++;
 	}
-
+	pos_[0].x1 = 27;
 	for(uint8_t index=0; index<10;index++)
 	{
 		sprintf(tmp_str, "%c",tmp_wifi.pass[index]);
-		pos_[1].x1 = pos_[1].x1+1;
+		pos_[1].x1 = pos_[1].x1;
 		pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) + 1;
-		text_pos[12+index] = text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);glcd_refresh();
-		pos_[1].x1 += text_width("W", Tahoma8, 1);
+		text_pos[12+index] = text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
+		pos_[1].x1 += text_width("W", Tahoma8, 1)+1;
 //		index++;
 	}
 
 	(tmp_wifi.ssidhidden)?sprintf(tmp_str,"Y"):sprintf(tmp_str,"N");
-	pos_[2].x1 = pos_[2].x1 + 1;
+	pos_[2].x1 = pos_[2].x1 + 2;
 	pos_[2].x2=pos_[2].x2 -1;
 	text_pos[22] = text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);glcd_refresh();
 
@@ -3211,7 +3213,7 @@ int app_main(void) {
 					if (index_option > 1) {
 						draw_fill(text_pos[index_option].x1 - 1,
 								text_pos[index_option].y1 + 1,
-								text_pos[index_option].x2 - 1,
+								text_pos[index_option].x2 ,
 								text_pos[index_option].y2 - 1, 0);
 					}
 					switch (index_option) {
@@ -3259,7 +3261,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3305,7 +3307,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3351,7 +3353,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3401,7 +3403,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -3735,7 +3737,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -3811,7 +3813,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -3890,7 +3892,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -3968,7 +3970,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -4047,7 +4049,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4120,7 +4122,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4189,7 +4191,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4313,7 +4315,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4373,7 +4375,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4434,7 +4436,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4496,7 +4498,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4558,7 +4560,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4617,7 +4619,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4676,7 +4678,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -4764,7 +4766,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4850,7 +4852,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -4939,7 +4941,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5030,7 +5032,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5126,7 +5128,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -5204,7 +5206,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -5283,7 +5285,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -5484,7 +5486,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5571,7 +5573,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5662,7 +5664,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5752,7 +5754,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -5850,7 +5852,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -5929,7 +5931,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6007,7 +6009,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6198,7 +6200,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6249,7 +6251,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6300,7 +6302,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6351,7 +6353,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6402,7 +6404,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6462,7 +6464,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6521,7 +6523,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6657,7 +6659,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6698,7 +6700,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6739,7 +6741,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6780,7 +6782,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -6821,7 +6823,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6872,7 +6874,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -6925,7 +6927,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7041,7 +7043,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -7065,7 +7067,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -7090,7 +7092,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -7114,7 +7116,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 
@@ -7139,7 +7141,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7174,7 +7176,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7210,7 +7212,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7260,7 +7262,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -7314,7 +7316,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -7368,7 +7370,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7415,7 +7417,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7465,7 +7467,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7582,7 +7584,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -7624,7 +7626,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7678,7 +7680,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
 				}
@@ -7728,7 +7730,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 - 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -7889,9 +7891,9 @@ int app_main(void) {
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
-					draw_fill(text_pos[index_option].x1 - 1,
+					draw_fill(text_pos[index_option].x1 ,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -7933,7 +7935,7 @@ int app_main(void) {
 				case 21:
 					tmp_wifi.pass[index_option - 12] =	(char) tmp_wifi.pass[index_option - 12] + 1;
 
-					if(tmp_wifi.pass[index_option - 2] > ' ' && tmp_wifi.pass[index_option - 2]<'0')
+					if(tmp_wifi.pass[index_option - 12] > ' ' && tmp_wifi.pass[index_option - 12]<'0')
 						tmp_wifi.pass[index_option - 2]='0';
 					else if (tmp_wifi.pass[index_option - 12] > '9'	&& tmp_wifi.pass[index_option - 12] < 'A')
 						tmp_wifi.pass[index_option - 12] = 'A';
@@ -7950,7 +7952,7 @@ int app_main(void) {
 				case 23:
 					tmp_wifi.maxclients++;
 					if(tmp_wifi.maxclients>2)tmp_wifi.maxclients=1;
-					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					sprintf(tmp_str,"%d",tmp_wifi.maxclients);
 					break;
 				}
 				if (index_option > 1)
@@ -7964,9 +7966,9 @@ int app_main(void) {
 				joystick_init(Key_DOWN, Short_press);
 
 				if (index_option > 1) {
-					draw_fill(text_pos[index_option].x1 - 1,
+					draw_fill(text_pos[index_option].x1 ,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2,
 							text_pos[index_option].y2 - 1, 0);
 				}
 				switch (index_option) {
@@ -8007,14 +8009,16 @@ int app_main(void) {
 				case 19:
 				case 20:
 				case 21:
-					if(tmp_wifi.pass[index_option - 2] < ' ' )
-						tmp_wifi.pass[index_option - 2] = 'z';
-					else if (tmp_wifi.pass[index_option - 2] < '0' && tmp_wifi.pass[index_option - 2] > ' ')
-						tmp_wifi.pass[index_option - 2] = ' ';
-					else if (tmp_wifi.pass[index_option - 2] < 'A'	&& tmp_wifi.pass[index_option - 2] > '9')
-						tmp_wifi.pass[index_option - 2] = '9';
-					else if (tmp_wifi.pass[index_option - 2] < 'a'	&& tmp_wifi.pass[index_option - 2] > 'Z')
-						tmp_wifi.pass[index_option - 2] = 'Z';
+					tmp_wifi.pass[index_option - 12] = (char) tmp_wifi.pass[index_option	- 12] - 1;
+
+					if(tmp_wifi.pass[index_option - 12] < ' ' )
+						tmp_wifi.pass[index_option - 12] = 'z';
+					else if (tmp_wifi.pass[index_option -12] < '0' && tmp_wifi.pass[index_option - 12] > ' ')
+						tmp_wifi.pass[index_option - 12] = ' ';
+					else if (tmp_wifi.pass[index_option - 12] < 'A'	&& tmp_wifi.pass[index_option - 12] > '9')
+						tmp_wifi.pass[index_option - 12] = '9';
+					else if (tmp_wifi.pass[index_option - 12] < 'a'	&& tmp_wifi.pass[index_option - 12] > 'Z')
+						tmp_wifi.pass[index_option - 12] = 'Z';
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 22:
@@ -8024,7 +8028,7 @@ int app_main(void) {
 				case 23:
 					tmp_wifi.maxclients--;
 					if(tmp_wifi.maxclients<1)tmp_wifi.maxclients=2;
-					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					sprintf(tmp_str,"%d",tmp_wifi.maxclients);
 					break;
 
 				}
@@ -8040,7 +8044,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -8105,7 +8109,7 @@ int app_main(void) {
 				break;
 				case 22:
 					index_option++;
-					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					sprintf(tmp_str,"%d",tmp_wifi.maxclients);
 					break;
 				case 23:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
@@ -8123,7 +8127,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -8133,7 +8137,7 @@ int app_main(void) {
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 
 					index_option = 23;
-					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					sprintf(tmp_str,"%d",tmp_wifi.maxclients);
 					break;
 				case 1:
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
@@ -8159,7 +8163,7 @@ int app_main(void) {
 					do
 					{
 						index_option--;
-					}while(tmp_wifi.ssid[index_option - 12]!=' ');
+					}while(tmp_wifi.ssid[index_option - 2]==' ');
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					break;
 				case 13:
@@ -8176,7 +8180,7 @@ int app_main(void) {
 					{
 						index_option--;
 
-					}while(tmp_wifi.pass[index_option - 12]!=' ');
+					}while(tmp_wifi.pass[index_option - 12]==' ');
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 23:
@@ -8197,7 +8201,7 @@ int app_main(void) {
 				if (index_option > 1) {
 					draw_fill(text_pos[index_option].x1 + 1,
 							text_pos[index_option].y1 + 1,
-							text_pos[index_option].x2 - 1,
+							text_pos[index_option].x2 ,
 							text_pos[index_option].y2 - 1, 0);
 					text_cell(text_pos, index_option, tmp_str, Tahoma8,
 							CENTER_ALIGN, 0, 0);
@@ -8273,7 +8277,7 @@ int app_main(void) {
 				break;
 				case 22:
 					index_option++;
-					sprintf(tmp_str1,"%d",tmp_wifi.maxclients);
+					sprintf(tmp_str,"%d",tmp_wifi.maxclients);
 					break;
 				case 23:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
@@ -8308,7 +8312,7 @@ int app_main(void) {
 				joystick_init(Key_TOP, Short_press);
 				draw_fill(text_pos[index_option].x1 + 1,
 						text_pos[index_option].y1 + 1,
-						text_pos[index_option].x2 - 1,
+						text_pos[index_option].x2 ,
 						text_pos[index_option].y2 - 1, 0);
 				text_cell(text_pos, index_option, tmp_str, Tahoma8,
 						CENTER_ALIGN, 0, 0);
@@ -8340,7 +8344,7 @@ int app_main(void) {
 				joystick_init(Key_DOWN, Short_press);
 				draw_fill(text_pos[index_option].x1 + 1,
 						text_pos[index_option].y1 + 1,
-						text_pos[index_option].x2 - 1,
+						text_pos[index_option].x2 ,
 						text_pos[index_option].y2 - 1, 0);
 				text_cell(text_pos, index_option, tmp_str, Tahoma8,
 						CENTER_ALIGN, 0, 0);
