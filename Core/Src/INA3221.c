@@ -56,6 +56,7 @@ HAL_StatusTypeDef ina3221_readdouble(uint8_t channel,double *value)
 	case VOLTAGE_TEC:
 		status=ina3221_readreg( INA3221_TEC_BASEADDRESS, INA3221_BUSV_CH1,buffer);
 		*value=(double)ina3221_buffer2double(buffer,VOLTAGE_COEFF);
+
 		break;
 	case CURRENT_TEC:
 		status=ina3221_readreg( INA3221_TEC_BASEADDRESS, INA3221_SHUNTV_CH1,buffer);
