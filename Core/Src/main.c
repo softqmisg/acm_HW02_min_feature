@@ -570,7 +570,7 @@ void create_menu(uint8_t selected, uint8_t page, uint8_t clear,
 		glcd_refresh();
 	}
 //	selected=selected%MENU_ITEMS_IN_PAGE;
-	draw_text(menu[selected + MENU_ITEMS_IN_PAGE * page],
+	draw_text(menu[selected+MENU_ITEMS_IN_PAGE*page],
 			(selected / 5) * 66 + 2, (selected % 5) * 12 + 1, Tahoma8, 1, 1);
 
 	glcd_refresh();
@@ -1981,26 +1981,24 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi, bounding_box_t *text_pos) 
 	glcd_refresh();
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(25, pos_[0].y1, 128 - 25, 64 - pos_[0].y1, 4, 1, 1, pos_);
+	create_cell(24, pos_[0].y1, 128 - 24, 64 - pos_[0].y1, 4, 1, 1, pos_);
 	glcd_refresh();
 	pos_[0].x1 = 27;
 	for (uint8_t index = 0; index < 10; index++) {
 		sprintf(tmp_str, "%c", tmp_wifi.ssid[index]);
 		pos_[0].x1 = pos_[0].x1;
 		pos_[0].x2 = pos_[0].x1 + text_width("W", Tahoma8, 1);
-		text_pos[2 + index] = text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,
-				0, 0);
+		text_pos[2 + index] = text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN,0, 0);
 		glcd_refresh();
 		pos_[0].x1 += text_width("W", Tahoma8, 1) + 1;
 //		index++;
 	}
-	pos_[0].x1 = 27;
+	pos_[1].x1 = 27;
 	for (uint8_t index = 0; index < 10; index++) {
 		sprintf(tmp_str, "%c", tmp_wifi.pass[index]);
 		pos_[1].x1 = pos_[1].x1;
-		pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) + 1;
-		text_pos[12 + index] = text_cell(pos_, 1, tmp_str, Tahoma8,
-				CENTER_ALIGN, 0, 0);
+		pos_[1].x2 = pos_[1].x1 + text_width("W", Tahoma8, 1) ;
+		text_pos[12 + index] = text_cell(pos_, 1, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
 		glcd_refresh();
 		pos_[1].x1 += text_width("W", Tahoma8, 1) + 1;
 //		index++;
@@ -2013,7 +2011,7 @@ void create_formWIFI1(uint8_t clear, WiFi_t tmp_wifi, bounding_box_t *text_pos) 
 	glcd_refresh();
 
 	sprintf(tmp_str, "%d", tmp_wifi.maxclients);
-	pos_[3].x1 = pos_[3].x1 + 1;
+	pos_[3].x1 = pos_[3].x1 + 2;
 	pos_[3].x2 = pos_[3].x2 - 1;
 //	pos_[3].x2 = pos_[3].x1 + text_width("5", Tahoma8, 1) + 1;
 	text_pos[23] = text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -2047,81 +2045,81 @@ void create_formWIFI2(uint8_t clear, WiFi_t tmp_wifi, bounding_box_t *text_pos) 
 	text_pos[1] = create_button(pos_[0], "CANCEL", 0, 0);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(0, pos_[0].y2, 35, 64 - pos_[0].y2, 4, 1, 1, pos_);
+	create_cell(0, pos_[0].y2, 30, 64 - pos_[0].y2, 4, 1, 1, pos_);
 	glcd_refresh();
 
 	pos_[0].x1 = 1;
-	pos_[0].x2 = 34;
+	pos_[0].x2 = 29;
 	text_cell(pos_, 0, "IP", Tahoma8, LEFT_ALIGN, 0, 0);
 	glcd_refresh();
 
 	pos_[1].x1 = 1;
-	pos_[1].x2 = 34;
+	pos_[1].x2 = 29;
 	text_cell(pos_, 1, "Gate", Tahoma8, LEFT_ALIGN, 0, 0);
 	glcd_refresh();
 
 	pos_[2].x1 = 1;
-	pos_[2].x2 = 34;
+	pos_[2].x2 = 29;
 	text_cell(pos_, 2, "Mask", Tahoma8, LEFT_ALIGN, 0, 0);
 	glcd_refresh();
 
 	pos_[3].x1 = 0;
-	pos_[3].x2 = 34;
+	pos_[3].x2 = 29;
 	text_cell(pos_, 3, "PWR", Tahoma8, LEFT_ALIGN, 0, 0);
 	glcd_refresh();
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	create_cell(35, pos_[0].y1, 128 - 35, 64 - pos_[0].y1, 4, 1, 1, pos_);
-	uint8_t index = 0;
-	for (uint8_t i = 0; i < 15; i++) {
-		sprintf(tmp_str, "%c", tmp_wifi.ip[i]);
-		pos_[0].x1 = pos_[0].x1 + 1;
-		pos_[0].x2 = pos_[0].x1 + text_width("5", Tahoma8, 1) + 1;
-		if (i != 3 && i != 7 && i != 10) {
-			text_pos[2 + index] = text_cell(pos_, 0, tmp_str, Tahoma8,
-					LEFT_ALIGN, 0, 0);
-			index++;
+	create_cell(29, pos_[0].y1, 128 - 29, 64 - pos_[0].y1, 4, 1, 1, pos_);
+
+	pos_[0].x1 = 32;
+	uint8_t i=0;
+	for (uint8_t index = 0; index < 15; index++) {
+		sprintf(tmp_str, "%c", tmp_wifi.ip[index]);
+		pos_[0].x1 = pos_[0].x1 ;
+		pos_[0].x2 = pos_[0].x1 + text_width("5", Tahoma8, 1) ;
+		if (index != 3 && index != 7 && index != 10) {
+			text_pos[2 + i] = text_cell(pos_, 0, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+			i++;
 
 		} else {
-			text_cell(pos_, 0, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+			text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+		}
+		pos_[0].x1 += text_width("5", Tahoma8, 1)+1;
+		glcd_refresh();
+	}
+	i=0;
+	pos_[1].x1 = 32;
+	for (uint8_t index = 0; index < 15; index++) {
+		sprintf(tmp_str, "%c", tmp_wifi.gateway[index]);
+		pos_[1].x1 = pos_[1].x1;
+		pos_[1].x2 = pos_[1].x1 + text_width("5", Tahoma8, 1) ;
+		if (index != 3 && index != 7 && index != 10) {
+			text_pos[14 + i] = text_cell(pos_, 1, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+			i++;
+
+		} else {
+			text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 		}
-		pos_[0].x1 += text_width("5", Tahoma8, 1);
+		pos_[1].x1 += text_width("5", Tahoma8, 1)+1;
 		glcd_refresh();
 	}
 
-	index = 0;
-	for (uint8_t i = 0; i < 15; i++) {
-		sprintf(tmp_str, "%c", tmp_wifi.gateway[i]);
-		pos_[1].x1 = pos_[1].x1 + 1;
-		pos_[1].x2 = pos_[1].x1 + text_width("5", Tahoma8, 1) + 1;
-		if (i != 3 && i != 7 && i != 10) {
-			text_pos[14 + index] = text_cell(pos_, 1, tmp_str, Tahoma8,
-					LEFT_ALIGN, 0, 0);
-			index++;
+	i=0;
+	pos_[2].x1 = 32;
+	for (uint8_t index = 0; index < 15; index++) {
+		sprintf(tmp_str, "%c", tmp_wifi.netmask[index]);
+		pos_[2].x1 = pos_[2].x1;
+		pos_[2].x2 = pos_[2].x1 + text_width("5", Tahoma8, 1) ;
+		if (index != 3 && index != 7 && index != 10) {
+			text_pos[26 + i] = text_cell(pos_, 2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+			i++;
 
 		} else {
-			text_cell(pos_, 1, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
+			text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 
 		}
-		pos_[1].x1 += text_width("5", Tahoma8, 1);
-		glcd_refresh();
-	}
-	index = 0;
-	for (uint8_t i = 0; i < 15; i++) {
-		sprintf(tmp_str, "%c", tmp_wifi.netmask[i]);
-		pos_[2].x1 = pos_[2].x1 + 1;
-		pos_[2].x2 = pos_[2].x1 + text_width("5", Tahoma8, 1) + 1;
-		if (i != 3 && i != 7 && i != 10) {
-			text_pos[26 + index] = text_cell(pos_, 2, tmp_str, Tahoma8,
-					LEFT_ALIGN, 0, 0);
-			index++;
-
-		} else {
-			text_cell(pos_, 2, tmp_str, Tahoma8, LEFT_ALIGN, 0, 0);
-
-		}
-		pos_[2].x1 += text_width("5", Tahoma8, 1);
+		pos_[2].x1 += text_width("5", Tahoma8, 1)+1;
 		glcd_refresh();
 	}
 
@@ -3691,14 +3689,14 @@ int app_main(void) {
 						break;
 					case NEXT_MENU:
 						menu_page = 1;
-						create_menu(0, menu_page, 1, text_pos);
 						index_option = 0;
+						create_menu(index_option, menu_page, 1, text_pos);
 						MENU_state = OPTION_MENU;
 						break;
 					case PREV_MENU:
 						menu_page = 0;
-						create_menu(0, menu_page, 1, text_pos);
-						index_option = 0;
+						index_option = NEXT_MENU-POSITION_MENU;
+						create_menu(index_option, menu_page, 1, text_pos);
 						MENU_state = OPTION_MENU;
 						break;
 					case WIFI1_MENU:
@@ -8120,7 +8118,7 @@ int app_main(void) {
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
 				if (index_option > 1) {
-					draw_fill(text_pos[index_option].x1,
+					draw_fill(text_pos[index_option].x1-1,
 							text_pos[index_option].y1 + 1,
 							text_pos[index_option].x2,
 							text_pos[index_option].y2 - 1, 0);
@@ -8143,14 +8141,11 @@ int app_main(void) {
 					tmp_wifi.ssid[index_option - 2] =
 							(char) tmp_wifi.ssid[index_option - 2] + 1;
 
-					if (tmp_wifi.ssid[index_option - 2] > ' '
-							&& tmp_wifi.ssid[index_option - 2] < '0')
+					if (tmp_wifi.ssid[index_option - 2] > ' '&& tmp_wifi.ssid[index_option - 2] < '0')
 						tmp_wifi.ssid[index_option - 2] = '0';
-					else if (tmp_wifi.ssid[index_option - 2] > '9'
-							&& tmp_wifi.ssid[index_option - 2] < 'A')
+					else if (tmp_wifi.ssid[index_option - 2] > '9'&& tmp_wifi.ssid[index_option - 2] < 'A')
 						tmp_wifi.ssid[index_option - 2] = 'A';
-					else if (tmp_wifi.ssid[index_option - 2] > 'Z'
-							&& tmp_wifi.ssid[index_option - 2] < 'a')
+					else if (tmp_wifi.ssid[index_option - 2] > 'Z'&& tmp_wifi.ssid[index_option - 2] < 'a')
 						tmp_wifi.ssid[index_option - 2] = 'a';
 					else if (tmp_wifi.ssid[index_option - 2] > 'z')
 						tmp_wifi.ssid[index_option - 2] = ' ';
@@ -8166,17 +8161,13 @@ int app_main(void) {
 				case 19:
 				case 20:
 				case 21:
-					tmp_wifi.pass[index_option - 12] =
-							(char) tmp_wifi.pass[index_option - 12] + 1;
+					tmp_wifi.pass[index_option - 12] =	(char) tmp_wifi.pass[index_option - 12] + 1;
 
-					if (tmp_wifi.pass[index_option - 12] > ' '
-							&& tmp_wifi.pass[index_option - 12] < '0')
-						tmp_wifi.pass[index_option - 2] = '0';
-					else if (tmp_wifi.pass[index_option - 12] > '9'
-							&& tmp_wifi.pass[index_option - 12] < 'A')
+					if (tmp_wifi.pass[index_option - 12] > ' '&& tmp_wifi.pass[index_option - 12] < '0')
+						tmp_wifi.pass[index_option - 12] = '0';
+					else if (tmp_wifi.pass[index_option - 12] > '9'	&& tmp_wifi.pass[index_option - 12] < 'A')
 						tmp_wifi.pass[index_option - 12] = 'A';
-					else if (tmp_wifi.pass[index_option - 12] > 'Z'
-							&& tmp_wifi.pass[index_option - 12] < 'a')
+					else if (tmp_wifi.pass[index_option - 12] > 'Z'	&& tmp_wifi.pass[index_option - 12] < 'a')
 						tmp_wifi.pass[index_option - 12] = 'a';
 					else if (tmp_wifi.pass[index_option - 12] > 'z')
 						tmp_wifi.pass[index_option - 12] = ' ';
@@ -8205,7 +8196,7 @@ int app_main(void) {
 				joystick_init(Key_DOWN, Short_press);
 
 				if (index_option > 1) {
-					draw_fill(text_pos[index_option].x1,
+					draw_fill(text_pos[index_option].x1-1,
 							text_pos[index_option].y1 + 1,
 							text_pos[index_option].x2,
 							text_pos[index_option].y2 - 1, 0);
@@ -8306,8 +8297,7 @@ int app_main(void) {
 					index_option = 1;
 					break;
 				case 1:
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
-							0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,0);
 					index_option = 2;
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					break;
@@ -8321,15 +8311,27 @@ int app_main(void) {
 				case 9:
 				case 10:
 					if (tmp_wifi.ssid[index_option - 2] == ' ') {
+						for(uint8_t i=index_option-2;i<10;i++)
+						{
+							tmp_wifi.ssid[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.ssid[i]);
+							draw_fill(text_pos[i+2].x1 + 1,
+									text_pos[i+2].y1 + 1,
+									text_pos[i+2].x2,
+									text_pos[i+2].y2 - 1, 0);
+							text_cell(text_pos, i+2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
 						index_option = 12;
-						sprintf(tmp_str, "%c",
-								tmp_wifi.pass[index_option - 12]);
+						sprintf(tmp_str, "%c",	tmp_wifi.pass[index_option - 12]);
 					} else {
 						index_option++;
 						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					}
 					break;
 				case 11:
+					index_option++;
+					sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
+					break;
 				case 12:
 				case 13:
 				case 14:
@@ -8339,20 +8341,27 @@ int app_main(void) {
 				case 18:
 				case 19:
 				case 20:
-					if (tmp_wifi.ssid[index_option - 2] == ' ') {
+					if (tmp_wifi.pass[index_option - 12] == ' ') {
+						for(uint8_t i=index_option-12;i<10;i++)
+						{
+							tmp_wifi.pass[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.pass[i]);
+							draw_fill(text_pos[i+12].x1 + 1,
+									text_pos[i+12].y1 + 1,
+									text_pos[i+12].x2,
+									text_pos[i+12].y2 - 1, 0);
+							text_cell(text_pos, i+12, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
 						index_option = 22;
-						(tmp_wifi.ssidhidden) ?
-								sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+						(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
 					} else {
 						index_option++;
-						sprintf(tmp_str, "%c",
-								tmp_wifi.pass[index_option - 12]);
+						sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
 					}
 					break;
 				case 21:
 					index_option++;
-					(tmp_wifi.ssidhidden) ?
-							sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
 					break;
 				case 22:
 					index_option++;
@@ -8364,8 +8373,7 @@ int app_main(void) {
 					break;
 				}
 				if (index_option > 1)
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,		CENTER_ALIGN, 1, 0);
 				glcd_refresh();
 
 			}
@@ -8409,7 +8417,7 @@ int app_main(void) {
 				case 12:
 					do {
 						index_option--;
-					} while (tmp_wifi.ssid[index_option - 2] == ' ');
+					} while (tmp_wifi.ssid[index_option - 2] == ' ' && index_option>2);
 					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					break;
 				case 13:
@@ -8425,7 +8433,7 @@ int app_main(void) {
 					do {
 						index_option--;
 
-					} while (tmp_wifi.pass[index_option - 12] == ' ');
+					} while (tmp_wifi.pass[index_option - 12] == ' ' && index_option>12);
 					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
 					break;
 				case 23:
@@ -8459,17 +8467,19 @@ int app_main(void) {
 
 					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d",
 							strtok(cur_wifi.ssid, " "),
-							strtok(cur_wifi.pass, " "), cur_wifi.ip,
-							cur_wifi.gateway, cur_wifi.netmask,
-							cur_wifi.ssidhidden, cur_wifi.maxclients);
+							strtok(cur_wifi.pass, " "),
+							cur_wifi.ip,
+							cur_wifi.gateway,
+							cur_wifi.netmask,
+							cur_wifi.ssidhidden,
+							cur_wifi.maxclients);
 					uart_transmit_frame(tmp_str2, cmd_event, WifiPageEvent);
-					index_option = (MENU_state - POSITION_MENU)
-							% MENU_ITEMS_IN_PAGE;
+					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
 				case 1:					//CANCEL
-					index_option = MENU_state - POSITION_MENU;
+					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
 					create_menu(index_option, menu_page, 1, text_pos);
 					MENU_state = OPTION_MENU;
 					break;
@@ -8483,15 +8493,27 @@ int app_main(void) {
 				case 9:
 				case 10:
 					if (tmp_wifi.ssid[index_option - 2] == ' ') {
+						for(uint8_t i=index_option-2;i<10;i++)
+						{
+							tmp_wifi.ssid[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.ssid[i]);
+							draw_fill(text_pos[i+2].x1 + 1,
+									text_pos[i+2].y1 + 1,
+									text_pos[i+2].x2,
+									text_pos[i+2].y2 - 1, 0);
+							text_cell(text_pos, i+2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
 						index_option = 12;
-						sprintf(tmp_str, "%c",
-								tmp_wifi.pass[index_option - 12]);
+						sprintf(tmp_str, "%c",	tmp_wifi.pass[index_option - 12]);
 					} else {
 						index_option++;
 						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
 					}
 					break;
 				case 11:
+					index_option++;
+					sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
+					break;
 				case 12:
 				case 13:
 				case 14:
@@ -8501,20 +8523,27 @@ int app_main(void) {
 				case 18:
 				case 19:
 				case 20:
-					if (tmp_wifi.ssid[index_option - 2] == ' ') {
+					if (tmp_wifi.pass[index_option - 12] == ' ') {
+						for(uint8_t i=index_option-12;i<10;i++)
+						{
+							tmp_wifi.pass[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.pass[i]);
+							draw_fill(text_pos[i+12].x1 + 1,
+									text_pos[i+12].y1 + 1,
+									text_pos[i+12].x2,
+									text_pos[i+12].y2 - 1, 0);
+							text_cell(text_pos, i+12, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
 						index_option = 22;
-						(tmp_wifi.ssidhidden) ?
-								sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+						(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
 					} else {
 						index_option++;
-						sprintf(tmp_str, "%c",
-								tmp_wifi.pass[index_option - 12]);
+						sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
 					}
 					break;
 				case 21:
 					index_option++;
-					(tmp_wifi.ssidhidden) ?
-							sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
 					break;
 				case 22:
 					index_option++;
@@ -8535,8 +8564,427 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////WIFI2_MENU/////////////////////////////////////////////////
 		case WIFI2_MENU:
-			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
-					Long_press);
+			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,Long_press);
+			if (joystick_read(Key_TOP, Short_press)) {
+				joystick_init(Key_TOP, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1-1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+				case 13:
+					tmp_wifi.ip[index_option - 2] =	(char) tmp_wifi.ip[index_option - 2] + 1;
+					if (tmp_wifi.ip[index_option - 2] > '9')
+						tmp_wifi.ip[index_option - 2] = '0';
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+				case 23:
+				case 24:
+				case 25:
+					tmp_wifi.gateway[index_option - 14] =	(char) tmp_wifi.gateway[index_option - 14] + 1;
+
+					if (tmp_wifi.gateway[index_option - 14] > '9')
+						tmp_wifi.gateway[index_option - 14] = '0';
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
+					break;
+				case 26:
+				case 27:
+				case 28:
+				case 29:
+				case 30:
+				case 31:
+				case 32:
+				case 33:
+				case 34:
+				case 35:
+				case 36:
+				case 37:
+					tmp_wifi.netmask[index_option - 26] =	(char) tmp_wifi.netmask[index_option - 26] + 1;
+
+					if (tmp_wifi.netmask[index_option - 26] > '9')
+						tmp_wifi.netmask[index_option - 26] = '0';
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
+					break;
+				case 38:
+					tmp_wifi.txpower++;
+					if(tmp_wifi.txpower>11)
+						tmp_wifi.txpower=0;
+					sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_DOWN, Short_press)) {
+				joystick_init(Key_DOWN, Short_press);
+
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1-1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2 - 1, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+					break;
+				case 1:	//CANCEL
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+				case 13:
+					tmp_wifi.ip[index_option - 2] =	(char) tmp_wifi.ip[index_option - 2] - 1;
+					if (tmp_wifi.ip[index_option - 2] < '0')
+						tmp_wifi.ip[index_option - 2] = '9';
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+				case 23:
+				case 24:
+				case 25:
+					tmp_wifi.gateway[index_option - 14] =	(char) tmp_wifi.gateway[index_option - 14] -1;
+
+					if (tmp_wifi.gateway[index_option - 14] < '0')
+						tmp_wifi.gateway[index_option - 14] = '9';
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
+					break;
+				case 26:
+				case 27:
+				case 28:
+				case 29:
+				case 30:
+				case 31:
+				case 32:
+				case 33:
+				case 34:
+				case 35:
+				case 36:
+				case 37:
+					tmp_wifi.netmask[index_option - 26] =	(char) tmp_wifi.netmask[index_option - 26] - 1;
+
+					if (tmp_wifi.netmask[index_option - 26] < '0')
+						tmp_wifi.netmask[index_option - 26] = '9';
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
+					break;
+				case 38:
+					if(tmp_wifi.txpower==0)
+						tmp_wifi.txpower=12;
+					tmp_wifi.txpower--;
+					sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_RIGHT, Short_press)) {
+				joystick_init(Key_RIGHT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch (index_option) {
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,1);
+					index_option = 1;
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,0);
+					index_option = 2;
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+					index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+				case 23:
+				case 24:
+					index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
+					break;
+				case 25:
+				case 26:
+				case 27:
+				case 28:
+				case 29:
+				case 30:
+				case 31:
+				case 32:
+				case 33:
+				case 34:
+				case 35:
+				case 36:
+					index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
+					break;
+				case 37:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,		CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+
+			}
+			if (joystick_read(Key_LEFT, Short_press)) {
+				joystick_init(Key_LEFT, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch (index_option) {
+				case 0:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
+
+					index_option = 37;
+					sprintf(tmp_str, "%d", tx_array[tmp_wifi.txpower]);
+					break;
+				case 1:
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
+							0);
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				case 2:
+					index_option = 1;
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
+							1);
+					break;
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+					do {
+						index_option--;
+					} while (tmp_wifi.ssid[index_option - 2] == ' ' && index_option>2);
+					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
+					break;
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+					do {
+						index_option--;
+
+					} while (tmp_wifi.pass[index_option - 12] == ' ' && index_option>12);
+					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
+					break;
+				case 23:
+					index_option--;
+					(tmp_wifi.ssidhidden) ?
+							sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					break;
+				}
+				if (index_option > 1)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+
+				glcd_refresh();
+
+			}
+
+			if (joystick_read(Key_ENTER, Short_press)) {
+				joystick_init(Key_ENTER, Short_press);
+				if (index_option > 1) {
+					draw_fill(text_pos[index_option].x1 + 1,
+							text_pos[index_option].y1 + 1,
+							text_pos[index_option].x2,
+							text_pos[index_option].y2 - 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 0, 0);
+				}
+				switch (index_option) {
+				case 0:	//OK
+
+					cur_wifi = tmp_wifi;
+
+					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d",
+							strtok(cur_wifi.ssid, " "),
+							strtok(cur_wifi.pass, " "),
+							cur_wifi.ip,
+							cur_wifi.gateway,
+							cur_wifi.netmask,
+							cur_wifi.ssidhidden,
+							cur_wifi.maxclients);
+					uart_transmit_frame(tmp_str2, cmd_event, WifiPageEvent);
+					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 1:					//CANCEL
+					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
+					create_menu(index_option, menu_page, 1, text_pos);
+					MENU_state = OPTION_MENU;
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+					if (tmp_wifi.ssid[index_option - 2] == ' ') {
+						for(uint8_t i=index_option-2;i<10;i++)
+						{
+							tmp_wifi.ssid[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.ssid[i]);
+							draw_fill(text_pos[i+2].x1 + 1,
+									text_pos[i+2].y1 + 1,
+									text_pos[i+2].x2,
+									text_pos[i+2].y2 - 1, 0);
+							text_cell(text_pos, i+2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
+						index_option = 12;
+						sprintf(tmp_str, "%c",	tmp_wifi.pass[index_option - 12]);
+					} else {
+						index_option++;
+						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
+					}
+					break;
+				case 11:
+					index_option++;
+					sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
+					break;
+				case 12:
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+				case 19:
+				case 20:
+					if (tmp_wifi.pass[index_option - 12] == ' ') {
+						for(uint8_t i=index_option-12;i<10;i++)
+						{
+							tmp_wifi.pass[i]=' ';
+							sprintf(tmp_str, "%c", tmp_wifi.pass[i]);
+							draw_fill(text_pos[i+12].x1 + 1,
+									text_pos[i+12].y1 + 1,
+									text_pos[i+12].x2,
+									text_pos[i+12].y2 - 1, 0);
+							text_cell(text_pos, i+12, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
+						}
+						index_option = 22;
+						(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					} else {
+						index_option++;
+						sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
+					}
+					break;
+				case 21:
+					index_option++;
+					(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					break;
+				case 22:
+					index_option++;
+					sprintf(tmp_str, "%d", tmp_wifi.maxclients);
+					break;
+				case 23:
+					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
+					index_option = 0;
+					break;
+				}
+				if (index_option > 1 && MENU_state != OPTION_MENU)
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,
+							CENTER_ALIGN, 1, 0);
+				glcd_refresh();
+
+			}
+
 			break;
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
