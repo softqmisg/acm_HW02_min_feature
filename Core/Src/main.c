@@ -2072,61 +2072,38 @@ void create_formWIFI2(uint8_t clear, WiFi_t tmp_wifi, bounding_box_t *text_pos) 
 	create_cell(29, pos_[0].y1, 128 - 29, 64 - pos_[0].y1, 4, 1, 1, pos_);
 
 	pos_[0].x1 = 32;
-	uint8_t i=0;
 	for (uint8_t index = 0; index < 15; index++) {
 		sprintf(tmp_str, "%c", tmp_wifi.ip[index]);
 		pos_[0].x1 = pos_[0].x1 ;
 		pos_[0].x2 = pos_[0].x1 + text_width("5", Tahoma8, 1) ;
-		if (index != 3 && index != 7 && index != 10) {
-			text_pos[2 + i] = text_cell(pos_, 0, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
-			i++;
-
-		} else {
-			text_cell(pos_, 0, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-		}
+		text_pos[2 + index] = text_cell(pos_, 0, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
 		pos_[0].x1 += text_width("5", Tahoma8, 1)+1;
 		glcd_refresh();
 	}
-	i=0;
 	pos_[1].x1 = 32;
 	for (uint8_t index = 0; index < 15; index++) {
 		sprintf(tmp_str, "%c", tmp_wifi.gateway[index]);
 		pos_[1].x1 = pos_[1].x1;
 		pos_[1].x2 = pos_[1].x1 + text_width("5", Tahoma8, 1) ;
-		if (index != 3 && index != 7 && index != 10) {
-			text_pos[14 + i] = text_cell(pos_, 1, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
-			i++;
-
-		} else {
-			text_cell(pos_, 1, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-
-		}
+		text_pos[17 + index] = text_cell(pos_, 1, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
 		pos_[1].x1 += text_width("5", Tahoma8, 1)+1;
 		glcd_refresh();
 	}
 
-	i=0;
 	pos_[2].x1 = 32;
 	for (uint8_t index = 0; index < 15; index++) {
 		sprintf(tmp_str, "%c", tmp_wifi.netmask[index]);
 		pos_[2].x1 = pos_[2].x1;
 		pos_[2].x2 = pos_[2].x1 + text_width("5", Tahoma8, 1) ;
-		if (index != 3 && index != 7 && index != 10) {
-			text_pos[26 + i] = text_cell(pos_, 2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
-			i++;
-
-		} else {
-			text_cell(pos_, 2, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
-
-		}
+		text_pos[32 + index] = text_cell(pos_, 2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
 		pos_[2].x1 += text_width("5", Tahoma8, 1)+1;
 		glcd_refresh();
 	}
 
 	sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
-	pos_[3].x1 = pos_[3].x1 + 1;
+	pos_[3].x1 = pos_[3].x1 + 2;
 	pos_[3].x2 = pos_[3].x2 - 1;
-	text_pos[38] = text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
+	text_pos[47] = text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
 	glcd_refresh();
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2431,7 +2408,7 @@ int app_main(void) {
 	WiFi_t tmp_wifi;
 	uint8_t tmp_TEC_STATE, tmp_hys, tmp_profile_user;
 	bounding_box_t pos_[15];
-	bounding_box_t text_pos[43];
+	bounding_box_t text_pos[50];
 	HAL_StatusTypeDef status;
 
 	FRESULT r_logtemp = FR_OK, r_logvolt = FR_OK, r_loglight = FR_OK,
@@ -2451,7 +2428,7 @@ int app_main(void) {
 	uint8_t cur_browser_profile = ADMIN_PROFILE;
 
 	uint8_t algorithm_temp_state = 0;
-	int16_t Env_temperature, prev_Env_temperature, Delta_T;
+	int16_t Env_temperature, prev_Env_temperature, Delta_T_Env;
 	int16_t Cam_temperature, prev_cam_temperature, Delta_T_cam;
 	int16_t Tecin_temperature, prev_Tecin_temperature, Delta_T_Tecin;
 	uint8_t second_algorithm_temperature=0;
@@ -8465,14 +8442,15 @@ int app_main(void) {
 
 					cur_wifi = tmp_wifi;
 
-					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d",
+					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d,%d",
 							strtok(cur_wifi.ssid, " "),
 							strtok(cur_wifi.pass, " "),
 							cur_wifi.ip,
 							cur_wifi.gateway,
 							cur_wifi.netmask,
 							cur_wifi.ssidhidden,
-							cur_wifi.maxclients);
+							cur_wifi.maxclients,
+							cur_wifi.txpower);
 					uart_transmit_frame(tmp_str2, cmd_event, WifiPageEvent);
 					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -8581,57 +8559,57 @@ int app_main(void) {
 				case 2:
 				case 3:
 				case 4:
-				case 5:
 				case 6:
 				case 7:
 				case 8:
-				case 9:
 				case 10:
 				case 11:
 				case 12:
-				case 13:
+				case 14:
+				case 15:
+				case 16:
 					tmp_wifi.ip[index_option - 2] =	(char) tmp_wifi.ip[index_option - 2] + 1;
 					if (tmp_wifi.ip[index_option - 2] > '9')
 						tmp_wifi.ip[index_option - 2] = '0';
 					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
 					break;
-				case 14:
-				case 15:
-				case 16:
 				case 17:
 				case 18:
 				case 19:
-				case 20:
 				case 21:
 				case 22:
 				case 23:
-				case 24:
 				case 25:
-					tmp_wifi.gateway[index_option - 14] =	(char) tmp_wifi.gateway[index_option - 14] + 1;
-
-					if (tmp_wifi.gateway[index_option - 14] > '9')
-						tmp_wifi.gateway[index_option - 14] = '0';
-					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
-					break;
 				case 26:
 				case 27:
-				case 28:
 				case 29:
 				case 30:
 				case 31:
+					tmp_wifi.gateway[index_option - 17] =	(char) tmp_wifi.gateway[index_option - 17] + 1;
+
+					if (tmp_wifi.gateway[index_option - 17] > '9')
+						tmp_wifi.gateway[index_option - 17] = '0';
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 17]);
+					break;
 				case 32:
 				case 33:
 				case 34:
-				case 35:
 				case 36:
 				case 37:
-					tmp_wifi.netmask[index_option - 26] =	(char) tmp_wifi.netmask[index_option - 26] + 1;
-
-					if (tmp_wifi.netmask[index_option - 26] > '9')
-						tmp_wifi.netmask[index_option - 26] = '0';
-					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
-					break;
 				case 38:
+				case 40:
+				case 41:
+				case 42:
+				case 44:
+				case 45:
+				case 46:
+					tmp_wifi.netmask[index_option - 32] =	(char) tmp_wifi.netmask[index_option - 32] + 1;
+
+					if (tmp_wifi.netmask[index_option - 32] > '9')
+						tmp_wifi.netmask[index_option - 32] = '0';
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 32]);
+					break;
+				case 47:
 					tmp_wifi.txpower++;
 					if(tmp_wifi.txpower>11)
 						tmp_wifi.txpower=0;
@@ -8662,57 +8640,66 @@ int app_main(void) {
 				case 2:
 				case 3:
 				case 4:
-				case 5:
+
 				case 6:
 				case 7:
 				case 8:
-				case 9:
+
 				case 10:
 				case 11:
 				case 12:
-				case 13:
+
+				case 14:
+				case 15:
+				case 16:
 					tmp_wifi.ip[index_option - 2] =	(char) tmp_wifi.ip[index_option - 2] - 1;
 					if (tmp_wifi.ip[index_option - 2] < '0')
 						tmp_wifi.ip[index_option - 2] = '9';
 					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
 					break;
-				case 14:
-				case 15:
-				case 16:
 				case 17:
 				case 18:
 				case 19:
-				case 20:
+
 				case 21:
 				case 22:
 				case 23:
-				case 24:
-				case 25:
-					tmp_wifi.gateway[index_option - 14] =	(char) tmp_wifi.gateway[index_option - 14] -1;
 
-					if (tmp_wifi.gateway[index_option - 14] < '0')
-						tmp_wifi.gateway[index_option - 14] = '9';
-					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
-					break;
+				case 25:
 				case 26:
 				case 27:
-				case 28:
+
 				case 29:
 				case 30:
 				case 31:
+					tmp_wifi.gateway[index_option - 17] =	(char) tmp_wifi.gateway[index_option - 17] -1;
+
+					if (tmp_wifi.gateway[index_option - 17] < '0')
+						tmp_wifi.gateway[index_option - 17] = '9';
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 17]);
+					break;
 				case 32:
 				case 33:
 				case 34:
-				case 35:
+
 				case 36:
 				case 37:
-					tmp_wifi.netmask[index_option - 26] =	(char) tmp_wifi.netmask[index_option - 26] - 1;
-
-					if (tmp_wifi.netmask[index_option - 26] < '0')
-						tmp_wifi.netmask[index_option - 26] = '9';
-					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
-					break;
 				case 38:
+
+				case 40:
+				case 41:
+				case 42:
+
+				case 44:
+				case 45:
+				case 46:
+					tmp_wifi.netmask[index_option - 32] =	(char) tmp_wifi.netmask[index_option - 32] - 1;
+
+					if (tmp_wifi.netmask[index_option - 32] < '0')
+						tmp_wifi.netmask[index_option - 32] = '9';
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 32]);
+					break;
+				case 47:
 					if(tmp_wifi.txpower==0)
 						tmp_wifi.txpower=12;
 					tmp_wifi.txpower--;
@@ -8750,48 +8737,66 @@ int app_main(void) {
 				case 2:
 				case 3:
 				case 4:
-				case 5:
+
 				case 6:
 				case 7:
 				case 8:
-				case 9:
+
 				case 10:
 				case 11:
 				case 12:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
-					break;
-				case 13:
+
 				case 14:
 				case 15:
+					index_option++;
+					if(index_option==5||index_option==9||index_option==13) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
 				case 16:
+
 				case 17:
 				case 18:
 				case 19:
-				case 20:
+
 				case 21:
 				case 22:
 				case 23:
-				case 24:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 14]);
-					break;
+
 				case 25:
 				case 26:
 				case 27:
-				case 28:
+
 				case 29:
 				case 30:
+					index_option++;
+					if(index_option==20||index_option==24||index_option==28) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 17]);
+					break;
 				case 31:
+
 				case 32:
 				case 33:
 				case 34:
-				case 35:
+
 				case 36:
-					index_option++;
-					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 26]);
-					break;
 				case 37:
+				case 38:
+
+				case 40:
+				case 41:
+				case 42:
+
+				case 44:
+				case 45:
+					index_option++;
+					if(index_option==35||index_option==39||index_option==43) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 32]);
+					break;
+				case 46:
+					index_option++;
+					sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
+					break;
+				case 47:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
@@ -8815,8 +8820,8 @@ int app_main(void) {
 				case 0:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 0, 0);
 
-					index_option = 37;
-					sprintf(tmp_str, "%d", tx_array[tmp_wifi.txpower]);
+					index_option = 47;
+					sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
 					break;
 				case 1:
 					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 0,
@@ -8826,49 +8831,71 @@ int app_main(void) {
 					break;
 				case 2:
 					index_option = 1;
-					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,
-							1);
+					text_cell(text_pos, 1, "CANCEL", Tahoma8, CENTER_ALIGN, 1,1);
 					break;
 				case 3:
 				case 4:
-				case 5:
+
 				case 6:
 				case 7:
 				case 8:
-				case 9:
+
 				case 10:
 				case 11:
 				case 12:
-					do {
-						index_option--;
-					} while (tmp_wifi.ssid[index_option - 2] == ' ' && index_option>2);
-					sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
-					break;
-				case 13:
+
 				case 14:
 				case 15:
 				case 16:
+
 				case 17:
+					index_option--;
+					if(index_option==5||index_option==9||index_option==13) index_option--;
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
 				case 18:
 				case 19:
-				case 20:
+
 				case 21:
 				case 22:
-					do {
-						index_option--;
-
-					} while (tmp_wifi.pass[index_option - 12] == ' ' && index_option>12);
-					sprintf(tmp_str, "%c", tmp_wifi.pass[index_option - 12]);
-					break;
 				case 23:
+
+				case 25:
+				case 26:
+				case 27:
+
+				case 29:
+				case 30:
+				case 31:
+
+				case 32:
 					index_option--;
-					(tmp_wifi.ssidhidden) ?
-							sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
+					if(index_option==20||index_option==24||index_option==28) index_option--;
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 17]);
+					break;
+				case 33:
+				case 34:
+
+				case 36:
+				case 37:
+				case 38:
+
+				case 40:
+				case 41:
+				case 42:
+
+				case 44:
+				case 45:
+				case 46:
+
+				case 47:
+					index_option--;
+					if(index_option==35||index_option==39||index_option==43) index_option--;
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 32]);
 					break;
 				}
 				if (index_option > 1)
-					text_cell(text_pos, index_option, tmp_str, Tahoma8,
-							CENTER_ALIGN, 1, 0);
+					text_cell(text_pos, index_option, tmp_str, Tahoma8,	CENTER_ALIGN, 1, 0);
 
 				glcd_refresh();
 
@@ -8888,15 +8915,15 @@ int app_main(void) {
 				case 0:	//OK
 
 					cur_wifi = tmp_wifi;
-
-					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d",
+					sprintf(tmp_str2, "%s,%s,%s,%s,%s,%d,%d,%d",
 							strtok(cur_wifi.ssid, " "),
 							strtok(cur_wifi.pass, " "),
 							cur_wifi.ip,
 							cur_wifi.gateway,
 							cur_wifi.netmask,
 							cur_wifi.ssidhidden,
-							cur_wifi.maxclients);
+							cur_wifi.maxclients,
+							cur_wifi.txpower);
 					uart_transmit_frame(tmp_str2, cmd_event, WifiPageEvent);
 					index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
 					create_menu(index_option, menu_page, 1, text_pos);
@@ -8910,70 +8937,66 @@ int app_main(void) {
 				case 2:
 				case 3:
 				case 4:
-				case 5:
+
 				case 6:
 				case 7:
 				case 8:
-				case 9:
+
 				case 10:
-					if (tmp_wifi.ssid[index_option - 2] == ' ') {
-						for(uint8_t i=index_option-2;i<10;i++)
-						{
-							tmp_wifi.ssid[i]=' ';
-							sprintf(tmp_str, "%c", tmp_wifi.ssid[i]);
-							draw_fill(text_pos[i+2].x1 + 1,
-									text_pos[i+2].y1 + 1,
-									text_pos[i+2].x2,
-									text_pos[i+2].y2 - 1, 0);
-							text_cell(text_pos, i+2, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
-						}
-						index_option = 12;
-						sprintf(tmp_str, "%c",	tmp_wifi.pass[index_option - 12]);
-					} else {
-						index_option++;
-						sprintf(tmp_str, "%c", tmp_wifi.ssid[index_option - 2]);
-					}
-					break;
 				case 11:
-					index_option++;
-					sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
-					break;
 				case 12:
-				case 13:
+
 				case 14:
 				case 15:
+					index_option++;
+					if(index_option==5||index_option==9||index_option==13) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.ip[index_option - 2]);
+					break;
 				case 16:
+
 				case 17:
 				case 18:
 				case 19:
-				case 20:
-					if (tmp_wifi.pass[index_option - 12] == ' ') {
-						for(uint8_t i=index_option-12;i<10;i++)
-						{
-							tmp_wifi.pass[i]=' ';
-							sprintf(tmp_str, "%c", tmp_wifi.pass[i]);
-							draw_fill(text_pos[i+12].x1 + 1,
-									text_pos[i+12].y1 + 1,
-									text_pos[i+12].x2,
-									text_pos[i+12].y2 - 1, 0);
-							text_cell(text_pos, i+12, tmp_str, Tahoma8,	CENTER_ALIGN, 0, 0);
-						}
-						index_option = 22;
-						(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
-					} else {
-						index_option++;
-						sprintf(tmp_str, "%c",tmp_wifi.pass[index_option - 12]);
-					}
-					break;
+
 				case 21:
-					index_option++;
-					(tmp_wifi.ssidhidden) ?	sprintf(tmp_str, "Y") : sprintf(tmp_str, "N");
-					break;
 				case 22:
-					index_option++;
-					sprintf(tmp_str, "%d", tmp_wifi.maxclients);
-					break;
 				case 23:
+
+				case 25:
+				case 26:
+				case 27:
+
+				case 29:
+				case 30:
+					index_option++;
+					if(index_option==20||index_option==24||index_option==28) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.gateway[index_option - 17]);
+					break;
+				case 31:
+
+				case 32:
+				case 33:
+				case 34:
+
+				case 36:
+				case 37:
+				case 38:
+
+				case 40:
+				case 41:
+				case 42:
+
+				case 44:
+				case 45:
+					index_option++;
+					if(index_option==35||index_option==39||index_option==43) index_option++;
+					sprintf(tmp_str, "%c", tmp_wifi.netmask[index_option - 32]);
+					break;
+				case 46:
+					index_option++;
+					sprintf(tmp_str, "%s", tx_array[tmp_wifi.txpower]);
+					break;
+				case 47:
 					text_cell(text_pos, 0, "OK", Tahoma8, CENTER_ALIGN, 1, 1);
 					index_option = 0;
 					break;
@@ -9140,10 +9163,10 @@ int app_main(void) {
 			}
 			else //if((NTC_Centigrade<NTCTH_Value &&  TEC_overtemp==0)|| (NTC_Centigrade<NTCTL_Value))
 			{
-				if (TempLimit_Value[TECIN_TEMP].active&& cur_temperature[TMP_CH6] != 0x8fff) {
-					Tecin_temperature=cur_temperature[TMP_CH6];
-					Delta_T_Tecin = cur_temperature[TMP_CH6] - prev_Tecin_temperature;
-					if (Tecin_temperature > TempLimit_Value[TECIN_TEMP].TemperatureH) {
+				if (TempLimit_Value[CAM_TEMP].active&& cur_temperature[TMP_CH5] != 0x8fff) {
+					Cam_temperature=cur_temperature[TMP_CH5];
+					Delta_T_cam = cur_temperature[TMP_CH5] - prev_cam_temperature;
+					if (Cam_temperature > TempLimit_Value[CAM_TEMP].TemperatureH) {
 						second_algorithm_temperature=0;
 						FAN_OFF();
 						if (algorithm_temp_state != 1) {
@@ -9157,7 +9180,7 @@ int app_main(void) {
 							r_logparam = Log_file(SDCARD_DRIVE,	PARAMETER_FILE, tmp_str2);
 						}
 
-					} else if ((Delta_T_Tecin <0)	&& (Tecin_temperature	>= (TempLimit_Value[TECIN_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+					} else if ((Delta_T_cam <0)	&& (Cam_temperature	>= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
 						second_algorithm_temperature=0;
 						FAN_OFF();
@@ -9172,7 +9195,7 @@ int app_main(void) {
 							r_logparam = Log_file(SDCARD_DRIVE,
 									PARAMETER_FILE, tmp_str2);
 						}
-					} else if ((Tecin_temperature>= (TempLimit_Value[TECIN_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+					} else if ((Cam_temperature>= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
 						FAN_OFF();
 						second_algorithm_temperature=1;
@@ -9182,16 +9205,16 @@ int app_main(void) {
 						FAN_OFF();
 						second_algorithm_temperature=1;
 					}
-					prev_Tecin_temperature=Tecin_temperature;
+					prev_cam_temperature=Cam_temperature;
 				} else {
 					FAN_OFF();
 				}
 				if(second_algorithm_temperature)
 				{
-					if (TempLimit_Value[CAM_TEMP].active	&& cur_temperature[TMP_CH5] != 0x8fff) {
-						Cam_temperature = cur_temperature[TMP_CH5];
-						Delta_T_cam = Cam_temperature - prev_cam_temperature;
-						if (Cam_temperature	>= TempLimit_Value[CAM_TEMP].TemperatureH) //s1
+					if (TempLimit_Value[ENVIROMENT_TEMP].active	&& cur_temperature[TMP_CH4] != 0x8fff) {
+						Env_temperature = cur_temperature[TMP_CH4];
+						Delta_T_Env = Env_temperature - prev_Env_temperature;
+						if (Env_temperature	>= TempLimit_Value[ENVIROMENT_TEMP].TemperatureH) //s1
 						{
 								FAN_ON();
 								TEC_COLD();
@@ -9206,7 +9229,7 @@ int app_main(void) {
 									r_logparam = Log_file(SDCARD_DRIVE,
 											PARAMETER_FILE, tmp_str2);
 								}
-						} else if ((Delta_T_cam < 0)&& (Cam_temperature>= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+						} else if ((Delta_T_Env < 0)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 							{
 								FAN_ON();
 								TEC_COLD();
@@ -9222,7 +9245,7 @@ int app_main(void) {
 											PARAMETER_FILE, tmp_str2);
 								}
 
-						} else if ( (Cam_temperature	>= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s3
+						} else if ( (Delta_T_Env	>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s3
 							{
 								FAN_OFF();
 								if (algorithm_temp_state != 5) {
@@ -9236,7 +9259,7 @@ int app_main(void) {
 									r_logparam = Log_file(SDCARD_DRIVE,
 											PARAMETER_FILE, tmp_str2);
 								}
-						} else if (Cam_temperature	<= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value)) //s4
+						} else if (Env_temperature	<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value)) //s4
 						{
 							FAN_OFF();
 							if (algorithm_temp_state != 6) {
@@ -9251,7 +9274,7 @@ int app_main(void) {
 										PARAMETER_FILE, tmp_str2);
 							}
 						}
-						prev_cam_temperature = Cam_temperature;
+						prev_Env_temperature = Env_temperature;
 					} else {
 						FAN_OFF();
 					}
@@ -9285,58 +9308,13 @@ int app_main(void) {
 				cur_browser_profile = find_profile(received_frame);
 				switch (received_cmd_code) {
 				case readDashboard:
-//							strncpy(extracted_text,(char *)&received_frame[5],received_frame[4]);
-//							extracted_text[received_frame[4]]='\0';
-////							printf("msg from esp:%s\n\r",extracted_text);
-//							char *ptr_splitted=strtok(extracted_text,",");
-//							while(ptr_splitted!=NULL)
-//							{
-//								cur_browser_profile=atoi(ptr_splitted);
-//								ptr_splitted=strtok(NULL,",");
-//							}
+
 					counter_flag_1m_general = cur_time.Seconds;
-//							sprintf(tmp_str2,"%02d:%02d,%04d-%02d-%02d,%d,",
-//										cur_time.Hours, cur_time.Minutes,
-//										cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-//										cur_outsidelight);
-//							if(cur_doorstate)
-//							{
-//								sprintf(tmp_str2,"%son,",tmp_str2);
-//							}
-//							else
-//							{
-//								sprintf(tmp_str2,"%soff,",tmp_str2);
-//							}
-//							sprintf(tmp_str2,"%s%d %d\' %05.2f\"%c,%d %d\' %05.2f\"%c,",
-//										tmp_str2,
-//										LONG_Value.deg, LONG_Value.min,
-//										LONG_Value.second / 100.0, LONG_Value.direction,
-//										LAT_Value.deg, LAT_Value.min,
-//										LAT_Value.second / 100.0, LAT_Value.direction
-//										);
-//							sprintf(tmp_str2,"%s%d,",tmp_str2,cur_client_number);
-//							for(uint8_t i=0;i<4;i++)
-//							{
-//								if(cur_voltage[i]>0)
-//								{
-//									sprintf(tmp_str2,"%s%3.1f,%+4.3f,",tmp_str2,cur_voltage[i], cur_current[i]);
-//								}
-//								else
-//								{
-//									sprintf(tmp_str2,"%s-,-,",tmp_str2);
-//								}
-//							}
-//
-//							if(cur_browser_profile==0)//admin
-//								sprintf(tmp_str2,"%s%d",tmp_str2,profile_admin_Value);
-//							else
-//								sprintf(tmp_str2,"%s%d",tmp_str2,profile_user_Value);
 
 					ready_msg_Dashboardpage(tmp_str2, cur_outsidelight,
 							cur_doorstate, cur_client_number, cur_voltage,
 							cur_current, cur_browser_profile);
 
-//							printf("to ESP32:%s\n\r",tmp_str2);
 					uart_transmit_frame(tmp_str2, cmd_current, readDashboard);
 					for (uint8_t i = 0; i < MAX_BROWSER_PAGE; i++)
 						ActiveBrowserPage[i] = 0;
