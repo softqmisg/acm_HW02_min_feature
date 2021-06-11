@@ -2428,8 +2428,8 @@ int app_main(void) {
 	uint8_t cur_browser_profile = ADMIN_PROFILE;
 
 	uint8_t algorithm_temp_state = 0;
-	int16_t Env_temperature, prev_Env_temperature[2]={0}, Delta_T_Env,env_index_prv=0;
-	int16_t Cam_temperature, prev_cam_temperature[2]={0}, Delta_T_cam,cam_index_prev=0;
+	int16_t Env_temperature, prev_Env_temperature[3]={0}, Delta_T_Env,env_index_prv=0;
+	int16_t Cam_temperature, prev_cam_temperature[3]={0}, Delta_T_cam,cam_index_prev=0;
 	int16_t Tecin_temperature, prev_Tecin_temperature, Delta_T_Tecin;
 	uint8_t second_algorithm_temperature=0;
 	uint8_t flag_rtc_10s_general = 0;
@@ -9166,7 +9166,7 @@ int app_main(void) {
 				if (TempLimit_Value[CAM_TEMP].active&& cur_temperature[TMP_CH5] != 0x8fff) {
 					Cam_temperature=cur_temperature[TMP_CH5];
 					Delta_T_cam = Cam_temperature - prev_cam_temperature[0];
-					if (Cam_temperature > TempLimit_Value[CAM_TEMP].TemperatureH) {
+					if (Cam_temperature >= TempLimit_Value[CAM_TEMP].TemperatureH) {
 						second_algorithm_temperature=0;
 						FAN_ON();
 						if (algorithm_temp_state != 1) {
@@ -9180,7 +9180,7 @@ int app_main(void) {
 							r_logparam = Log_file(SDCARD_DRIVE,	PARAMETER_FILE, tmp_str2);
 						}
 
-					} else if ((Delta_T_cam <0)	&& (Cam_temperature	> (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+					} else if ((Delta_T_cam <-1)	&& (Cam_temperature	> (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
 						second_algorithm_temperature=0;
 						FAN_ON();
@@ -9196,15 +9196,10 @@ int app_main(void) {
 									PARAMETER_FILE, tmp_str2);
 						}
 					}
-//					 else if ((Cam_temperature>= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
-//					{
-//						FAN_OFF();
-//						second_algorithm_temperature=1;
-//					}
-					else
+					else if ((Delta_T_cam >1)	&& (Cam_temperature	> (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
-//						FAN_OFF();
 						second_algorithm_temperature=1;
+						FAN_OFF();
 						if (algorithm_temp_state != 3) {
 							algorithm_temp_state = 3;
 							sprintf(tmp_str2,
@@ -9217,8 +9212,26 @@ int app_main(void) {
 									PARAMETER_FILE, tmp_str2);
 						}
 					}
+					else if ((Cam_temperature<= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+					{
+							second_algorithm_temperature=1;
+							FAN_OFF();
+							if (algorithm_temp_state != 4) {
+								algorithm_temp_state = 4;
+								sprintf(tmp_str2,
+										"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF,TEC,-",
+										cur_Date.Year + 2000,
+										cur_Date.Month, cur_Date.Date,
+										cur_time.Hours, cur_time.Minutes,
+										cur_time.Seconds);
+								r_logparam = Log_file(SDCARD_DRIVE,
+										PARAMETER_FILE, tmp_str2);
+							}
+
+					}
 					prev_cam_temperature[0]=prev_cam_temperature[1];
-					prev_cam_temperature[1]=Cam_temperature;
+					prev_cam_temperature[1]=prev_cam_temperature[2];
+					prev_cam_temperature[2]=Cam_temperature;
 				} else {
 					FAN_ON();
 				}
@@ -9231,8 +9244,8 @@ int app_main(void) {
 						{
 								FAN_ON();
 //								TEC_COLD();
-								if (algorithm_temp_state != 4) {
-									algorithm_temp_state = 4;
+								if (algorithm_temp_state != 5) {
+									algorithm_temp_state = 5;
 									sprintf(tmp_str2,
 											"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,COLD",
 											cur_Date.Year + 2000,
@@ -9242,12 +9255,12 @@ int app_main(void) {
 									r_logparam = Log_file(SDCARD_DRIVE,
 											PARAMETER_FILE, tmp_str2);
 								}
-						} else if ((Delta_T_Env <= 0)&& (Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
+						} else if ((Delta_T_Env <-1)&& (Env_temperature> (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 							{
 								FAN_ON();
 //								TEC_COLD();
-								if (algorithm_temp_state != 5) {
-									algorithm_temp_state = 5;
+								if (algorithm_temp_state != 6) {
+									algorithm_temp_state = 6;
 									sprintf(tmp_str2,
 											"%04d-%02d-%02d,%02d:%02d:%02d,FAN,ON,TEC,-",
 											cur_Date.Year + 2000,
@@ -9258,11 +9271,11 @@ int app_main(void) {
 											PARAMETER_FILE, tmp_str2);
 								}
 
-						} else if ((Delta_T_Env > 0)&&(Env_temperature>= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s3
+						} else if ((Delta_T_Env > 1)&&(Env_temperature> (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value))) //s3
 							{
 								FAN_OFF();
-								if (algorithm_temp_state != 6) {
-									algorithm_temp_state = 6;
+								if (algorithm_temp_state != 7) {
+									algorithm_temp_state = 7;
 									sprintf(tmp_str2,
 											"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF,TEC,-",
 											cur_Date.Year + 2000,
@@ -9275,8 +9288,8 @@ int app_main(void) {
 						} else if (Env_temperature	<= (TempLimit_Value[ENVIROMENT_TEMP].TemperatureH- HYSTERESIS_Value)) //s4
 						{
 							FAN_OFF();
-							if (algorithm_temp_state != 7) {
-								algorithm_temp_state = 7;
+							if (algorithm_temp_state != 8) {
+								algorithm_temp_state = 8;
 								sprintf(tmp_str2,
 										"%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF,TEC,-",
 										cur_Date.Year + 2000,
@@ -9288,7 +9301,8 @@ int app_main(void) {
 							}
 						}
 						prev_Env_temperature[0] = prev_Env_temperature[1];
-						prev_Env_temperature[1] = Env_temperature;
+						prev_Env_temperature[1] = prev_Env_temperature[2];
+						prev_Env_temperature[2] = Env_temperature;
 					} else {
 						FAN_ON();
 					}
