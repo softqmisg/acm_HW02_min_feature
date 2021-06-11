@@ -82,13 +82,13 @@
 
 //////////////////////////////////default values  of variable in EEPROM///////////////////////////////////////
 #define		DEFAULT_LAT_deg						35
-#define		DEFAULT_LAT_min						42
-#define		DEFAULT_LAT_second					0
+#define		DEFAULT_LAT_min						50
+#define		DEFAULT_LAT_second					2400
 #define 	DEFAULT_LAT_direction				'N'
 
-#define 	DEFAULT_LONG_deg					51
-#define 	DEFAULT_LONG_min					23
-#define 	DEFAULT_LONG_second					5316
+#define 	DEFAULT_LONG_deg					50
+#define 	DEFAULT_LONG_min					56
+#define 	DEFAULT_LONG_second					2076
 #define 	DEFAULT_LONG_direction				'E'
 #define 	DEFAULT_UTC_OFF						35
 
@@ -112,35 +112,35 @@
 
 #define 	DEFAULT_HYS_Temp					10
 
-#define 	DEFAULT_ENV_TempH					555
-#define 	DEFAULT_ENV_TempL					554
+#define 	DEFAULT_ENV_TempH					200
+#define 	DEFAULT_ENV_TempL					100
 #define 	DEFAULT_ENV_active					1
 
-#define 	DEFAULT_CAM_TempH					545
-#define 	DEFAULT_CAM_TempL					544
+#define 	DEFAULT_CAM_TempH					500
+#define 	DEFAULT_CAM_TempL					100
 #define 	DEFAULT_CAM_active					1
 
 #define 	DEFAULT_CASE_TempH					400
 #define 	DEFAULT_CASE_TempL					100
 #define 	DEFAULT_CASE_active					0
 
-#define 	DEFAULT_MB_TempH					402
-#define 	DEFAULT_MB_TempL					101
+#define 	DEFAULT_MB_TempH					400
+#define 	DEFAULT_MB_TempL					100
 #define 	DEFAULT_MB_active					0
 
-#define 	DEFAULT_TECIN_TempH					403
-#define 	DEFAULT_TECIN_TempL					102
+#define 	DEFAULT_TECIN_TempH					400
+#define 	DEFAULT_TECIN_TempL					100
 #define 	DEFAULT_TECIN_active				0
 
-#define 	DEFAULT_TECOUT_TempH				404
-#define 	DEFAULT_TECOUT_TempL				103
+#define 	DEFAULT_TECOUT_TempH				400
+#define 	DEFAULT_TECOUT_TempL				100
 #define 	DEFAULT_TECOUT_active				0
 
 
 #define 	DEFAULT_PASSWORD_ADMIN_0			'0'
 #define 	DEFAULT_PASSWORD_ADMIN_1			'0'
 #define 	DEFAULT_PASSWORD_ADMIN_2			'0'
-#define 	DEFAULT_PASSWORD_ADMIN_3			'1'
+#define 	DEFAULT_PASSWORD_ADMIN_3			'0'
 
 #define 	DEFAULT_PASSWORD_USER_0				'0'
 #define 	DEFAULT_PASSWORD_USER_1				'0'
