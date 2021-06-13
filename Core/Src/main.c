@@ -286,6 +286,9 @@ typedef enum {
 #define UpgradePageEvent      0xC1
 #define PasswordPageEvent     0xC2
 #define IamreadyEvent         0xC3
+#define StartUploadEvent      0xC4
+#define DataUploadEvent       0xC5
+#define EndUploadEvent        0xC6
 
 #define readDashboard     0x90
 #define LEDS1page         0x91
@@ -2388,7 +2391,7 @@ int app_main(void) {
 	uint8_t counter_log_data = 0;
 
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
-	char extracted_text[120];
+	char extracted_text[2000]={0};
 	char *ptr_splitted[25];
 	uint8_t index_ptr;
 	FRESULT fr;
@@ -2437,6 +2440,7 @@ int app_main(void) {
 	uint8_t flag_rtc_1m_general = 0;
 	uint8_t counter_flag_1m_general = 0;
 	uint8_t cur_client_number;
+	char version_chars[10]={0};
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	/////////////////////////transceiver PC<->ESP32/////////////////////////////
@@ -9966,6 +9970,17 @@ int app_main(void) {
 					cur_wifi.maxclients = atoi(ptr_splitted[6]);
 					cur_wifi.txpower = atoi(ptr_splitted[7]);
 
+					break;
+				case StartUploadEvent:
+					strcpy(version_chars,ptr_splitted[0]);
+					printf("Start Uploading file:%s",version_chars);
+
+					break;
+				case DataUploadEvent:
+					printf("save data to new file");
+					break;
+				case EndUploadEvent:
+					printf("End Uploading file and reboot firmware");
 					break;
 				}
 				break;
