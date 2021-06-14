@@ -10055,8 +10055,14 @@ int app_main(void) {
 				case EndUploadEvent:
 					printf("End Uploading file and reboot firmware");
 					Copy_file("0:/tmp_firm.bin", firmware_path);
-					f_unlink("0:/tmp_firm.bin");
+					//f_unlink("0:/tmp_firm.bin");
 					upload_started=0;
+					sharedmem = FORCE_WRITE_FROM_SD;
+					Peripherials_DeInit();
+					HAL_Delay(100);
+					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
+					while (1)
+						;
 					break;
 				}
 				break;
