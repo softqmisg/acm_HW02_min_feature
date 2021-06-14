@@ -23,6 +23,8 @@
 #define SDCARD_DRIVE		0
 #define USB_DRIVE			1
 FRESULT Log_file(uint8_t drv,uint8_t filetype,char *str);
+FRESULT file_write(char *path, uint8_t *wstr,uint32_t len);
+FRESULT Copy_file(char *src, char *dest);
 
 char filename_temperature[50];
 char filename_volampere[50];

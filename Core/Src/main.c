@@ -286,9 +286,10 @@ typedef enum {
 #define UpgradePageEvent      0xC1
 #define PasswordPageEvent     0xC2
 #define IamreadyEvent         0xC3
-#define StartUploadEvent      0xC4
-#define DataUploadEvent       0xC5
-#define EndUploadEvent        0xC6
+#define ThanksEvent           0xC4
+#define StartUploadEvent      0xC5
+#define DataUploadEvent       0xC6
+#define EndUploadEvent        0xC7
 
 #define readDashboard     0x90
 #define LEDS1page         0x91
@@ -299,7 +300,10 @@ typedef enum {
 #define Wifipage          0x96
 #define Upgradepage       0x97
 #define Passwordpage      0x98
-#define MAX_SIZE_FRAME  120
+
+#define UploadError   0xC4
+
+#define MAX_SIZE_FRAME  3000
 cmd_type_t received_cmd_type = cmd_none;
 uint8_t received_frame[MAX_SIZE_FRAME];
 uint8_t received_cmd_code;
@@ -310,6 +314,7 @@ uint8_t received_valid = 0;
 uint8_t received_byte;
 uint8_t received_frame_length = 0;
 /////////////////////////////////////////////////////////////////////////////
+uint8_t frame_error=0;
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
@@ -330,6 +335,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 				received_state = 0;
 				received_valid = 0;
 				received_cmd_type = cmd_none;
+				frame_error=1;
 			}
 			break;
 		case 2:
@@ -349,6 +355,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 				} else {
 					received_valid = 0;
 					received_cmd_type = cmd_none;
+					frame_error=1;
 				}
 				received_index = 0;
 				received_state = 0;
@@ -357,6 +364,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 				received_index = 0;
 				received_valid = 0;
 				received_cmd_type = cmd_none;
+				frame_error=1;
 			}
 			break;
 		}
@@ -2391,7 +2399,8 @@ int app_main(void) {
 	uint8_t counter_log_data = 0;
 
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
-	char extracted_text[2000]={0};
+	char extracted_text[120]={0};
+	uint8_t extracted_data[2000]={0};
 	char *ptr_splitted[25];
 	uint8_t index_ptr;
 	FRESULT fr;
@@ -2441,6 +2450,13 @@ int app_main(void) {
 	uint8_t counter_flag_1m_general = 0;
 	uint8_t cur_client_number;
 	char version_chars[10]={0};
+	char readline[100];
+	char firmware_path[100];
+	uint16_t firmware_version;
+	uint32_t firmware_checksum;
+	uint8_t upload_started=0;
+	uint32_t byteswritten;
+	FIL myfile;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
 	/////////////////////////transceiver PC<->ESP32/////////////////////////////
@@ -2642,10 +2658,11 @@ int app_main(void) {
 	DISP_state = DISP_IDLE;
 	uint8_t flag_log_param = 1;
 	uint8_t Delay_Astro_calculation = 0, CalcAstro = 0;
-	///////////send i am ready to ESP32///////////////////
-	uart_transmit_frame("", cmd_event, IamreadyEvent);
+	uint8_t sendready_counter=0,sendready_tick=1;
+	uint8_t ESP32ready=0;
 	///////////////////////////////////////Start Main Loop////////////////////////////////////////////////////////////
 	while (1) {
+
 		///////////////////////////////////////Always run process///////////////////////////////////////
 		/////////////////////Read time//////////////////////////////////
 		if (flag_rtc_1s_general) {
@@ -2667,6 +2684,12 @@ int app_main(void) {
 			if (counter_flag_1m_general >= 60) {
 				counter_flag_1m_general = 0;
 				flag_rtc_1m_general = 1;
+			}
+			sendready_counter++;
+			if(sendready_counter>=2)
+			{
+				sendready_counter=0;
+				sendready_tick=1;
 			}
 			/////////////////////read sensors evey 1 s//////////////////////////
 			for (uint8_t i = 0; i < 8; i++) {
@@ -9932,17 +9955,18 @@ int app_main(void) {
 				break;
 				/////////////////////////////////////////////////
 			case cmd_event:
-				strncpy(extracted_text, (char*) &received_frame[5],
-						received_frame[4]);
-				extracted_text[received_frame[4]] = '\0';
-				printf("cmd_event from ESP:%s\n\r", extracted_text);
-				ptr_splitted[0] = strtok(extracted_text, ",");
-				index_ptr = 0;
-				while (ptr_splitted[index_ptr] != NULL) {
-					index_ptr++;
-					ptr_splitted[index_ptr] = strtok(NULL, ",");
+				if(received_cmd_code!=DataUploadEvent)
+				{
+					strncpy(extracted_text, (char*) &received_frame[5],	received_frame[4]);
+					extracted_text[received_frame[4]] = '\0';
+					printf("cmd_event from ESP:%s\n\r", extracted_text);
+					ptr_splitted[0] = strtok(extracted_text, ",");
+					index_ptr = 0;
+					while (ptr_splitted[index_ptr] != NULL) {
+						index_ptr++;
+						ptr_splitted[index_ptr] = strtok(NULL, ",");
+					}
 				}
-
 				switch (received_cmd_code) {
 				case ClientsEvent:
 					cur_client_number = atoi(ptr_splitted[0]);
@@ -9971,16 +9995,68 @@ int app_main(void) {
 					cur_wifi.txpower = atoi(ptr_splitted[7]);
 
 					break;
+				case IamreadyEvent:
+					printf("I am ready from ESP32\n\r");
+					uart_transmit_frame("", cmd_event, ThanksEvent);
+					printf("Send Thanks to ESP32\n\r");
+					break;
+				case ThanksEvent:
+					printf("Thanks from ESP32\n\r");
+					ESP32ready=1;
+					break;
 				case StartUploadEvent:
 					strcpy(version_chars,ptr_splitted[0]);
 					printf("Start Uploading file:%s",version_chars);
+					fr=f_open(&myfile, "0:/boot.ini", FA_READ);
+					if (fr==FR_NO_FILE) {
+						/////////////generate boot.ini file
+						printf("FatFs error code: %u\n\r");
+						/////////////////////////////////
+					}
+					else if(fr==FR_OK)
+					{
 
+						f_gets(readline, 100, &myfile);
+						readline[strlen(readline) - 1] = 0;
+						firmware_version = atol(readline);
+						f_gets(readline, 100, &myfile);
+						readline[strlen(readline) - 1] = 0;
+						sprintf(firmware_path, "%s", readline);
+						f_gets(readline, 100, &myfile);
+						readline[strlen(readline) - 1] = 0;
+						firmware_checksum = atol(readline);
+						f_close(&myfile);
+
+						if (f_open(&myfile,"0:/tmp_firm.bin", FA_WRITE | FA_CREATE_ALWAYS)!= FR_OK) {
+							uart_transmit_frame("", cmd_error, UploadError);
+						}
+						else
+						{
+							upload_started=1;
+						}
+
+					}
+					else
+					{
+						uart_transmit_frame("", cmd_error, UploadError);
+						f_close(&myfile);
+					}
 					break;
 				case DataUploadEvent:
+
+					memcpy(extracted_data,&received_frame[5],received_frame[4] * sizeof(uint8_t));
 					printf("save data to new file");
+					if(file_write("0:/tmp_firm.bin",extracted_data,received_frame[4])!=FR_OK)
+					{
+						uart_transmit_frame("", cmd_error, UploadError);
+						upload_started=0;
+					}
 					break;
 				case EndUploadEvent:
 					printf("End Uploading file and reboot firmware");
+					Copy_file("0:/tmp_firm.bin", firmware_path);
+					f_unlink("0:/tmp_firm.bin");
+					upload_started=0;
 					break;
 				}
 				break;
@@ -9989,6 +10065,20 @@ int app_main(void) {
 				break;
 
 			}
+		}
+		///////////send i am ready to ESP32///////////////////
+		if(!ESP32ready && sendready_tick)
+		{
+			uart_transmit_frame("", cmd_event, IamreadyEvent);
+			printf("send I am ready to ESP32\n\r");
+			sendready_tick=0;
+		}
+		///////////////////////////////////////////frame error while uploading firmware////////////////////////////////////////////////////////
+		if(frame_error && upload_started)
+		{
+			frame_error=0;
+			upload_started=0;
+			uart_transmit_frame("", cmd_error, UploadError);
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 

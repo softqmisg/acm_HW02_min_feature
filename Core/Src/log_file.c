@@ -12,7 +12,7 @@
 #include "astro.h"
 extern USBH_HandleTypeDef hUsbHostHS;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-FRESULT file_write(char *path, char *wstr) {
+FRESULT file_write(char *path, uint8_t *wstr,uint32_t len) {
 
 	uint32_t byteswritten;
 	FIL myfile;
@@ -27,7 +27,7 @@ FRESULT file_write(char *path, char *wstr) {
 		f_close(&myfile);
 		return fr;
 	}
-	if ((fr = f_write(&myfile, wstr, (UINT) strlen(wstr), (UINT*) &byteswritten))
+	if ((fr = f_write(&myfile, wstr, (UINT) len, (UINT*) &byteswritten))
 			!= FR_OK) {
 		f_close(&myfile);
 		return fr;
@@ -146,13 +146,13 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			generate_filename(sDate, sTime, filename_temperature);
 			strcpy(filename_tmp, filename_temperature);
 			sprintf(str_tmp, "Date,Time,T1,T2,T3,T4,T5,T6,T7,T8\n");
-			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
+			if ((fr = file_write(filename_tmp, str_tmp,strlen(str_tmp))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 
 				return fr;
 			}
-			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
+			if ((fr = file_write(filename_tmp, "",strlen(""))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 				return fr;
@@ -165,12 +165,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			sprintf(str_tmp,
 					"Date,Time,VOLT(7V),CURRENT(A),VOLT(12V),CURRENT(A),VOLT(3.3V),CURRENT(A),VOLT(TEC),CURRENT(A)\n");
 
-			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
+			if ((fr = file_write(filename_tmp, str_tmp,strlen(str_tmp))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 				return fr;
 			}
-			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
+			if ((fr = file_write(filename_tmp, "",strlen(""))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 				return fr;
@@ -181,12 +181,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			generate_filename(sDate, sTime, filename_light);
 			strcpy(filename_tmp, filename_light);
 			sprintf(str_tmp, "Date,Time,Inside ,Outside\n");
-			if ((fr = file_write(filename_tmp, str_tmp)) != FR_OK) {
+			if ((fr = file_write(filename_tmp, str_tmp,strlen(str_tmp))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 				return fr;
 			}
-			if ((fr = file_write(filename_tmp, "")) != FR_OK) {
+			if ((fr = file_write(filename_tmp, "",strlen(""))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
 //				f_mount(NULL, "0:", 0);
 				return fr;
@@ -210,12 +210,12 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 		return fr;
 	}
 	///////////////////////save data in the file///////////////////////////////
-	if ((fr = file_write(filename_tmp, str_write)) != FR_OK) {
+	if ((fr = file_write(filename_tmp, str_write,strlen(str_write))) != FR_OK) {
 		printf("writing file error(%d)\n\r", fr);
 //		f_mount(NULL, "0:", 0);
 		return fr;
 	}
-	if ((fr = file_write(filename_tmp, "")) != FR_OK) {
+	if ((fr = file_write(filename_tmp, "",strlen(""))) != FR_OK) {
 		printf("writing file error(%d)\n\r", fr);
 //		f_mount(NULL, "0:", 0);
 		return fr;
@@ -246,30 +246,30 @@ FRESULT Copy_file(char *src, char *dest) {
 		return fw;
 	}
 	while (!f_eof(&input)) {
-//		if ((fr = f_read(&input, buf, 512, (UINT*) &bytereaden)) != FR_OK) {
-//			f_close(&input);
-//			f_close(&output);
-//			return fr;
-//		}
-		if(f_gets(buf, 500, &input)==NULL)
-		{
+		if ((fr = f_read(&input, buf, 4000, (UINT*) &bytereaden)) != FR_OK) {
 			f_close(&input);
 			f_close(&output);
-			return FR_DISK_ERR;
+			return fr;
 		}
+//		if(f_gets(buf, 4000, &input)==NULL)
+//		{
+//			f_close(&input);
+//			f_close(&output);
+//			return FR_DISK_ERR;
+//		}
 
-//		if ((fw = f_write(&output, buf, 512, (UINT*) &byteswritten)) != FR_OK) {
-//			f_close(&input);
-//			f_close(&output);
-//			return fw;
-//		}
-		if(f_puts(buf,&output)<0)
-		{
+		if ((fw = f_write(&output, buf, 4000, (UINT*) &byteswritten)) != FR_OK) {
 			f_close(&input);
 			f_close(&output);
-			return FR_DISK_ERR;
+			return fw;
 		}
-		HAL_Delay(10);
+//		if(f_puts(buf,&output)<0)
+//		{
+//			f_close(&input);
+//			f_close(&output);
+//			return FR_DISK_ERR;
+//		}
+//		HAL_Delay(10);
 	}
 	f_close(&input);
 	f_close(&output);
