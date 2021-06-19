@@ -302,23 +302,26 @@ typedef enum {
 #define Passwordpage      0x98
 
 #define UploadError   0xC4
-
+//////////////////////////////////////////////////////////////////////////////
 #define MAX_SIZE_FRAME  3000
 cmd_type_t received_cmd_type = cmd_none;
 uint8_t received_frame[MAX_SIZE_FRAME];
 uint8_t received_cmd_code;
 uint8_t received_state = 0;
-uint8_t received_index = 0;
+uint16_t received_index = 0;
 uint8_t received_crc = 0;
 uint8_t received_valid = 0;
 uint8_t received_byte;
-uint8_t received_frame_length = 0;
-/////////////////////////////////////////////////////////////////////////////
+uint16_t received_frame_length = 0;
+uint16_t received_msg_length = 0;
 uint8_t frame_error=0;
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	uint16_t size_msg=0;
 	if (huart->Instance == USART2) {
 		received_byte = USART2->DR;
+//		USART3->DR=USART2->DR;
 		switch (received_state) {
 		case 0:
 			if (received_byte == 0xaa) {
@@ -340,31 +343,37 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			break;
 		case 2:
 			received_frame[received_index++] = received_byte;
-			if (received_index == received_frame[4] + 7) {
-
-				received_crc = 0;
-				for (uint8_t i = 0; i < received_frame[4] + 5; i++) {
-					received_crc += received_frame[i];
-				}
-
-				if (received_crc == received_frame[received_index - 2]) {
-					received_valid = 1;
-					received_cmd_type = (cmd_type_t) received_frame[2];
-					received_cmd_code = received_frame[3];
-					received_frame_length = received_index;
-				} else {
-					received_valid = 0;
-					received_cmd_type = cmd_none;
-					frame_error=1;
-				}
-				received_index = 0;
-				received_state = 0;
-			} else if (received_index >= MAX_SIZE_FRAME) {
+			if (received_index >= MAX_SIZE_FRAME) {
 				received_state = 0;
 				received_index = 0;
 				received_valid = 0;
 				received_cmd_type = cmd_none;
 				frame_error=1;
+			}
+			else if(received_index>5)
+			{
+				size_msg=((uint16_t)received_frame[4]<<8)+(uint16_t)received_frame[5];
+				if (received_index == size_msg + 8) {
+
+					received_crc = 0;
+					for (uint16_t i = 0; i < size_msg + 6; i++) {
+						received_crc += received_frame[i];
+					}
+
+					if (received_crc == received_frame[size_msg+6]) {
+						received_valid = 1;
+						received_cmd_type = (cmd_type_t) received_frame[2];
+						received_cmd_code = received_frame[3];
+						received_frame_length = size_msg+8;
+						received_msg_length=size_msg;
+					} else {
+						received_valid = 0;
+						received_cmd_type = cmd_none;
+						frame_error=1;
+					}
+					received_index = 0;
+					received_state = 0;
+				}
 			}
 			break;
 		}
@@ -2160,8 +2169,9 @@ void Peripherials_DeInit(void) {
 uint8_t find_profile(uint8_t *frame) {
 	char extracted_text[100];
 	uint8_t cur_browser_profile;
-	strncpy(extracted_text, (char*) &frame[5], frame[4]);
-	extracted_text[frame[4]] = '\0';
+	uint16_t size_msg=((uint16_t) frame[4]<<8)+frame[5];
+	strncpy(extracted_text, (char*) &frame[6], size_msg);
+	extracted_text[size_msg] = '\0';
 //	printf("msg from esp:%s\n\r",extracted_text);
 	char *ptr_splitted = strtok(extracted_text, ",");
 	if (ptr_splitted != NULL) {
@@ -2400,7 +2410,7 @@ int app_main(void) {
 
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
 	char extracted_text[120]={0};
-	uint8_t extracted_data[2000]={0};
+	uint8_t *extracted_data;
 	char *ptr_splitted[25];
 	uint8_t index_ptr;
 	FRESULT fr;
@@ -2450,6 +2460,7 @@ int app_main(void) {
 	uint8_t counter_flag_1m_general = 0;
 	uint8_t cur_client_number;
 	char version_chars[10]={0};
+	char filename_chars[100]={0};
 	char readline[100];
 	char firmware_path[100];
 	uint16_t firmware_version;
@@ -2675,7 +2686,7 @@ int app_main(void) {
 			cur_date_t.year = cur_Date.Year;
 
 			counter_flag_10s_general++;
-			if (counter_flag_10s_general >= 10) {
+			if (counter_flag_10s_general > 10) {
 				counter_flag_10s_general = 0;
 				flag_rtc_10s_general = 1;
 			}
@@ -2696,50 +2707,42 @@ int app_main(void) {
 				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 					cur_temperature[i] = (int16_t) 0x8fff;
 				}
-				HAL_Delay(20);
+//				HAL_Delay(20);
 			}
 			////////////////////////////////////////////////////////////
-			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])!= HAL_OK) {
 				cur_voltage[0] = -1.0;
 				reinit_i2c(&hi2c3);
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) CURRENT_7V, &cur_current[0])!= HAL_OK) {
 				cur_current[0] = -1.0;
 				reinit_i2c(&hi2c3);
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) VOLTAGE_12V, &cur_voltage[1])!= HAL_OK) {
 				cur_voltage[1] = -1.0;
 				reinit_i2c(&hi2c3);
 
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) CURRENT_12V, &cur_current[1])!= HAL_OK) {
 				cur_current[1] = -1.0;
 				reinit_i2c(&hi2c3);
 
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) VOLTAGE_3V3, &cur_voltage[2])!= HAL_OK) {
 				cur_voltage[2] = -1.0;
 				reinit_i2c(&hi2c3);
 
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) CURRENT_3V3, &cur_current[2])!= HAL_OK) {
 				cur_current[2] = -1.0;
 				reinit_i2c(&hi2c3);
 
 			}
-			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) VOLTAGE_TEC, &cur_voltage[3])!= HAL_OK) {
 				cur_voltage[3] = -1.0;
 				reinit_i2c(&hi2c3);
 			}
-			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])
-					!= HAL_OK) {
+			if (ina3221_readdouble((uint8_t) CURRENT_TEC, &cur_current[3])!= HAL_OK) {
 				cur_current[3] = -1.0;
 				reinit_i2c(&hi2c3);
 			}
@@ -2977,8 +2980,7 @@ int app_main(void) {
 						CalcAstro = 1;
 				}
 				////////////////////////////LED control////////////////////////////////////
-				if ((cur_time.Hours == 0 && cur_time.Minutes == 0
-						&& cur_time.Seconds == 0) || (CalcAstro)) {
+				if ((cur_time.Hours == 0 && cur_time.Minutes == 0&& cur_time.Seconds == 0) || (CalcAstro)) {
 					CalcAstro = 0;
 					tmp_dlat = POS2double(LAT_Value);
 					tmp_dlong = POS2double(LONG_Value);
@@ -9464,9 +9466,8 @@ int app_main(void) {
 				break;
 				/////////////////////////////////////////////////
 			case cmd_submit:
-				strncpy(extracted_text, (char*) &received_frame[5],
-						received_frame[4]);
-				extracted_text[received_frame[4]] = '\0';
+				strncpy(extracted_text, (char*) &received_frame[6],received_msg_length);
+				extracted_text[received_msg_length] = '\0';
 				printf("from ESP:%s\n\r", extracted_text);
 				ptr_splitted[0] = strtok(extracted_text, ",");
 				index_ptr = 0;
@@ -9955,10 +9956,11 @@ int app_main(void) {
 				break;
 				/////////////////////////////////////////////////
 			case cmd_event:
+				printf("cmd_event from ESP code:%x\n\r", received_cmd_code);
 				if(received_cmd_code!=DataUploadEvent)
 				{
-					strncpy(extracted_text, (char*) &received_frame[5],	received_frame[4]);
-					extracted_text[received_frame[4]] = '\0';
+					strncpy(extracted_text, (char*) &received_frame[6],	received_msg_length);
+					extracted_text[received_msg_length] = '\0';
 					printf("cmd_event from ESP:%s\n\r", extracted_text);
 					ptr_splitted[0] = strtok(extracted_text, ",");
 					index_ptr = 0;
@@ -10005,8 +10007,9 @@ int app_main(void) {
 					ESP32ready=1;
 					break;
 				case StartUploadEvent:
-					strcpy(version_chars,ptr_splitted[0]);
-					printf("Start Uploading file:%s",version_chars);
+					strcpy(filename_chars,ptr_splitted[0]);
+					strcpy(version_chars,ptr_splitted[1]);
+					printf("Start Uploading file:%s(v:%s)\n\r",filename_chars,version_chars);
 					fr=f_open(&myfile, "0:/boot.ini", FA_READ);
 					if (fr==FR_NO_FILE) {
 						/////////////generate boot.ini file
@@ -10019,16 +10022,22 @@ int app_main(void) {
 						f_gets(readline, 100, &myfile);
 						readline[strlen(readline) - 1] = 0;
 						firmware_version = atol(readline);
+						printf("firmware version:%d\n\r",firmware_version);
+
 						f_gets(readline, 100, &myfile);
 						readline[strlen(readline) - 1] = 0;
 						sprintf(firmware_path, "%s", readline);
+						printf("firmware path:%s\n\r",firmware_path);
+
 						f_gets(readline, 100, &myfile);
 						readline[strlen(readline) - 1] = 0;
 						firmware_checksum = atol(readline);
+						printf("firmware checksum:%d\n\r",firmware_checksum);
 						f_close(&myfile);
 
 						if (f_open(&myfile,"0:/tmp_firm.bin", FA_WRITE | FA_CREATE_ALWAYS)!= FR_OK) {
 							uart_transmit_frame("", cmd_error, UploadError);
+							upload_started=0;
 						}
 						else
 						{
@@ -10043,26 +10052,51 @@ int app_main(void) {
 					}
 					break;
 				case DataUploadEvent:
-
-					memcpy(extracted_data,&received_frame[5],received_frame[4] * sizeof(uint8_t));
-					printf("save data to new file");
-					if(file_write("0:/tmp_firm.bin",extracted_data,received_frame[4])!=FR_OK)
+					if(upload_started)
+					{
+						extracted_data=(uint8_t *)malloc(received_msg_length);
+						memcpy(extracted_data,&received_frame[6],received_msg_length * sizeof(uint8_t));
+						printf("save data to new file\n\r");
+						if(file_write("0:/tmp_firm.bin",extracted_data,received_msg_length)!=FR_OK)
+						{
+							uart_transmit_frame("", cmd_error, UploadError);
+							upload_started=0;
+						}
+						free(extracted_data);
+					}
+					else
 					{
 						uart_transmit_frame("", cmd_error, UploadError);
-						upload_started=0;
+						printf("ERR:data received while it is not started\n\r");
 					}
 					break;
 				case EndUploadEvent:
-					printf("End Uploading file and reboot firmware");
-					Copy_file("0:/tmp_firm.bin", firmware_path);
-					//f_unlink("0:/tmp_firm.bin");
-					upload_started=0;
-					sharedmem = FORCE_WRITE_FROM_SD;
-					Peripherials_DeInit();
-					HAL_Delay(100);
-					SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
-					while (1)
-						;
+					if(upload_started)
+					{
+						printf("End Uploading file and reboot firmware\n\r");
+						if(Copy_file("0:/tmp_firm.bin", firmware_path)==FR_OK)
+						{
+
+	//					f_unlink("0:/tmp_firm.bin");
+						sharedmem = FORCE_WRITE_FROM_SD;
+						Peripherials_DeInit();
+						HAL_Delay(100);
+						SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
+						while (1)		;
+						}
+						else
+						{
+							printf("copy tmp file to %s Error\n\r",firmware_path);
+
+						}
+						upload_started=0;
+
+					}
+					else
+					{
+						uart_transmit_frame("", cmd_error, UploadError);
+						printf("ERR:data upload ended  while it is not started\n\r");
+					}
 					break;
 				}
 				break;
@@ -10085,6 +10119,7 @@ int app_main(void) {
 			frame_error=0;
 			upload_started=0;
 			uart_transmit_frame("", cmd_error, UploadError);
+			printf("upload started & frame error\n\r");
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 

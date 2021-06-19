@@ -52,7 +52,7 @@ HAL_StatusTypeDef tmp275_readTemperature(uint8_t ch,int16_t *Temperature)
 //
 //	if(HAL_I2C_Master_Receive(&hi2c3,(TMP275_BASEADDRESS+ch)<<1,buffer,2,2000)!=TMP275_OK)
 //		return TMP275_ERROR;
-	if( HAL_I2C_Mem_Read(&hi2c3, (TMP275_BASEADDRESS+ch)<<1, TMP275_TMP_REG, I2C_MEMADD_SIZE_8BIT, buffer, 2, 1000)!=TMP275_OK)
+	if( HAL_I2C_Mem_Read(&hi2c3, (TMP275_BASEADDRESS+ch)<<1, TMP275_TMP_REG, I2C_MEMADD_SIZE_8BIT, buffer, 2, 500)!=TMP275_OK)
 	{
 		return TMP275_ERROR;
 	}

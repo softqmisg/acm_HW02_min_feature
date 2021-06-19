@@ -108,7 +108,7 @@ void Error_Handler(void);
 #define RESET_MB_Pin GPIO_PIN_15
 #define RESET_MB_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
-#define __DEBUG__	1
+#define __DEBUG__	0
 #define __LWIP__	1
 
 #define FAN_OFF()	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port,TEC_ONOFF_Pin,GPIO_PIN_RESET)
