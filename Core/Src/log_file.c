@@ -18,8 +18,7 @@ FRESULT file_write(char *path, uint8_t *wstr,uint32_t len) {
 	FIL myfile;
 	FRESULT fr;
 
-	if ((fr = f_open(&myfile, (const TCHAR*) path, FA_WRITE | FA_OPEN_ALWAYS))
-			!= FR_OK) {
+	if ((fr = f_open(&myfile, (const TCHAR*) path, FA_WRITE | FA_OPEN_ALWAYS))!= FR_OK) {
 		/* Seek to end of the file to append data */
 		return fr;
 	}
@@ -27,8 +26,7 @@ FRESULT file_write(char *path, uint8_t *wstr,uint32_t len) {
 		f_close(&myfile);
 		return fr;
 	}
-	if ((fr = f_write(&myfile, wstr, (UINT) len, (UINT*) &byteswritten))
-			!= FR_OK) {
+	if ((fr = f_write(&myfile, wstr, (UINT) len, (UINT*) &byteswritten))!= FR_OK) {
 		f_close(&myfile);
 		return fr;
 	}

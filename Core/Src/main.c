@@ -305,6 +305,7 @@ typedef enum {
 //////////////////////////////////////////////////////////////////////////////
 #define MAX_SIZE_FRAME  3000
 cmd_type_t received_cmd_type = cmd_none;
+uint8_t received_tmp_frame[MAX_SIZE_FRAME];
 uint8_t received_frame[MAX_SIZE_FRAME];
 uint8_t received_cmd_code;
 uint8_t received_state = 0;
@@ -316,6 +317,7 @@ uint16_t received_frame_length = 0;
 uint16_t received_msg_length = 0;
 uint8_t frame_error=0;
 uint8_t usart2_datardy = 0, usart3_datardy = 0;
+size_t total_firmwaresize=0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	uint16_t size_msg=0;
@@ -325,13 +327,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		switch (received_state) {
 		case 0:
 			if (received_byte == 0xaa) {
-				received_frame[received_index++] = received_byte;
+				received_tmp_frame[received_index++] = received_byte;
 				received_state = 1;
 			}
 			break;
 		case 1:
 			if (received_byte == 0x55) {
-				received_frame[received_index++] = received_byte;
+				received_tmp_frame[received_index++] = received_byte;
 				received_state = 2;
 			} else {
 				received_index = 0;
@@ -342,7 +344,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			}
 			break;
 		case 2:
-			received_frame[received_index++] = received_byte;
+			received_tmp_frame[received_index++] = received_byte;
 			if (received_index >= MAX_SIZE_FRAME) {
 				received_state = 0;
 				received_index = 0;
@@ -352,20 +354,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			}
 			else if(received_index>5)
 			{
-				size_msg=((uint16_t)received_frame[4]<<8)+(uint16_t)received_frame[5];
+				size_msg=((uint16_t)received_tmp_frame[4]<<8)+(uint16_t)received_tmp_frame[5];
 				if (received_index == size_msg + 8) {
 
 					received_crc = 0;
 					for (uint16_t i = 0; i < size_msg + 6; i++) {
-						received_crc += received_frame[i];
+						received_crc += received_tmp_frame[i];
 					}
 
-					if (received_crc == received_frame[size_msg+6]) {
+					if (received_crc == received_tmp_frame[size_msg+6]) {
 						received_valid = 1;
-						received_cmd_type = (cmd_type_t) received_frame[2];
-						received_cmd_code = received_frame[3];
+						received_cmd_type = (cmd_type_t) received_tmp_frame[2];
+						received_cmd_code = received_tmp_frame[3];
 						received_frame_length = size_msg+8;
 						received_msg_length=size_msg;
+						frame_error=0;
 					} else {
 						received_valid = 0;
 						received_cmd_type = cmd_none;
@@ -386,7 +389,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void uart_transmit_frame(char *msg, cmd_type_t cmd_type, uint8_t cmd_code) {
+uint8_t uart_transmit_frame(char *msg, cmd_type_t cmd_type, uint8_t cmd_code) {
 	uint8_t transmit_frame[120];
 	transmit_frame[0] = 0xaa;
 	transmit_frame[1] = 0x55;
@@ -407,7 +410,11 @@ void uart_transmit_frame(char *msg, cmd_type_t cmd_type, uint8_t cmd_code) {
 	index++;
 	transmit_frame[5 + index] = '\n';
 	if (HAL_UART_Transmit(&huart2, transmit_frame, 6 + index, 3000) != HAL_OK)
+	{
 		printf("send to esp32 fail!\n\r");
+		return 0;
+	}
+	return 1;
 }
 
 /* USER CODE END PFP */
@@ -2411,6 +2418,8 @@ int app_main(void) {
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
 	char extracted_text[120]={0};
 	uint8_t *extracted_data;
+//	uint8_t *received_frame;
+
 	char *ptr_splitted[25];
 	uint8_t index_ptr;
 	FRESULT fr;
@@ -9192,7 +9201,7 @@ int app_main(void) {
 			}
 			else //if((NTC_Centigrade<NTCTH_Value &&  TEC_overtemp==0)|| (NTC_Centigrade<NTCTL_Value))
 			{
-				if (TempLimit_Value[CAM_TEMP].active&& cur_temperature[TMP_CH5] != 0x8fff) {
+				if (TempLimit_Value[CAM_TEMP].active && (uint16_t) cur_temperature[TMP_CH5] != 0x8fff) {
 					Cam_temperature=cur_temperature[TMP_CH5];
 					Delta_T_cam = Cam_temperature - prev_cam_temperature[0];
 					if (Cam_temperature >= TempLimit_Value[CAM_TEMP].TemperatureH) {
@@ -9266,7 +9275,7 @@ int app_main(void) {
 				}
 				if(second_algorithm_temperature)
 				{
-					if (TempLimit_Value[ENVIROMENT_TEMP].active	&& cur_temperature[TMP_CH4] != 0x8fff) {
+					if (TempLimit_Value[ENVIROMENT_TEMP].active	&& (uint16_t)cur_temperature[TMP_CH4] != 0x8fff) {
 						Env_temperature = cur_temperature[TMP_CH4];
 						Delta_T_Env = Env_temperature - prev_Env_temperature[0];
 						if (Env_temperature	>= TempLimit_Value[ENVIROMENT_TEMP].TemperatureH) //s1
@@ -9340,7 +9349,7 @@ int app_main(void) {
 			}
 			/////////////////////////////////////if Tec is not active///////////////////////////////////////////////
 		} else {
-			FAN_OFF();
+			FAN_ON();
 			if (algorithm_temp_state != 9) {
 				algorithm_temp_state = 9;
 				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,FAN,OFF",
@@ -9352,6 +9361,10 @@ int app_main(void) {
 		//////////////////////////////////////////check ESP32 Frame////////////////////////////////////////
 		if (received_valid) {
 			received_valid = 0;
+
+			memcpy(received_frame,received_tmp_frame,received_frame_length*sizeof(uint8_t));
+			memset(received_tmp_frame,0,received_frame_length*sizeof(uint8_t));
+
 			printf("from ESP %d bytes,type=%x,code=%x\n\r",
 					received_frame_length, (uint8_t) received_cmd_type,
 					received_cmd_code);
@@ -9373,8 +9386,28 @@ int app_main(void) {
 							cur_current, cur_browser_profile);
 
 					uart_transmit_frame(tmp_str2, cmd_current, readDashboard);
-					for (uint8_t i = 0; i < MAX_BROWSER_PAGE; i++)
-						ActiveBrowserPage[i] = 0;
+
+					flag_rtc_10s_general=1;
+					counter_flag_10s_general=0;
+//					if (cur_temperature[0] == (int16_t) 0x8fff) {
+//						sprintf(tmp_str2, "-");
+//					} else {
+//						sprintf(tmp_str2, "%+4.1f", cur_temperature[0] / 10.0);
+//					}
+//
+//					for (uint8_t i = 1; i < 8; i++) {
+//						if (cur_temperature[i] == (int16_t) 0x8fff) {
+//							sprintf(tmp_str2, "%s,-", tmp_str2);
+//						} else {
+//							sprintf(tmp_str2, "%s,%+4.1f", tmp_str2,
+//									cur_temperature[i] / 10.0);
+//						}
+//					}
+//					sprintf(tmp_str2, "%s,%02d:%02d:%02d", tmp_str2, cur_time.Hours,
+//							cur_time.Minutes, cur_time.Seconds);
+//					uart_transmit_frame(tmp_str2, cmd_event, TemperatureEvent);
+
+
 					ActiveBrowserPage[DashboardActivePage] = 1;
 					break;
 				case LEDS1page:
@@ -9413,6 +9446,9 @@ int app_main(void) {
 					ready_msg_Wifipage(tmp_str2, cur_browser_profile);
 					uart_transmit_frame(tmp_str2, cmd_current, Wifipage);
 					ActiveBrowserPage[WifiActivePage] = 1;
+					break;
+				case Upgradepage:
+					ActiveBrowserPage[UpgradeActivePage] = 1;
 					break;
 				case Passwordpage:
 					uart_transmit_frame(tmp_str2, cmd_current, Passwordpage);
@@ -9956,7 +9992,6 @@ int app_main(void) {
 				break;
 				/////////////////////////////////////////////////
 			case cmd_event:
-				printf("cmd_event from ESP code:%x\n\r", received_cmd_code);
 				if(received_cmd_code!=DataUploadEvent)
 				{
 					strncpy(extracted_text, (char*) &received_frame[6],	received_msg_length);
@@ -9973,7 +10008,6 @@ int app_main(void) {
 				case ClientsEvent:
 					cur_client_number = atoi(ptr_splitted[0]);
 					printf("clients from esp:%d\n\r", cur_client_number);
-
 					break;
 				case WifiPageEvent:
 					strcpy(cur_wifi.ssid, ptr_splitted[0]);
@@ -10004,6 +10038,8 @@ int app_main(void) {
 					break;
 				case ThanksEvent:
 					printf("Thanks from ESP32\n\r");
+					HAL_Delay(100);
+					uart_transmit_frame("", cmd_current, Wifipage);
 					ESP32ready=1;
 					break;
 				case StartUploadEvent:
@@ -10041,53 +10077,97 @@ int app_main(void) {
 						}
 						else
 						{
+							uart_transmit_frame("create file", cmd_event, StartUploadEvent);
 							upload_started=1;
 						}
+						total_firmwaresize=0;
+						f_close(&myfile);
 
 					}
 					else
 					{
-						uart_transmit_frame("", cmd_error, UploadError);
+						uart_transmit_frame("file create err", cmd_error, UploadError);
 						f_close(&myfile);
 					}
 					break;
 				case DataUploadEvent:
 					if(upload_started)
 					{
-						extracted_data=(uint8_t *)malloc(received_msg_length);
+						extracted_data=(uint8_t *)malloc(received_msg_length* sizeof(uint8_t));
+						memset(extracted_data,0,received_msg_length* sizeof(uint8_t));
 						memcpy(extracted_data,&received_frame[6],received_msg_length * sizeof(uint8_t));
-						printf("save data to new file\n\r");
-						if(file_write("0:/tmp_firm.bin",extracted_data,received_msg_length)!=FR_OK)
-						{
-							uart_transmit_frame("", cmd_error, UploadError);
+
+						if ((fr = f_open(&myfile, "0:/tmp_firm.bin", FA_WRITE | FA_OPEN_APPEND))!= FR_OK) {
+							printf("error open to file %d\n\r",fr);
+							uart_transmit_frame("open err", cmd_error, UploadError);
 							upload_started=0;
 						}
+						else
+						{
+							if ((fr = f_write(&myfile, extracted_data, (UINT)received_msg_length, (UINT*) &byteswritten))!= FR_OK) {
+								printf("error write to file %d\n\r",fr);
+								uart_transmit_frame("write err", cmd_error, UploadError);
+								upload_started=0;
+								f_close(&myfile);
+							}
+							else
+							{
+								f_close(&myfile);
+
+								total_firmwaresize+=(size_t)received_msg_length;
+								sprintf(tmp_str2,"received pack:%lu B",total_firmwaresize);
+								uart_transmit_frame(tmp_str2, cmd_event, DataUploadEvent);
+								printf("%s,write:%lu\n\r",tmp_str2,byteswritten);
+								if(total_firmwaresize>700 && total_firmwaresize <3000)
+								{
+									for(uint16_t i=0;i<20;i++)
+										printf("%x ",extracted_data[0x400-total_firmwaresize+byteswritten+i]);
+								}
+								printf("\n\r");
+								HAL_Delay(50);
+							}
+						}
+
+
+
+//						if((fr=file_write("0:/tmp_firm.bin",extracted_data,(uint32_t)received_msg_length))!=FR_OK)
+//						{
+//							printf("error write to file %d\n\r",fr);
+//							uart_transmit_frame("write err", cmd_error, UploadError);
+//							upload_started=0;
+//						}
+//						else
+//						{
+//							total_firmwaresize+=(size_t)received_msg_length;
+//							sprintf(tmp_str2,"received pack:%lu B",total_firmwaresize);
+//							uart_transmit_frame(tmp_str2, cmd_event, DataUploadEvent);
+//							printf("%s\n\r",tmp_str2);
+//						}
+//
 						free(extracted_data);
 					}
 					else
 					{
-						uart_transmit_frame("", cmd_error, UploadError);
+						uart_transmit_frame("upload not start", cmd_error, UploadError);
 						printf("ERR:data received while it is not started\n\r");
 					}
-					break;
+				break;
 				case EndUploadEvent:
 					if(upload_started)
 					{
-						printf("End Uploading file and reboot firmware\n\r");
-						if(Copy_file("0:/tmp_firm.bin", firmware_path)==FR_OK)
+						printf("End Uploading file and reboot firmware:%lu\n\r",total_firmwaresize);
+						f_unlink(firmware_path);
+						if(f_rename("0:/tmp_firm.bin", firmware_path)==FR_OK)
 						{
-
-	//					f_unlink("0:/tmp_firm.bin");
-						sharedmem = FORCE_WRITE_FROM_SD;
-						Peripherials_DeInit();
-						HAL_Delay(100);
-						SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
-						while (1)		;
+							sharedmem = FORCE_WRITE_FROM_SD;
+							Peripherials_DeInit();
+							HAL_Delay(100);
+							SCB->AIRCR = 0x05FA0000 | (uint32_t) 0x04; //system reset
+							while (1)		;
 						}
 						else
 						{
 							printf("copy tmp file to %s Error\n\r",firmware_path);
-
 						}
 						upload_started=0;
 
