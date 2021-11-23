@@ -3715,6 +3715,8 @@ int app_main(void) {
 						MENU_state = OPTION_MENU;
 						break;
 					case WIFI1_MENU:
+						if(ESP32ready)
+						{
 						tmp_wifi = cur_wifi;
 						create_formWIFI1(1, tmp_wifi, text_pos);
 						index_option = 2;
@@ -3723,8 +3725,11 @@ int app_main(void) {
 								CENTER_ALIGN, 1, 0);
 						glcd_refresh();
 						MENU_state = WIFI1_MENU;
+						}
 						break;
 					case WIFI2_MENU:
+						if(ESP32ready)
+						{
 						tmp_wifi = cur_wifi;
 						create_formWIFI2(1, tmp_wifi, text_pos);
 						index_option = 2;
@@ -3733,6 +3738,7 @@ int app_main(void) {
 								CENTER_ALIGN, 1, 0);
 						glcd_refresh();
 						MENU_state = WIFI2_MENU;
+						}
 						break;
 					case UPGRADE_MENU:
 						create_formUpgrade(1, text_pos);
