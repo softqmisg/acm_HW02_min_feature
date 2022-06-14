@@ -25,6 +25,8 @@ extern uint8_t profile_active[][MENU_TOTAL_ITEMS];
 /////////////////////////////////////read value of parameter from eeprom///////////////////////////////
 void update_values(void) {
 	uint16_t tmp;
+	EE_ReadVariable(VirtAddVarTab[ADD_DUMMY], &tmp);
+	HAL_Delay(100);
 	EE_ReadVariable(VirtAddVarTab[ADD_LAT_deg], &tmp);LAT_Value.deg=(uint8_t)tmp;
 	HAL_Delay(100);
 	EE_ReadVariable(VirtAddVarTab[ADD_LAT_min],&tmp); LAT_Value.min=(uint8_t)tmp;
@@ -232,6 +234,8 @@ void update_values(void) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Write_defaults(void)
 {
+	EE_WriteVariable(VirtAddVarTab[ADD_DUMMY], 0);HAL_Delay(100);
+
 	EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], DEFAULT_LAT_deg);HAL_Delay(100);
 	EE_WriteVariable(VirtAddVarTab[ADD_LAT_min],DEFAULT_LAT_min);HAL_Delay(100);
 	EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],DEFAULT_LAT_second);HAL_Delay(100);
