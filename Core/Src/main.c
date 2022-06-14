@@ -3715,6 +3715,8 @@ int app_main(void) {
 						MENU_state = OPTION_MENU;
 						break;
 					case WIFI1_MENU:
+						MENU_state = WIFI1_MENU;
+#if 0
 						if(ESP32ready)
 						{
 						tmp_wifi = cur_wifi;
@@ -3726,8 +3728,11 @@ int app_main(void) {
 						glcd_refresh();
 						MENU_state = WIFI1_MENU;
 						}
+#endif
 						break;
 					case WIFI2_MENU:
+						MENU_state = WIFI2_MENU;
+#if 0
 						if(ESP32ready)
 						{
 						tmp_wifi = cur_wifi;
@@ -3739,6 +3744,7 @@ int app_main(void) {
 						glcd_refresh();
 						MENU_state = WIFI2_MENU;
 						}
+#endif
 						break;
 					case UPGRADE_MENU:
 						create_formUpgrade(1, text_pos);
@@ -8134,6 +8140,10 @@ int app_main(void) {
 			break;
 			/////////////////////////////////////WIFI1_MENU/////////////////////////////////////////////////
 		case WIFI1_MENU:
+			index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
+			create_menu(index_option, menu_page, 1, text_pos);
+			MENU_state = OPTION_MENU;
+#if 0
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,
 					Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
@@ -8582,10 +8592,14 @@ int app_main(void) {
 				glcd_refresh();
 
 			}
-
+#endif
 			break;
 			/////////////////////////////////////WIFI2_MENU/////////////////////////////////////////////////
 		case WIFI2_MENU:
+			index_option = (MENU_state - POSITION_MENU)%MENU_ITEMS_IN_PAGE;
+			create_menu(index_option, menu_page, 1, text_pos);
+			MENU_state = OPTION_MENU;
+#if 0
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT | Key_ENTER,Long_press);
 			if (joystick_read(Key_TOP, Short_press)) {
 				joystick_init(Key_TOP, Short_press);
@@ -9051,7 +9065,7 @@ int app_main(void) {
 				glcd_refresh();
 
 			}
-
+#endif
 			break;
 			/////////////////////////////////////COPY_MENU/////////////////////////////////////////////////
 		case COPY_MENU:
