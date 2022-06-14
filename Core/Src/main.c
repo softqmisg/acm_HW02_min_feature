@@ -3576,9 +3576,12 @@ int app_main(void) {
 				if (profile_active[cur_profile][index_option - POSITION_MENU]) {
 					switch (index_option) {
 					case POSITION_MENU:
+						memcpy(&tmp_lat,&LAT_Value,sizeof(POS_t));
 
-						tmp_lat = LAT_Value;
-						tmp_long = LONG_Value;
+//						tmp_lat = LAT_Value;
+						memcpy(&tmp_long,&LONG_Value,sizeof(POS_t));
+
+//						tmp_long = LONG_Value;
 						tmp_utcoff = UTC_OFF_Value;
 						create_formposition(1, text_pos, tmp_lat, tmp_long,
 								tmp_utcoff);
@@ -4242,36 +4245,40 @@ int app_main(void) {
 				switch (index_option) {
 				case 0:	//OK
 						//save in eeprom
-					LAT_Value = tmp_lat;
-					LONG_Value = tmp_long;
+//					LAT_Value = tmp_lat;
+//					LONG_Value = tmp_long;
+					memcpy(&LAT_Value,&tmp_lat,sizeof(POS_t));
+					memcpy(&LONG_Value,&tmp_long,sizeof(POS_t));
 					UTC_OFF_Value = tmp_utcoff;
 
 					Delay_Astro_calculation = 3;
 					flag_rtc_1s_general = 1;
 					HAL_Delay(50);
+					EE_WriteVariable(VirtAddVarTab[ADD_DUMMY], 0);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_deg], LAT_Value.deg);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_min], LAT_Value.min);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_second],
 							LAT_Value.second);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LAT_direction],
 							LAT_Value.direction);
 
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_deg],
 							LONG_Value.deg);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_min],
 							LONG_Value.min);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_second],
 							LONG_Value.second);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_LONG_direction],
 							LONG_Value.direction);
-					HAL_Delay(50);
+					HAL_Delay(100);
 					EE_WriteVariable(VirtAddVarTab[ADD_UTC_OFF], UTC_OFF_Value);
 					sprintf(tmp_str2,
 							"%04d-%02d-%02d,%02d:%02d:%02d,POSITION,%02d %02d' %05.2f\" %c,%02d %02d' %05.2f\" %c\n",
