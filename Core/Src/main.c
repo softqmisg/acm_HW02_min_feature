@@ -9264,7 +9264,7 @@ int app_main(void) {
 					else if ((Delta_T_cam >1)	&& (Cam_temperature	> (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
 						second_algorithm_temperature=1;
-						FAN_OFF();
+//						FAN_OFF();
 						if (algorithm_temp_state != 3) {
 							algorithm_temp_state = 3;
 							sprintf(tmp_str2,
@@ -9280,7 +9280,7 @@ int app_main(void) {
 					else if ((Cam_temperature<= (TempLimit_Value[CAM_TEMP].TemperatureH- HYSTERESIS_Value))) //s2
 					{
 							second_algorithm_temperature=1;
-							FAN_OFF();
+//							FAN_OFF();
 							if (algorithm_temp_state != 4) {
 								algorithm_temp_state = 4;
 								sprintf(tmp_str2,
