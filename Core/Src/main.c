@@ -2404,7 +2404,9 @@ int app_main(void)
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
   MX_LWIP_Init();
+#if (__DEBUG__)
   MX_IWDG_Init();
+#endif
   /* USER CODE BEGIN 2 */
 	/////////////////////////
 	uint8_t flag_change_form = 0;

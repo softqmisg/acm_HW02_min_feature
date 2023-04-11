@@ -48,6 +48,7 @@ char filename_light[50] = { 0 };
 char filename_doorstate[50] = { 0 };
 char filename_parameter[50] = { 0 };
 FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
+#if 0
 	FRESULT fr;
 	FATFS *fs;
 	FILINFO fno;
@@ -227,9 +228,11 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 		break;
 	}
 	return fr;
+#endif
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT Copy_file(char *src, char *dest) {
+#if 0
 	uint32_t byteswritten = 0, bytereaden = 0;
 	FIL input, output;
 	FRESULT fr,fw;
@@ -273,9 +276,11 @@ FRESULT Copy_file(char *src, char *dest) {
 	f_close(&output);
 
 	return FR_OK;
+#endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 FRESULT Copy2USB() {
+#if 0
 	FRESULT fr;
 	FATFS *fs;
 	FILINFO fno;
@@ -352,4 +357,5 @@ FRESULT Copy2USB() {
 	//////////////////////////////////////////////////////////////////////////////////
 //	f_mount(NULL, "0:", 0);
 	return fr;
+#endif
 }
