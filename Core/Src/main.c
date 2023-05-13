@@ -302,7 +302,8 @@ typedef enum {
 #define Passwordpage      0x98
 
 #define UploadError   0xC4
-//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////UART2->ESP32/////////////////////////////////////////
+#if 0
 #define MAX_SIZE_FRAME  3000
 cmd_type_t received_cmd_type = cmd_none;
 uint8_t received_tmp_frame[MAX_SIZE_FRAME];
@@ -387,8 +388,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 //		HAL_UART_Receive_IT(&huart3, &PC_data, 1);
 //	}
 }
+#endif
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t uart_transmit_frame(char *msg, cmd_type_t cmd_type, uint8_t cmd_code) {
+#if 0
 	uint8_t transmit_frame[120];
 	transmit_frame[0] = 0xaa;
 	transmit_frame[1] = 0x55;
@@ -414,8 +417,132 @@ uint8_t uart_transmit_frame(char *msg, cmd_type_t cmd_type, uint8_t cmd_code) {
 		return 0;
 	}
 	return 1;
+#endif
 }
+/////////////////////////////////////UART3<->MotherBoard/////////////////////////////////////////
+#define INDEX_START_BYTE	0
+#define SIZE_START_BYTE		2
 
+#define INDEX_SIZE_BYTE		2
+#define SIZE_SIZE_BYTE		1
+
+#define INDEX_TYPE_BYTE		3
+#define SIZE_TYPE_BYTE		1
+
+#define INDEX_CHANNEL_BYTE	4
+#define SIZE_CHANNEL_BYTE	1
+
+#define INDEX_VALUE_BYTE	5
+
+
+#define TYPE_MB_TEMPERATURE	0
+#define TYPE_MB_LIGHT		1
+#define TYPE_MB_VOLTAGE		2
+#define TYPE_MB_CURRENT		3
+#define TYPE_MB_LED			4
+#define TYPE_MB_FAN			5
+#define TYPE_MB_ERROR		0xFF
+
+#define MAX_SIZE_FRAME_MB  20
+
+
+uint8_t received_byte_MB;
+uint8_t received_state_MB = 0;
+uint16_t received_index_MB = 0;
+uint8_t received_tmp_frame_MB[MAX_SIZE_FRAME_MB];
+uint8_t received_frame_MB[MAX_SIZE_FRAME_MB];
+uint8_t received_valid_MB = 0;
+uint16_t size_msg=0;
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+	uint8_t received_crc = 0;
+
+	if (huart->Instance == USART3) {
+		received_byte_MB = USART3->DR;
+		switch (received_state_MB) {
+		case 0://get first start byte
+			if (received_byte_MB == 0xaa) {
+				received_tmp_frame_MB[received_index_MB++] = received_byte_MB;
+				received_state_MB = 1;
+			}
+			break;
+		case 1: //get second start byte
+			if (received_byte_MB == 0x55) {
+				received_tmp_frame_MB[received_index_MB++] = received_byte_MB;
+				received_state_MB = 2;
+			} else {
+				received_index_MB = 0;
+				received_state_MB = 0;
+				received_valid_MB = 0;
+			}
+			break;
+		case 2: //get size
+			received_tmp_frame_MB[received_index_MB++] = received_byte_MB;
+			if(received_index_MB>=INDEX_SIZE_BYTE+SIZE_SIZE_BYTE)
+			{
+				size_msg=0;
+				for(int i=0;i<SIZE_SIZE_BYTE;i++)
+				{
+					size_msg<<=8;
+					size_msg+=(uint16_t)received_tmp_frame_MB[i+INDEX_SIZE_BYTE];
+				}
+				received_state_MB = 3;
+			}
+		break;
+		case 3://get other values
+			received_tmp_frame_MB[received_index_MB++] = received_byte_MB;
+			if (received_index_MB >= MAX_SIZE_FRAME_MB) {
+				received_state_MB = 0;
+				received_index_MB = 0;
+				received_valid_MB = 0;
+			}
+			else if(received_index_MB>INDEX_VALUE_BYTE+size_msg)
+			{
+					received_crc = 0;
+					for (uint16_t i = 0; i < size_msg + INDEX_VALUE_BYTE; i++) {
+						received_crc += received_tmp_frame_MB[i];
+					}
+
+					if (received_crc == received_tmp_frame_MB[size_msg+INDEX_VALUE_BYTE]) {
+						received_valid_MB = 1;
+					} else {
+						received_valid_MB = 0;
+					}
+					received_index_MB = 0;
+					received_state_MB = 0;
+			}
+			break;
+		}
+		HAL_UART_Receive_IT(&huart3, &received_byte_MB, 1);
+	}
+
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+uint8_t uart_transmit_frame_MB(UART_HandleTypeDef *huart,int8_t size,uint8_t type,uint8_t channel, uint8_t *data) {
+
+	uint8_t transmit_frame[20];
+	transmit_frame[0] = 0xaa;
+	transmit_frame[1] = 0x55;
+	transmit_frame[2] =  size;
+	transmit_frame[3] = type;
+	transmit_frame[4] = channel;
+	for (uint16_t i = 0; i < size; i++) {
+		transmit_frame[INDEX_VALUE_BYTE + i] = data[i];
+	}
+
+	uint8_t crc = 0;
+	for (uint16_t i = 0; i < INDEX_VALUE_BYTE+size  ; i++) {
+		crc += transmit_frame[i];
+	}
+
+	transmit_frame[INDEX_VALUE_BYTE+size] = crc;
+	if (HAL_UART_Transmit(huart, transmit_frame, INDEX_VALUE_BYTE + size+1, 3000) != HAL_OK)
+	{
+		printf("send to esp32 fail!\n\r");
+		return 0;
+	}
+	return 1;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -2400,19 +2527,21 @@ int app_main(void)
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
   MX_USB_DEVICE_Init();
-  MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
   MX_LWIP_Init();
-#if (__DEBUG__)
+#if !(__DEBUG__)
   MX_IWDG_Init();
 #endif
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	/////////////////////////
-	uint8_t flag_change_form = 0;
+	uint8_t transmit_value[10];
+  	uint8_t flag_change_form = 0;
 	uint8_t counter_change_form = 0;
 	uint8_t flag_log_data = 0;
 	uint8_t counter_log_data = 0;
+	uint16_t tmp_uint16;
 
 	char tmp_str[100], tmp_str1[100], tmp_str2[120];
 	char extracted_text[120]={0};
@@ -2491,7 +2620,10 @@ int app_main(void)
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
 	////////////////////////////////////////////////////////////////
-	HAL_UART_Receive_IT(&huart2, &received_byte, 1);
+//	HAL_UART_Receive_IT(&huart2, &received_byte, 1);
+	HAL_UART_Receive_IT(&huart3, &received_byte_MB, 1);
+//	uart_transmit_frame_MB(&huart3,2,uint8_t type,uint8_t channel, uint8_t *data)
+//	HAL_UART_Transmit(&huart3, "Hello\n\r", 7, 3000);
 //	while(1)
 //	{
 //		if(ESP_validbuffer)
@@ -2767,6 +2899,7 @@ int app_main(void)
 				cur_outsidelight = 0xffff;
 			}
 		}
+#if 0
 		if (flag_rtc_1m_general) {
 			flag_rtc_1m_general = 0;
 			if (ActiveBrowserPage[DashboardActivePage]) {
@@ -2779,6 +2912,7 @@ int app_main(void)
 			}
 		}
 		/////////////////////send sensor data to ESP32:every 10s///////////////////////////
+
 		if (flag_rtc_10s_general) {
 			flag_rtc_10s_general = 0;
 			////////////////Temperature//////////////////////////
@@ -2867,7 +3001,7 @@ int app_main(void)
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 				sprintf(tmp_str2, "off");
 			}
-			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str2);
+//			r_logdoor = Log_file(SDCARD_DRIVE, DOORSTATE_FILE, tmp_str2);
 			if (ActiveBrowserPage[DashboardActivePage]) {
 				if (cur_doorstate) {
 					sprintf(tmp_str2, "on");
@@ -2880,6 +3014,7 @@ int app_main(void)
 			}
 			prev_doorstate = cur_doorstate;
 		}
+#endif
 		//////////////////////////Saves parameters in logs file in SDCARD,just one  time////
 #if 0
 		if (flag_log_param /*&& USBH_MSC_IsReady(&hUsbHostHS)*/) {
@@ -2994,6 +3129,7 @@ int app_main(void)
 						CalcAstro = 1;
 				}
 				////////////////////////////LED control////////////////////////////////////
+#if 0
 				if ((cur_time.Hours == 0 && cur_time.Minutes == 0&& cur_time.Seconds == 0) || (CalcAstro)) {
 					CalcAstro = 0;
 					tmp_dlat = POS2double(LAT_Value);
@@ -3031,6 +3167,7 @@ int app_main(void)
 							S2_LED_Value.NIGHT_BLINK_Value / 10.0);
 
 				}
+#endif
 				////////////////////////////DISP Refresh//////////////////////////////////
 				switch (DISP_state) {
 				case DISP_IDLE:
@@ -3063,6 +3200,7 @@ int app_main(void)
 				}
 			}
 			/////////////////////Log Sensors//////////////////////////////////
+#if 0
 			if (flag_log_data) {
 				flag_log_data = 0;
 				counter_log_data = 0;
@@ -3100,7 +3238,7 @@ int app_main(void)
 
 				r_loglight = Log_file(SDCARD_DRIVE, LIGHT_FILE, tmp_str2);
 			}
-
+#endif
 			///////////////////////////change display form////////////////////////////////////////////////
 			if (flag_change_form) {
 				flag_change_form = 0;
@@ -3204,20 +3342,20 @@ int app_main(void)
 			if (joystick_read(Key_ENTER, Long_press)
 					|| joystick_read(Key_ENTER, Short_press)) {
 				joystick_init(Key_ENTER, Both_press);
-
-//				sprintf(tmp_pass, "0000");
-//				cur_profile = USER_PROFILE;
-//				create_formpass(1, cur_profile, text_pos);
-//				index_option = 2;
-//				if (cur_profile == USER_PROFILE)
-//					sprintf(tmp_str, "USER");
-//				else
-//					sprintf(tmp_str, "ADMIN");
-//				text_cell(text_pos, index_option, tmp_str, Tahoma8,
-//						CENTER_ALIGN, 1, 0);
-//				MENU_state = PASS_MENU;
-//				glcd_refresh();
-
+#if 0
+				sprintf(tmp_pass, "0000");
+				cur_profile = USER_PROFILE;
+				create_formpass(1, cur_profile, text_pos);
+				index_option = 2;
+				if (cur_profile == USER_PROFILE)
+					sprintf(tmp_str, "USER");
+				else
+					sprintf(tmp_str, "ADMIN");
+				text_cell(text_pos, index_option, tmp_str, Tahoma8,
+						CENTER_ALIGN, 1, 0);
+				MENU_state = PASS_MENU;
+				glcd_refresh();
+#endif
 			}
 			break;
 			/////////////////////////////////////PASS_MENU/////////////////////////////////////////////////
@@ -10241,7 +10379,137 @@ int app_main(void)
 			printf("upload started & frame error\n\r");
 		}
 		///////////////////////////////////////////end ESP32////////////////////////////////////////////////////////
+
 #endif
+		/////////////////////////////////////////check MB<->MICRO///////////////////////////////////////////////////
+		if (received_valid_MB) {
+			received_valid_MB = 0;
+			memcpy(received_frame_MB,received_tmp_frame_MB,MAX_SIZE_FRAME_MB*sizeof(uint8_t));
+			memset(received_tmp_frame_MB,0,MAX_SIZE_FRAME_MB*sizeof(uint8_t));
+			uint8_t ch=received_frame_MB[INDEX_CHANNEL_BYTE];
+			switch(received_frame_MB[INDEX_TYPE_BYTE])
+			{
+			case TYPE_MB_TEMPERATURE:
+				if (cur_temperature[ch]==(int16_t)0x8fff) {
+					transmit_value[0]=1;
+					uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					reinit_i2c(&hi2c3);
+				}
+				else
+				{
+					transmit_value[0]=cur_temperature[ch]>>8;
+					transmit_value[1]=cur_temperature[ch]&0xff;
+					uart_transmit_frame_MB(&huart3, 2, TYPE_MB_TEMPERATURE, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+				}
+				break;
+			case TYPE_MB_LIGHT:
+				if(ch==0)
+				{
+					if (cur_insidelight==(uint16_t)0xffff) {
+						transmit_value[0]=1;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+						reinit_i2c(&hi2c3);
+					}
+					else
+					{
+						transmit_value[0]=cur_insidelight>>8;
+						transmit_value[1]=cur_insidelight&0xff;
+						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_LIGHT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+					}
+
+				}
+				else
+				{
+					if (cur_outsidelight==(uint16_t)0xffff) {
+						transmit_value[0]=1;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+						reinit_i2c(&hi2c3);
+					}
+					else
+					{
+						transmit_value[0]=cur_outsidelight>>8;
+						transmit_value[1]=cur_outsidelight&0xff;
+						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_LIGHT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+					}
+				}
+				break;
+			case TYPE_MB_VOLTAGE:
+					if (cur_voltage[ch]==-1.0) {
+						transmit_value[0]=1;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+						reinit_i2c(&hi2c3);
+					}
+					else
+					{
+						tmp_uint16=(uint16_t)(cur_voltage[ch]*100.0);
+						transmit_value[0]=tmp_uint16>>8;
+						transmit_value[1]=tmp_uint16&0xff;
+						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_VOLTAGE, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+					}
+				break;
+			case TYPE_MB_CURRENT:
+				if (cur_current[ch]==-1.0) {
+					transmit_value[0]=1;
+					uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					reinit_i2c(&hi2c3);
+				}
+				else
+				{
+					tmp_uint16=(uint16_t)(cur_current[ch]*100.0);
+					transmit_value[0]=tmp_uint16>>8;
+					transmit_value[1]=tmp_uint16&0xff;
+					uart_transmit_frame_MB(&huart3, 2, TYPE_MB_CURRENT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+				}
+				break;
+			case TYPE_MB_LED:
+				if(ch==0)
+				{
+					tmp_uint16=((uint16_t)received_frame_MB[INDEX_VALUE_BYTE+1]<<8)+received_frame_MB[INDEX_VALUE_BYTE+2];
+					if(pca9632_setbrighnessblinking(LEDS1,received_frame_MB[INDEX_VALUE_BYTE],	(double)tmp_uint16/10.0)!=PCA9632_OK)
+					{
+						transmit_value[0]=1;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					}
+					else
+					{
+						transmit_value[0]=0;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					}
+				}
+				else if (ch==1)
+				{
+					tmp_uint16=((uint16_t)received_frame_MB[INDEX_VALUE_BYTE+1]<<8)+received_frame_MB[INDEX_VALUE_BYTE+2];
+					if(pca9632_setbrighnessblinking(LEDS2,received_frame_MB[INDEX_VALUE_BYTE],	(double)tmp_uint16/10.0)!=PCA9632_OK)
+					{
+						transmit_value[0]=1;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					}
+					else
+					{
+						transmit_value[0]=0;
+						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+					}
+
+				}
+				break;
+			case TYPE_MB_FAN:
+				if(received_frame_MB[INDEX_VALUE_BYTE])
+				{
+					FAN_ON();
+
+				}
+				else
+				{
+					FAN_OFF();
+				}
+				transmit_value[0]=0;
+				uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+				break;
+			}
+		}
+		//////////////////////////////////////////end MB<-> MICRO////////////////////////////////////////////////
+
+
 #if __LWIP__
 		MX_LWIP_Process();
 #endif
