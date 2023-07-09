@@ -2496,7 +2496,7 @@ void split_date(char *str, RTC_DateTypeDef *d) {
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
+int app_main(void)
 {
   /* USER CODE BEGIN 1 */
 
@@ -2530,7 +2530,9 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
   MX_LWIP_Init();
+#if !(__DEBUG__)
   MX_IWDG_Init();
+#endif
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	/////////////////////////
@@ -2617,6 +2619,8 @@ int main(void)
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
+	TEC_ON();
+	TEC_COLD();
 	////////////////////////////////////////////////////////////////
 //	HAL_UART_Receive_IT(&huart2, &received_byte, 1);
 	HAL_UART_Receive_IT(&huart3, &received_byte_MB, 1);
