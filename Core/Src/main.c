@@ -2496,7 +2496,7 @@ void split_date(char *str, RTC_DateTypeDef *d) {
   * @brief  The application entry point.
   * @retval int
   */
-int app_main(void)
+int main(void)
 {
   /* USER CODE BEGIN 1 */
 
@@ -2530,9 +2530,7 @@ int app_main(void)
   MX_USART3_UART_Init();
   MX_USB_HOST_Init();
   MX_LWIP_Init();
-#if !(__DEBUG__)
   MX_IWDG_Init();
-#endif
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	/////////////////////////

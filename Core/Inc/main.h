@@ -95,6 +95,8 @@ void Error_Handler(void);
 #define uSD_Detect_GPIO_Port GPIOD
 #define ESP32_EN_Pin GPIO_PIN_4
 #define ESP32_EN_GPIO_Port GPIOD
+#define FAN_Pin GPIO_PIN_15
+#define FAN_GPIO_Port GPIOD
 #define TEC_ONOFF_Pin GPIO_PIN_13
 #define TEC_ONOFF_GPIO_Port GPIOF
 #define TEC_CURDIR_Pin GPIO_PIN_12
@@ -115,7 +117,8 @@ void Error_Handler(void);
 #define FAN_ON()	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port,TEC_ONOFF_Pin,GPIO_PIN_SET)
 #define TEC_HOT()	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port,TEC_CURDIR_Pin,GPIO_PIN_SET)
 #define TEC_COLD()	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port,TEC_CURDIR_Pin,GPIO_PIN_RESET)
-
+#define TEC_OFF()	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port,TEC_ONOFF_Pin,GPIO_PIN_RESET)
+#define TEC_ON()	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port,TEC_ONOFF_Pin,GPIO_PIN_SET)
 
 #define BLINK_MAX	100// second *10 =>blink_max= 10s
 #define BLINK_MIN	0 //blinkoff
