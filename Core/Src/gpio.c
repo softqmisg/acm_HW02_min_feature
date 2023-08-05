@@ -63,6 +63,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(FAN_ONOFF_GPIO_Port, FAN_ONOFF_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, TEC_ONOFF_Pin|TEC_CURDIR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PEPin PEPin PEPin PEPin
@@ -111,6 +114,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ESP32_EN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PtPin */
+  GPIO_InitStruct.Pin = FAN_ONOFF_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(FAN_ONOFF_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PFPin PFPin */
   GPIO_InitStruct.Pin = TEC_ONOFF_Pin|TEC_CURDIR_Pin;

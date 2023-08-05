@@ -56,7 +56,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#define VER	"20230805"
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -2607,6 +2607,9 @@ int app_main(void)
 	FIL myfile;
 	//////////////////////retarget////////////////
 	//RetargetInit(&huart3);
+	/////////////////////////Motherboard Start/////////////////////
+	MB_ON();
+	MB_PW_START();
 	/////////////////////////transceiver PC<->ESP32/////////////////////////////
 	////////////////////////////////////////////////////////////////////////////
 	printf(
@@ -3178,25 +3181,10 @@ int app_main(void)
 				case DISP_FORM2:
 					create_form2(0, cur_voltage, cur_current);
 					break;
-				case DISP_FORM3:
-					create_form3(0);
-					break;
-				case DISP_FORM4:
-					create_form4(0, cur_sunrise, cur_sunset);
-					break;
-				case DISP_FORM5:
-					create_form5(0);
-					break;
-				case DISP_FORM5_5:
-					create_form5_5(0);
-					break;
 				case DISP_FORM6:
 					create_form6(0, cur_insidelight, cur_outsidelight);
 					break;
-				case DISP_FORM7:
-					create_form7(0, r_logtemp, r_logvolt, r_logdoor, r_loglight,
-							r_logparam);
-					break;
+
 				}
 			}
 			/////////////////////Log Sensors//////////////////////////////////
@@ -3264,31 +3252,10 @@ int app_main(void)
 					DISP_state = DISP_FORM2;
 					break;
 				case DISP_FORM2:
-					create_form3(1);
-					DISP_state = DISP_FORM3;
-					break;
-				case DISP_FORM3:
-					create_form4(1, cur_sunrise, cur_sunset);
-					DISP_state = DISP_FORM4;
-					break;
-				case DISP_FORM4:
-					create_form5(1);
-					DISP_state = DISP_FORM5;
-					break;
-				case DISP_FORM5:
-					create_form5_5(1);
-					DISP_state = DISP_FORM5_5;
-					break;
-				case DISP_FORM5_5:
 					create_form6(1, cur_insidelight, cur_outsidelight);
 					DISP_state = DISP_FORM6;
 					break;
 				case DISP_FORM6:
-					create_form7(1, r_logtemp, r_logvolt, r_logdoor, r_loglight,
-							r_logparam);
-					DISP_state = DISP_FORM7;
-					break;
-				case DISP_FORM7:
 					create_form1(1, cur_temperature);
 					DISP_state = DISP_FORM1;
 					break;
@@ -3314,28 +3281,13 @@ int app_main(void)
 				case DISP_IDLE:
 					break;
 				case DISP_FORM1:
-					DISP_state = DISP_FORM6;
-					break;
-				case DISP_FORM2:
-					DISP_state = DISP_FORM7;
-					break;
-				case DISP_FORM3:
-					DISP_state = DISP_FORM1;
-					break;
-				case DISP_FORM4:
 					DISP_state = DISP_FORM2;
 					break;
-				case DISP_FORM5:
-					DISP_state = DISP_FORM3;
-					break;
-				case DISP_FORM5_5:
-					DISP_state = DISP_FORM4;
+				case DISP_FORM2:
+					DISP_state = DISP_FORM6;
 					break;
 				case DISP_FORM6:
-					DISP_state = DISP_FORM5;
-					break;
-				case DISP_FORM7:
-					DISP_state = DISP_FORM5_5;
+					DISP_state = DISP_FORM1;
 					break;
 				}
 			}
