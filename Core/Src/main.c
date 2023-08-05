@@ -831,7 +831,7 @@ void create_form2(uint8_t clear, double *voltage, double *current) {
 		sprintf(tmp_str, "V=---");
 
 	if (voltage[3] > 0.0)
-		sprintf(tmp_str, "%s     C=%4.1fA", tmp_str, current[3]);
+		sprintf(tmp_str, "%s     C=%4.2fA", tmp_str, current[3]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -841,7 +841,7 @@ void create_form2(uint8_t clear, double *voltage, double *current) {
 	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN, 1, 1);
-	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 3, "MB ", Tahoma8, CENTER_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
