@@ -2520,39 +2520,44 @@ int app_main(void)
 #endif
 
 
-	if (BSP_SD_IsDetected() == SD_PRESENT) {
-		HAL_Delay(100);
-		if (BSP_SD_IsDetected() == SD_PRESENT) {
-			if (SDFatFS.fs_type == 0) {
-				HAL_SD_Init(&hsd);
-				if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
-					printf("mounting SD card\n\r");
-					bmp_img img;
-					if (bmp_img_read(&img, "logo.bmp") == BMP_OK) {
-						draw_bmp_h(0, 0, img.img_header.biWidth,
-								img.img_header.biHeight, img.img_pixels, 1);
-						bmp_img_free(&img);
-					} else
-						printf("bmp file error\n\r");
+//	if (BSP_SD_IsDetected() == SD_PRESENT) {
+//		HAL_Delay(100);
+//		if (BSP_SD_IsDetected() == SD_PRESENT) {
+//			if (SDFatFS.fs_type == 0) {
+//				HAL_SD_Init(&hsd);
+//				if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
+//					printf("mounting SD card\n\r");
+//					bmp_img img;
+//					if (bmp_img_read(&img, "logo.bmp") == BMP_OK) {
+//						draw_bmp_h(0, 0, img.img_header.biWidth,
+//								img.img_header.biHeight, img.img_pixels, 1);
+//						bmp_img_free(&img);
+//					} else
+//						printf("bmp file error\n\r");
+//
+//					create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+//					glcd_refresh();
+//					HAL_Delay(1000);
+//
+//				} else {
+//					SDFatFS.fs_type = 0;
+//					HAL_SD_DeInit(&hsd);
+//					printf("mounting SD card ERROR\n\r");
+//				}
+//			}
+//		}
+//	} else {
+//		f_mount(NULL, "0:", 0);
+//		SDFatFS.fs_type = 0;
+//		HAL_SD_DeInit(&hsd);
+//	}
+//	glcd_blank();
 
-					create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-					glcd_refresh();
-					HAL_Delay(1000);
-
-				} else {
-					SDFatFS.fs_type = 0;
-					HAL_SD_DeInit(&hsd);
-					printf("mounting SD card ERROR\n\r");
-				}
-			}
-		}
-	} else {
-		f_mount(NULL, "0:", 0);
-		SDFatFS.fs_type = 0;
-		HAL_SD_DeInit(&hsd);
-	}
+	draw_bmp_h(0,0,aCAM_logo_128_02_H[0],aCAM_logo_128_02_H[2],&aCAM_logo_128_02_H[4],1);
+	draw_box(0, 0, 127, 63, 1);
+	glcd_refresh();
+	HAL_Delay(2000);
 	glcd_blank();
-
 	///////////////////////initialize & checking sensors///////////////////////////////////////
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
