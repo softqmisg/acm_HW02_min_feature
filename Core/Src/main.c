@@ -2784,27 +2784,27 @@ int app_main(void)
 		Error_Handler();
 	}
 	/////////////////////////////eeprom writing defaults & reading//////////////////////////////////////////////////////
-	for (uint8_t i = 0; i < NB_OF_VAR; i++)
-		VirtAddVarTab[i] = i * 2 + 20;
-	HAL_FLASH_Unlock();
-	if (EE_Init() == HAL_OK)
-		printf("eeprom_OK\n\r");
-	else
-		printf("eeprom_error\n\r");
-	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)
-			|| HAL_GPIO_ReadPin(BTN2_GPIO_Port, BTN2_Pin) == 0) {
-#if !(__DEBUG__)
-		HAL_IWDG_Refresh(&hiwdg);
-#endif
-		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
-		glcd_blank();
-		create_cell(0, 0, 128, 64, 1, 1, 1, text_pos);
-		text_cell(text_pos, 0, "Loading Defaults", Tahoma8, CENTER_ALIGN, 0, 0);
-		glcd_refresh();
-		Write_defaults();
-
-	}
-	update_values();
+//	for (uint8_t i = 0; i < NB_OF_VAR; i++)
+//		VirtAddVarTab[i] = i * 2 + 20;
+//	HAL_FLASH_Unlock();
+//	if (EE_Init() == HAL_OK)
+//		printf("eeprom_OK\n\r");
+//	else
+//		printf("eeprom_error\n\r");
+//	if ((HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x5050)
+//			|| HAL_GPIO_ReadPin(BTN2_GPIO_Port, BTN2_Pin) == 0) {
+//#if !(__DEBUG__)
+//		HAL_IWDG_Refresh(&hiwdg);
+//#endif
+//		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5050);
+//		glcd_blank();
+//		create_cell(0, 0, 128, 64, 1, 1, 1, text_pos);
+//		text_cell(text_pos, 0, "Loading Defaults", Tahoma8, CENTER_ALIGN, 0, 0);
+//		glcd_refresh();
+//		Write_defaults();
+//
+//	}
+//	update_values();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	joystick_init(Key_ALL, Both_press);
