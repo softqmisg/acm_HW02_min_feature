@@ -2707,6 +2707,9 @@ int app_main(void)
 
 	glcd_refresh();
 	HAL_Delay(300);
+	glcd_blank();
+	create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+	glcd_refresh();
 	///////////////////////////RTC interrupt enable///////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
@@ -2814,36 +2817,54 @@ int app_main(void)
 		/////////////////////////////////////////check MB<->MICRO///////////////////////////////////////////////////
 		if (received_valid_MB) {
 			received_valid_MB = 0;
+			glcd_blank();
+			create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
+			glcd_refresh();
+
 			memcpy(received_frame_MB,received_tmp_frame_MB,MAX_SIZE_FRAME_MB*sizeof(uint8_t));
 			memset(received_tmp_frame_MB,0,MAX_SIZE_FRAME_MB*sizeof(uint8_t));
 			uint8_t ch=received_frame_MB[INDEX_CHANNEL_BYTE];
 			switch(received_frame_MB[INDEX_TYPE_BYTE])
 			{
 			case TYPE_MB_TEMPERATURE:
-				draw_text("Read temperature", 64, 1, Tahoma8, 1, 0);
-				glcd_refresh();
+				sprintf(tmp_str,"read temp%d",ch);
+				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
+
 				if (cur_temperature[ch]==(int16_t)0x8fff) {
+					sprintf(tmp_str,"T%d=---",ch);
+					draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 					transmit_value[0]=1;
 					uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
 					reinit_i2c(&hi2c3);
 				}
 				else
 				{
+					sprintf(tmp_str,"Temp%d=%.1f",ch,(double)cur_temperature[ch]/10.0);
+					draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 					transmit_value[0]=cur_temperature[ch]>>8;
 					transmit_value[1]=cur_temperature[ch]&0xff;
 					uart_transmit_frame_MB(&huart3, 2, TYPE_MB_TEMPERATURE, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
+
 				}
+				glcd_refresh();
+
 				break;
 			case TYPE_MB_LIGHT:
+				sprintf(tmp_str,"read Light%d",ch);
+				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 				if(ch==0)
 				{
 					if (cur_insidelight==(uint16_t)0xffff) {
+						sprintf(tmp_str,"inside=---");
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						transmit_value[0]=1;
 						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
 						reinit_i2c(&hi2c3);
 					}
 					else
 					{
+						sprintf(tmp_str,"inside=%d",cur_insidelight);
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						transmit_value[0]=cur_insidelight>>8;
 						transmit_value[1]=cur_insidelight&0xff;
 						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_LIGHT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
@@ -2853,47 +2874,75 @@ int app_main(void)
 				else
 				{
 					if (cur_outsidelight==(uint16_t)0xffff) {
+						sprintf(tmp_str,"outside=---",ch);
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						transmit_value[0]=1;
 						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
 						reinit_i2c(&hi2c3);
 					}
 					else
 					{
+						sprintf(tmp_str,"outside=%d",cur_outsidelight);
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						transmit_value[0]=cur_outsidelight>>8;
 						transmit_value[1]=cur_outsidelight&0xff;
 						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_LIGHT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
 					}
 				}
+				glcd_refresh();
 				break;
 			case TYPE_MB_VOLTAGE:
+					sprintf(tmp_str,"read Voltage%d",ch);
+					draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 					if (cur_voltage[ch]==-1.0) {
+						sprintf(tmp_str,"Voltage%d=---",ch);
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						transmit_value[0]=1;
 						uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
 						reinit_i2c(&hi2c3);
 					}
 					else
 					{
+						sprintf(tmp_str,"Voltage%d=%.2f",ch,(double)cur_voltage[ch]);
+						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 						tmp_uint16=(uint16_t)(cur_voltage[ch]*100.0);
 						transmit_value[0]=tmp_uint16>>8;
 						transmit_value[1]=tmp_uint16&0xff;
 						uart_transmit_frame_MB(&huart3, 2, TYPE_MB_VOLTAGE, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
 					}
+					glcd_refresh();
 				break;
 			case TYPE_MB_CURRENT:
+				sprintf(tmp_str,"read Current%d",ch);
+				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 				if (cur_current[ch]==-1.0) {
+					sprintf(tmp_str,"Current%d=---",ch);
+					draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 					transmit_value[0]=1;
 					uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
 					reinit_i2c(&hi2c3);
 				}
 				else
 				{
+					sprintf(tmp_str,"Current%d=%.2f",ch,(double)cur_current[ch]);
+					draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
 					tmp_uint16=(uint16_t)(cur_current[ch]*100.0);
 					transmit_value[0]=tmp_uint16>>8;
 					transmit_value[1]=tmp_uint16&0xff;
 					uart_transmit_frame_MB(&huart3, 2, TYPE_MB_CURRENT, received_frame_MB[INDEX_CHANNEL_BYTE], transmit_value);
 				}
+				glcd_refresh();
 				break;
 			case TYPE_MB_LED:
+				pca9632_init();
+				sprintf(tmp_str,"Set Led%d",ch);
+				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
+
+				sprintf(tmp_str,"brightness=%d%%",received_frame_MB[INDEX_VALUE_BYTE]);
+				draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
+				sprintf(tmp_str,"blinking=%.1f s",(double)tmp_uint16/10.0);
+				draw_text(tmp_str, 5, 50, Tahoma8, 1, 0);
+
 				if(ch==0)
 				{
 					tmp_uint16=((uint16_t)received_frame_MB[INDEX_VALUE_BYTE+1]<<8)+received_frame_MB[INDEX_VALUE_BYTE+2];
@@ -2923,19 +2972,26 @@ int app_main(void)
 					}
 
 				}
+				glcd_refresh();
 				break;
 			case TYPE_MB_FAN:
+
 				if(received_frame_MB[INDEX_VALUE_BYTE])
 				{
+					sprintf(tmp_str,"set fan ON");
+					draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 					FAN_ON();
 
 				}
 				else
 				{
+					sprintf(tmp_str,"set fan OFF");
+
 					FAN_OFF();
 				}
 				transmit_value[0]=0;
 				uart_transmit_frame_MB(&huart3, 1, TYPE_MB_ERROR,ch, transmit_value);
+				glcd_refresh();
 				break;
 			}
 		}
