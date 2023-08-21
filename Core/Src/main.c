@@ -2829,6 +2829,10 @@ int app_main(void)
 			case TYPE_MB_TEMPERATURE:
 				sprintf(tmp_str,"read temp%d",ch);
 				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
+				tmp275_init(ch);
+				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
+					cur_temperature[i] = (int16_t) 0x8fff;
+				}
 
 				if (cur_temperature[ch]==(int16_t)0x8fff) {
 					sprintf(tmp_str,"T%d=---",ch);
@@ -2854,6 +2858,12 @@ int app_main(void)
 				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 				if(ch==0)
 				{
+					vcnl4200_init();
+					if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
+						cur_insidelight = 0xffff;
+						reinit_i2c(&hi2c3);
+					}
+
 					if (cur_insidelight==(uint16_t)0xffff) {
 						sprintf(tmp_str,"inside=---");
 						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
@@ -2873,6 +2883,10 @@ int app_main(void)
 				}
 				else
 				{
+					veml6030_init();
+					if (veml6030_als(&cur_outsidelight) != HAL_OK) {
+						cur_outsidelight = 0xffff;
+					}
 					if (cur_outsidelight==(uint16_t)0xffff) {
 						sprintf(tmp_str,"outside=---",ch);
 						draw_text(tmp_str, 5, 30, Tahoma8, 1, 0);
