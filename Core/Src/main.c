@@ -2830,8 +2830,8 @@ int app_main(void)
 				sprintf(tmp_str,"read temp%d",ch);
 				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 				tmp275_init(ch);
-				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
-					cur_temperature[i] = (int16_t) 0x8fff;
+				if (tmp275_readTemperature(ch, &cur_temperature[ch]) != HAL_OK) {
+					cur_temperature[ch] = (int16_t) 0x8fff;
 				}
 
 				if (cur_temperature[ch]==(int16_t)0x8fff) {
