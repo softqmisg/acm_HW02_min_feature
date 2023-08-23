@@ -2830,6 +2830,7 @@ int app_main(void)
 				sprintf(tmp_str,"read temp%d",ch);
 				draw_text(tmp_str, 5, 10, Tahoma8, 1, 0);
 				tmp275_init(ch);
+				HAL_Delay(50);
 				if (tmp275_readTemperature(ch, &cur_temperature[ch]) != HAL_OK) {
 					cur_temperature[ch] = (int16_t) 0x8fff;
 				}
@@ -2859,6 +2860,7 @@ int app_main(void)
 				if(ch==0)
 				{
 					vcnl4200_init();
+					HAL_Delay(50);
 					if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 						cur_insidelight = 0xffff;
 						reinit_i2c(&hi2c3);
@@ -2884,6 +2886,7 @@ int app_main(void)
 				else
 				{
 					veml6030_init();
+					HAL_Delay(50);
 					if (veml6030_als(&cur_outsidelight) != HAL_OK) {
 						cur_outsidelight = 0xffff;
 					}
