@@ -95,8 +95,8 @@ void Error_Handler(void);
 #define uSD_Detect_GPIO_Port GPIOD
 #define ESP32_EN_Pin GPIO_PIN_4
 #define ESP32_EN_GPIO_Port GPIOD
-#define FAN_ONOFF_Pin GPIO_PIN_7
-#define FAN_ONOFF_GPIO_Port GPIOG
+#define FAN_ONOFF_Pin GPIO_PIN_13
+#define FAN_ONOFF_GPIO_Port GPIOF
 #define TEC_ONOFF_Pin GPIO_PIN_13
 #define TEC_ONOFF_GPIO_Port GPIOF
 #define TEC_CURDIR_Pin GPIO_PIN_12
