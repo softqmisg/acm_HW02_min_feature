@@ -161,7 +161,7 @@ FRESULT Log_file(uint8_t drv, uint8_t filetype, char *str_write) {
 			generate_filename(sDate, sTime, filename_volampere);
 			strcpy(filename_tmp, filename_volampere);
 			sprintf(str_tmp,
-					"Date,Time,VOLT(7V),CURRENT(A),VOLT(12V),CURRENT(A),VOLT(3.3V),CURRENT(A),VOLT(TEC),CURRENT(A)\n");
+					"Date,Time,VOLT(7V),CURRENT(A),VOLT(12V),CURRENT(A),VOLT(3.3V),CURRENT(A),VOLT(MB),CURRENT(A)\n");
 
 			if ((fr = file_write(filename_tmp, str_tmp,strlen(str_tmp))) != FR_OK) {
 				printf("writing file error(%d)\n\r", fr);
