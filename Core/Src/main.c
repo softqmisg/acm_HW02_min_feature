@@ -704,7 +704,7 @@ void create_form2(uint8_t clear, double *voltage, double *current) {
 		sprintf(tmp_str, "V=---");
 
 	if (voltage[3] > 0.0)
-		sprintf(tmp_str, "%s     C=%4.1fA", tmp_str, current[3]);
+		sprintf(tmp_str, "%s     C=%3.2fA", tmp_str, current[3]);
 	else
 		sprintf(tmp_str, "%s     C=---", tmp_str);
 	text_cell(pos_, 3, tmp_str, Tahoma8, CENTER_ALIGN, 0, 0);
@@ -714,7 +714,7 @@ void create_form2(uint8_t clear, double *voltage, double *current) {
 	text_cell(pos_, 0, "7.0", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 1, "12", Tahoma8, CENTER_ALIGN, 1, 1);
 	text_cell(pos_, 2, "3.3", Tahoma8, CENTER_ALIGN, 1, 1);
-	text_cell(pos_, 3, "TEC", Tahoma8, CENTER_ALIGN, 1, 1);
+	text_cell(pos_, 3, "MB ", Tahoma8, CENTER_ALIGN, 1, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	glcd_refresh();
 }
@@ -2476,6 +2476,9 @@ int app_main(void)
 	FIL myfile;
 	//////////////////////retarget////////////////
 	RetargetInit(&huart3);
+	//////////////////////////////////////////////
+	MB_ON();
+	MB_PW_START();
 	/////////////////////////transceiver PC<->ESP32/////////////////////////////
 	////////////////////////////////////////////////////////////////////////////
 	printf(
@@ -2490,18 +2493,6 @@ int app_main(void)
 	HAL_GPIO_WritePin(ESP32_EN_GPIO_Port, ESP32_EN_Pin, GPIO_PIN_SET); //enable esp32
 	////////////////////////////////////////////////////////////////
 	HAL_UART_Receive_IT(&huart2, &received_byte, 1);
-//	while(1)
-//	{
-//		if(ESP_validbuffer)
-//		{
-//			ESP_validbuffer=0;
-//			printf("\n\rBuffre_ESP=");
-//			for(uint8_t i=0;i<ESP_buffer[2]+4;i++)
-//				printf("%d,",ESP_buffer[i]);
-//			printf("\n\r");
-//			HAL_UART_Transmit(&huart2, ESP_buffer, ESP_buffer[2]+4, 1000);
-//		}
-//	}
 
 	/////////////////////Turn power off & on USB flash///////////////
 	HAL_GPIO_WritePin(USB_PWR_EN_GPIO_Port, USB_PWR_EN_Pin, GPIO_PIN_SET); //disable
@@ -2520,45 +2511,13 @@ int app_main(void)
 #endif
 
 
-//	if (BSP_SD_IsDetected() == SD_PRESENT) {
-//		HAL_Delay(100);
-//		if (BSP_SD_IsDetected() == SD_PRESENT) {
-//			if (SDFatFS.fs_type == 0) {
-//				HAL_SD_Init(&hsd);
-//				if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 1) == FR_OK) {
-//					printf("mounting SD card\n\r");
-//					bmp_img img;
-//					if (bmp_img_read(&img, "logo.bmp") == BMP_OK) {
-//						draw_bmp_h(0, 0, img.img_header.biWidth,
-//								img.img_header.biHeight, img.img_pixels, 1);
-//						bmp_img_free(&img);
-//					} else
-//						printf("bmp file error\n\r");
-//
-//					create_cell(0, 0, 128, 64, 1, 1, 1, pos_);
-//					glcd_refresh();
-//					HAL_Delay(1000);
-//
-//				} else {
-//					SDFatFS.fs_type = 0;
-//					HAL_SD_DeInit(&hsd);
-//					printf("mounting SD card ERROR\n\r");
-//				}
-//			}
-//		}
-//	} else {
-//		f_mount(NULL, "0:", 0);
-//		SDFatFS.fs_type = 0;
-//		HAL_SD_DeInit(&hsd);
-//	}
-//	glcd_blank();
-
 	draw_bmp_h(0,0,aCAM_logo_128_02_H[0],aCAM_logo_128_02_H[2],&aCAM_logo_128_02_H[4],1);
 	draw_box(0, 0, 127, 63, 1);
 	glcd_refresh();
 	HAL_Delay(2000);
-	glcd_blank();
+
 	///////////////////////initialize & checking sensors///////////////////////////////////////
+#if 0
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
@@ -2642,6 +2601,7 @@ int app_main(void)
 
 	glcd_refresh();
 	HAL_Delay(3000);
+#endif
 	///////////////////////////RTC interrupt enable///////////////////////////////////////////////////
 	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS)
 			!= HAL_OK) {
@@ -2669,7 +2629,7 @@ int app_main(void)
 
 	}
 	update_values();
-
+	glcd_blank();
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	joystick_init(Key_ALL, Both_press);
 	flag_rtc_1s = 1;
@@ -2677,7 +2637,7 @@ int app_main(void)
 	flag_rtc_1s_general = 1;
 	flag_log_data = 1;
 	MENU_state = MAIN_MENU;
-	DISP_state = DISP_IDLE;
+	DISP_state = DISP_FORM2;
 	uint8_t flag_log_param = 1;
 	uint8_t Delay_Astro_calculation = 0, CalcAstro = 0;
 	uint8_t sendready_counter=0,sendready_tick=1;
@@ -2713,13 +2673,16 @@ int app_main(void)
 				sendready_counter=0;
 				sendready_tick=1;
 			}
+
 			/////////////////////read sensors evey 1 s//////////////////////////
+#if 0
 			for (uint8_t i = 0; i < 8; i++) {
 				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 					cur_temperature[i] = (int16_t) 0x8fff;
 				}
 //				HAL_Delay(20);
 			}
+#endif
 			////////////////////////////////////////////////////////////
 			if (ina3221_readdouble((uint8_t) VOLTAGE_7V, &cur_voltage[0])!= HAL_OK) {
 				cur_voltage[0] = -1.0;
@@ -2758,6 +2721,7 @@ int app_main(void)
 				reinit_i2c(&hi2c3);
 			}
 			////////////////////////////////////////////////////////
+#if 0
 			if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 				cur_insidelight = 0xffff;
 				reinit_i2c(&hi2c3);
@@ -2765,6 +2729,7 @@ int app_main(void)
 			if (veml6030_als(&cur_outsidelight) != HAL_OK) {
 				cur_outsidelight = 0xffff;
 			}
+#endif
 		}
 		if (flag_rtc_1m_general) {
 			flag_rtc_1m_general = 0;
@@ -2928,40 +2893,6 @@ int app_main(void)
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
 			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
 
-//			if (RELAY1_Value.active[0])
-//				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,%c%f",
-//						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-//						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-//						RELAY1_Value.Edge[0],
-//						RELAY1_Value.Temperature[0] / 10.0);
-//			else
-//				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY1,--",
-//						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-//						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-//			if (RELAY1_Value.active[1])
-//				sprintf(tmp_str2, "%s,%c%f\n", tmp_str, RELAY1_Value.Edge[1],
-//						RELAY1_Value.Temperature[1] / 10.0);
-//			else
-//				sprintf(tmp_str2, "%s,--\n", tmp_str);
-//			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
-//
-//			if (RELAY2_Value.active[0])
-//				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,%c%f",
-//						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-//						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-//						RELAY2_Value.Edge[0],
-//						RELAY2_Value.Temperature[0] / 10.0);
-//			else
-//				sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,RELAY2,--",
-//						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
-//						cur_time.Hours, cur_time.Minutes, cur_time.Seconds);
-//			if (RELAY2_Value.active[1])
-//				sprintf(tmp_str, "%s,%c%f\n", tmp_str, RELAY2_Value.Edge[1],
-//						RELAY2_Value.Temperature[1] / 10.0);
-//			else
-//				sprintf(tmp_str2, "%s,--\n", tmp_str);
-//			r_logparam = Log_file(SDCARD_DRIVE, PARAMETER_FILE, tmp_str2);
-
 			sprintf(tmp_str2, "%04d-%02d-%02d,%02d:%02d:%02d,Door,%d\n",
 					cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 					cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
@@ -3087,8 +3018,9 @@ int app_main(void)
 						"%04d-%02d-%02d,%02d:%02d:%02d,%f,%f,%f,%f,%f,%f,%f,%f\n",
 						cur_Date.Year + 2000, cur_Date.Month, cur_Date.Date,
 						cur_time.Hours, cur_time.Minutes, cur_time.Seconds,
-						cur_voltage[0], cur_current[0], cur_voltage[1],
-						cur_current[1], cur_voltage[2], cur_current[2],
+						cur_voltage[0], cur_current[0],
+						cur_voltage[1],	cur_current[1],
+						cur_voltage[2], cur_current[2],
 						cur_voltage[3], cur_current[3]);
 				r_logvolt = Log_file(SDCARD_DRIVE, VOLTAMPERE_FILE, tmp_str2);
 
@@ -3101,6 +3033,7 @@ int app_main(void)
 			}
 
 			///////////////////////////change display form////////////////////////////////////////////////
+#if 0
 			if (flag_change_form) {
 				flag_change_form = 0;
 				counter_change_form = 0;
@@ -3155,6 +3088,7 @@ int app_main(void)
 					break;
 				}
 			}
+#endif
 			//////////////////////////////////////////////////////////////////////////////
 			joystick_init(Key_DOWN | Key_TOP | Key_LEFT | Key_RIGHT,
 					Long_press);
@@ -3178,7 +3112,7 @@ int app_main(void)
 					DISP_state = DISP_FORM6;
 					break;
 				case DISP_FORM2:
-					DISP_state = DISP_FORM7;
+					DISP_state = DISP_FORM2;//DISP_FORM7;
 					break;
 				case DISP_FORM3:
 					DISP_state = DISP_FORM1;
@@ -3440,7 +3374,7 @@ int app_main(void)
 						glcd_refresh();
 						HAL_Delay(2000);
 						MENU_state = MAIN_MENU;
-						DISP_state = DISP_IDLE;
+						DISP_state = DISP_FORM2;
 						flag_change_form = 1;
 					} else {
 						menu_page = 0;
@@ -3451,7 +3385,7 @@ int app_main(void)
 					break;
 				case 1:
 					MENU_state = MAIN_MENU;
-					DISP_state = DISP_IDLE;
+					DISP_state = DISP_FORM2;
 					flag_change_form = 1;
 					break;
 				case 2:
@@ -9210,7 +9144,7 @@ int app_main(void)
 			/////////////////////////////////////EXIT_MENU/////////////////////////////////////////////////
 		case EXIT_MENU:
 			MENU_state = MAIN_MENU;
-			DISP_state = DISP_IDLE;
+			DISP_state = DISP_FORM2;
 			flag_change_form = 1;
 			break;
 

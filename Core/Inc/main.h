@@ -116,6 +116,9 @@ void Error_Handler(void);
 #define TEC_HOT()	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port,TEC_CURDIR_Pin,GPIO_PIN_SET)
 #define TEC_COLD()	HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port,TEC_CURDIR_Pin,GPIO_PIN_RESET)
 
+#define MB_ON()			HAL_GPIO_WritePin(TEC_CURDIR_GPIO_Port,TEC_CURDIR_Pin,GPIO_PIN_SET)
+#define MB_PW_START() 	HAL_GPIO_WritePin(TEC_ONOFF_GPIO_Port,TEC_ONOFF_Pin,GPIO_PIN_SET)
+
 #define BLINK_MAX	100// second *10 =>blink_max= 10s
 #define BLINK_MIN	0 //blinkoff
 
