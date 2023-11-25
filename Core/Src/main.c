@@ -2517,7 +2517,7 @@ int app_main(void)
 	HAL_Delay(2000);
 
 	///////////////////////initialize & checking sensors///////////////////////////////////////
-#if 0
+#if 1
 	create_cell(0, 0, 128, 64, 4, 2, 1, pos_);
 	uint8_t ch, inv;
 	for (ch = TMP_CH0; ch <= TMP_CH7; ch++) {
@@ -2675,7 +2675,7 @@ int app_main(void)
 			}
 
 			/////////////////////read sensors evey 1 s//////////////////////////
-#if 0
+#if 1
 			for (uint8_t i = 0; i < 8; i++) {
 				if (tmp275_readTemperature(i, &cur_temperature[i]) != HAL_OK) {
 					cur_temperature[i] = (int16_t) 0x8fff;
@@ -2721,7 +2721,7 @@ int app_main(void)
 				reinit_i2c(&hi2c3);
 			}
 			////////////////////////////////////////////////////////
-#if 0
+#if 1
 			if (vcnl4200_ps(&cur_insidelight) != HAL_OK) {
 				cur_insidelight = 0xffff;
 				reinit_i2c(&hi2c3);
@@ -2743,6 +2743,7 @@ int app_main(void)
 			}
 		}
 		/////////////////////send sensor data to ESP32:every 10s///////////////////////////
+#if 0
 		if (flag_rtc_10s_general) {
 			flag_rtc_10s_general = 0;
 			////////////////Temperature//////////////////////////
@@ -2813,7 +2814,7 @@ int app_main(void)
 				uart_transmit_frame(tmp_str2, cmd_event, CVEvent);
 			}
 		}
-
+#endif
 		/////////////////////check door state & LOG//////////////////////////////////
 		if (cur_insidelight > DOOR_Value) {
 			cur_doorstate = 0;
